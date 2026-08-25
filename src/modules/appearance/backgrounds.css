@@ -116,6 +116,16 @@
   resize: vertical;
 }
 
+.backgroundShared {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
 .backgroundCssActions {
   display: flex;
   gap: 8px;

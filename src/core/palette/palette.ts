@@ -18,6 +18,10 @@ export const backgroundFits: BackgroundFit[] = ['center', 'cover', 'contain', 's
  * as-is. Both are reject-the-whole-thing: anything off the allowlist, or CSS that closes its own
  * scope early, renders nothing rather than a half-applied result.
  *
+ * Both name the slot's image the same way, `<img src="image.jpg">` and `url(image.jpg)`, and both
+ * fall back to the baseline's when empty. That is how one pair of boxes on `all` dresses all four
+ * slots while each slot supplies its own picture.
+ *
  * The Backgrounds panel is the only editor in the app that doesn't autosave. These two fields are
  * why: the layer previews the drafts live, and Apply is the separate step that writes them, so an
  * experiment that went wrong is gone on reload instead of stored.

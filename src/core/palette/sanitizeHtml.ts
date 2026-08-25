@@ -42,6 +42,10 @@ export interface SanitizeResult {
  * in IndexedDB as a data URL with no path a user could type, so the HTML box needs a name to point
  * at; there is only ever one image per slot, so one name is enough. Bare `image` counts too, since
  * the extension carries no meaning here.
+ *
+ * The CSS box takes the same name inside `url(…)` — see `substituteImageUrl` in scopeCss.ts, which
+ * asks this. One name across both boxes is what lets the four slots share a single set of HTML and
+ * CSS and each still paint its own picture.
  */
 const imageRef = /^image(\.(jpe?g|png|gif|webp|avif|svg))?$/i
 

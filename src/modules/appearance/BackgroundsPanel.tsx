@@ -32,6 +32,24 @@ const fitLabel: Record<BackgroundFit, string> = {
 /** How long after the last keystroke the layer picks up the drafts. */
 const previewDelay = 250
 
+type Drafts = Record<BackgroundSlot, { css: string; html: string }>
+
+function draftsFor(backgrounds: Record<BackgroundSlot, Background>): Drafts {
+  return Object.fromEntries(
+    backgroundSlots.map((id) => [id, { css: backgrounds[id].css, html: backgrounds[id].html }]),
+  ) as Drafts
+}
+
+/** A slot keeps its own HTML and CSS when either one is stored; empty is what falls it back to the
+ *  baseline's pair, so that's the same question asked of the stored row. */
+function separateFor(
+  backgrounds: Record<BackgroundSlot, Background>,
+): Record<BackgroundSlot, boolean> {
+  return Object.fromEntries(
+    backgroundSlots.map((id) => [id, backgrounds[id].css !== '' || backgrounds[id].html !== '']),
+  ) as Record<BackgroundSlot, boolean>
+}
+
 export default function BackgroundsPanel() {
   const { palette, locked, patch } = usePaletteEditor()
   const images = useBackgroundImages((s) => s.images)
@@ -46,16 +64,21 @@ export default function BackgroundsPanel() {
   // The layer previews them live; Apply is what writes them to the palette.
   // Kept per slot so flipping sub-tabs doesn't throw away unapplied text — leaving the Backgrounds
   // tab unmounts this panel, which is what clears them.
-  const [drafts, setDrafts] = useState<Record<BackgroundSlot, { css: string; html: string }>>(() =>
-    Object.fromEntries(
-      backgroundSlots.map((id) => [id, { css: palette.backgrounds[id].css, html: palette.backgrounds[id].html }]),
-    ) as Record<BackgroundSlot, { css: string; html: string }>,
-  )
-  const { css: cssDraft, html: htmlDraft } = drafts[slot]
+  const [drafts, setDrafts] = useState(() => draftsFor(palette.backgrounds))
+  // Which slots keep HTML and CSS of their own. The rest edit the "All pages" set, so one stylesheet
+  // covers every page and each page only supplies its own image. Stored state is the empty string:
+  // resolveBackground falls a slot back to the baseline's css/html when its own are empty. This is
+  // the panel's read of that, held separately so turning it on can seed the boxes before anything is
+  // written — a draft the user may still discard.
+  const [separate, setSeparate] = useState(() => separateFor(palette.backgrounds))
+
+  // The slot the boxes below actually edit: this one when it keeps its own, the baseline otherwise.
+  const editSlot: BackgroundSlot = slot === 'all' || separate[slot] ? slot : 'all'
+  const { css: cssDraft, html: htmlDraft } = drafts[editSlot]
   const setCssDraft = (css: string) =>
-    setDrafts((d) => ({ ...d, [slot]: { ...d[slot], css } }))
+    setDrafts((d) => ({ ...d, [editSlot]: { ...d[editSlot], css } }))
   const setHtmlDraft = (html: string) =>
-    setDrafts((d) => ({ ...d, [slot]: { ...d[slot], html } }))
+    setDrafts((d) => ({ ...d, [editSlot]: { ...d[editSlot], html } }))
 
   // Checked on every keystroke rather than on Apply: the drafts are already on screen, so the reason
   // nothing rendered belongs next to the box that caused it.
@@ -77,43 +100,56 @@ export default function BackgroundsPanel() {
   // Switching preset abandons drafts. Only the palette row: keying on the backgrounds object would
   // reset the drafts every time one of the autosaving controls above wrote to it.
   useEffect(() => {
-    setDrafts(
-      Object.fromEntries(
-        backgroundSlots.map((id) => [
-          id,
-          { css: palette.backgrounds[id].css, html: palette.backgrounds[id].html },
-        ]),
-      ) as Record<BackgroundSlot, { css: string; html: string }>,
-    )
+    setDrafts(draftsFor(palette.backgrounds))
+    setSeparate(separateFor(palette.backgrounds))
   }, [palette.id]) // eslint-disable-line
 
   // Live preview. Debounced so a keystroke doesn't restyle mid-word, and in memory only — a reload
   // drops it, which is still the way out of css that made the page unreadable.
+  // The preview replaces the slot's stored pair outright, so the baseline fallback has to be applied
+  // here too — the same field-by-field `own || base` resolveBackground uses. Without it a slot with
+  // its own pair emptied out would preview a bare layer and then paint the baseline's once saved.
+  const previewCss = editSlot === 'all' ? cssDraft : cssDraft || drafts.all.css
+  const previewHtml = editSlot === 'all' ? htmlDraft : htmlDraft || drafts.all.html
+
   useEffect(() => {
-    const timer = setTimeout(() => setPreview(slot, cssDraft, htmlDraft), previewDelay)
+    const timer = setTimeout(() => setPreview(slot, previewCss, previewHtml), previewDelay)
     return () => clearTimeout(timer)
-  }, [slot, cssDraft, htmlDraft, setPreview])
+  }, [slot, previewCss, previewHtml, setPreview])
 
   // Leaving the panel hands the layer back to what's saved.
   useEffect(() => () => clearPreview(), [clearPreview])
 
-  const cssDirty = cssDraft !== background.css
-  const htmlDirty = htmlDraft !== background.html
-  const dirty = cssDirty || htmlDirty
+  const edited = palette.backgrounds[editSlot]
+  const dirty = cssDraft !== edited.css || htmlDraft !== edited.html
   // Both inputs are reject-the-whole-thing: nothing is saved (or rendered) until they're clean.
   const canApply = dirty && !locked && invalidHtml.length === 0 && !cssEscaped
 
-  const patchSlot = (fields: Partial<Background>) =>
-    patch({ backgrounds: { ...palette.backgrounds, [slot]: { ...background, ...fields } } })
+  const patchSlot = (fields: Partial<Background>, id: BackgroundSlot = slot) =>
+    patch({ backgrounds: { ...palette.backgrounds, [id]: { ...palette.backgrounds[id], ...fields } } })
 
   const apply = () => {
     if (!canApply) return
-    patchSlot({ css: cssDraft, html: htmlDraft })
+    patchSlot({ css: cssDraft, html: htmlDraft }, editSlot)
   }
 
   const discard = () => {
-    setCssDraft(background.css)
-    setHtmlDraft(background.html)
+    setCssDraft(edited.css)
+    setHtmlDraft(edited.html)
+  }
+
+  // Turning it on only seeds the boxes from the shared set; Apply is still what writes them, so a
+  // copy the user decides against never reaches the palette. Turning it off drops the slot's own
+  // pair, which is what puts it back on the shared one.
+  const toggleSeparate = () => {
+    if (locked) return
+    const own = !separate[slot]
+    setSeparate((s) => ({ ...s, [slot]: own }))
+    if (own) setDrafts((d) => ({ ...d, [slot]: { ...d.all } }))
+    else {
+      setDrafts((d) => ({ ...d, [slot]: { css: '', html: '' } }))
+      patchSlot({ css: '', html: '' })
+    }
   }
 
   return (
@@ -135,8 +171,8 @@ export default function BackgroundsPanel() {
 
       <p className="backgroundsHint">
         {slot === 'all'
-          ? 'Applies to every page unless a page sets its own.'
-          : `Applies to ${slotLabel[slot]}. Leave empty to use the one from "All pages".`}
+          ? 'Applies to every page unless a page sets its own image.'
+          : `Applies to ${slotLabel[slot]}. With no image here, the one from "All pages" is used.`}
       </p>
 
       <div className="backgroundsLayout">
@@ -218,6 +254,19 @@ export default function BackgroundsPanel() {
 
         <div className="backgroundsRight">
           <div className="backgroundCss">
+            {slot !== 'all' && (
+              <div className="backgroundShared">
+                <span>
+                  {separate[slot]
+                    ? `HTML and CSS for ${slotLabel[slot]} only.`
+                    : 'Editing the HTML and CSS shared by every page.'}
+                </span>
+                <button type="button" className="secondary" disabled={locked} onClick={toggleSeparate}>
+                  {separate[slot] ? 'Use the shared HTML and CSS' : 'Use separate HTML and CSS'}
+                </button>
+              </div>
+            )}
+
             <label className="grow">
               HTML
               <textarea
@@ -236,7 +285,8 @@ export default function BackgroundsPanel() {
               you remove it. Put CSS in the CSS box, not in a <code>&lt;style&gt;</code> tag.
             </p>
             <p className="backgroundsHint">
-              <code>&lt;img src="image.jpg"&gt;</code> loads this slot's image.
+              <code>&lt;img src="image.jpg"&gt;</code> in the HTML and <code>url(image.jpg)</code> in
+              the CSS load the image of the page being viewed.
             </p>
             {invalidHtml.length > 0 && (
               <p className="backgroundCssInvalid">Not allowed: {invalidHtml.join(', ')}</p>
