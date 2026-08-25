@@ -51,6 +51,7 @@ export function narratorCharacter(): Character {
     activeDescriptionIndex: -1,
     alternateGreetings: [],
     gallery: [],
+    tags: [],
     createdAt: 0,
     updatedAt: 0,
     colors: emptyColors(),

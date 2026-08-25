@@ -8,5 +8,5 @@
   "main": "src/coming-soon.js",
   "compatibility_date": "2026-01-01",
   "workers_dev": false,
-  "routes": [{ "pattern": "nessuvia.world/*", "zone_name": "nessuvia.world" }]
+  "routes": [{ "pattern": "nessuvia.com/*", "zone_name": "nessuvia.com" }]
 }

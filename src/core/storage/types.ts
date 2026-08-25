@@ -17,6 +17,9 @@ export interface Character {
   // the bytes belong in a `galleryImages` table keyed on characterId (not on this record, which
   // every list load pulls in full) and this becomes an array of {url} | {imageId} objects.
   gallery: string[]
+  // Free-text tags. Order matters: tags[0] is the character's group in the picker's grouped view.
+  // Unindexed on purpose — the whole roster is in memory, so filtering is an array pass.
+  tags: string[]
   rawCard?: unknown // original parsed card, untouched
   paramOverrides?: ParamOverrides
   stackId?: number // declared now, no UI until it's wanted

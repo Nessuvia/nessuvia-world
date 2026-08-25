@@ -23,6 +23,9 @@
 
   --accent: #6c6cff;
   --danger: #ff8a8a;
+  /* Not palette-driven, unlike --danger: no palette file carries it, so it holds steady across
+     themes. Picked to stay legible on both light and dark surfaces. */
+  --success: #3fa96a;
 
   /* Backtick spans and fenced blocks in messages. Fixed, not palette-driven: a palette's text
      colors are for prose, and code has to stay readable against its own background. */

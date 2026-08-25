@@ -45,6 +45,9 @@ export function importCard(json: unknown): Character {
       ? d.alternate_greetings.filter((g): g is string => typeof g === 'string')
       : [],
     gallery: [],
+    // Verbatim: no case folding, no dedupe, no cap. Card sites emit junk, and the review screen on
+    // import plus the Tags page are where that gets sorted out — not here.
+    tags: Array.isArray(d.tags) ? d.tags.filter((t): t is string => typeof t === 'string') : [],
     rawCard: json,
     // Absent unless the card actually carried a book, so an empty one never shows up in the UI.
     worldBook: hasBook(json) ? importBook(json).book : undefined,

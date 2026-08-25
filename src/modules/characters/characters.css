@@ -599,3 +599,55 @@
     max-width: 92vw;
   }
 }
+
+/* ---- Tag chips (Details tab) --------------------------------------------- */
+
+.tagChipsField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tagChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tagChips:empty {
+  display: none;
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
+  background: var(--surfaceActive);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: grab;
+}
+
+/* The first chip decides the character's group in the picker, so it reads differently. */
+.tagChip:first-child {
+  border-color: var(--borderAccent);
+}
+
+.tagChip.dragOver {
+  border-color: var(--accent);
+}
+
+.characters .tagChip button {
+  display: inline-flex;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+.characters .tagChip button:hover {
+  color: var(--danger);
+}

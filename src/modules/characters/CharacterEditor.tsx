@@ -10,6 +10,7 @@ import { Avatar } from '../../app/Avatar'
 import { RiDeleteBinLine, RiImageCircleLine, RiUploadLine } from '@remixicon/react'
 import { exportCardJson, exportCardPng } from './exportCard'
 import LorebookTab from './LorebookTab'
+import TagChips from './TagChips'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 
@@ -42,6 +43,8 @@ export default function CharacterEditor({
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [galleryUrl, setGalleryUrl] = useState('')
+  // Uncommitted text in the Avatar URL field; null means the field shows `draft.avatar`.
+  const [urlDraft, setUrlDraft] = useState<string | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [exportError, setExportError] = useState('')
   const exportRef = useCloseOnOutside<HTMLSpanElement>(exportOpen, () => setExportOpen(false))
@@ -101,6 +104,26 @@ export default function CharacterEditor({
     const reader = new FileReader()
     reader.onload = () => setCropSrc(String(reader.result))
     reader.readAsDataURL(file)
+  }
+
+  // Swapping the avatar keeps the outgoing one: it moves into the gallery so an uploaded PNG isn't
+  // lost when the avatar is pointed at a URL. The crop rect goes with the avatar, not the gallery.
+  function setAvatar(url: string, crop?: Character['avatarCrop']) {
+    const old = draft!.avatar
+    const gallery =
+      old && old !== url && !draft!.gallery.includes(old)
+        ? [...draft!.gallery, old]
+        : draft!.gallery
+    change({ ...draft!, avatar: url, avatarCrop: crop, gallery })
+  }
+
+  // The URL field commits on blur/Enter rather than per keystroke — otherwise every character typed
+  // would count as an avatar swap and drop a half-typed url into the gallery.
+  function commitAvatarUrl() {
+    if (urlDraft === null) return
+    const url = urlDraft.trim()
+    setUrlDraft(null)
+    if (url !== draft!.avatar) setAvatar(url)
   }
 
   const variants = draft.altDescriptions
@@ -200,7 +223,7 @@ export default function CharacterEditor({
                   )}
                   <button
                     type="button"
-                    onClick={() => change({ ...draft, avatar: '', avatarCrop: undefined })}
+                    onClick={() => setAvatar('')}
                   >
                     Remove
                   </button>
@@ -246,8 +269,10 @@ export default function CharacterEditor({
             <input
               type="url"
               placeholder="https://"
-              value={draft.avatar.startsWith('data:') ? '' : draft.avatar}
-              onChange={(e) => change({ ...draft, avatar: e.target.value.trim(), avatarCrop: undefined })}
+              value={urlDraft ?? (draft.avatar.startsWith('data:') ? '' : draft.avatar)}
+              onChange={(e) => setUrlDraft(e.target.value)}
+              onBlur={commitAvatarUrl}
+              onKeyDown={(e) => e.key === 'Enter' && commitAvatarUrl()}
             />
           </label>
           {draft.avatar && !draft.avatar.startsWith('data:') && (
@@ -473,7 +498,7 @@ export default function CharacterEditor({
                           (crop is dropped — it framed a different image). */}
                       <button
                         type="button"
-                        onClick={() => change({ ...draft, avatar: url, avatarCrop: undefined })}
+                        onClick={() => setAvatar(url)}
                       >
                         <RiImageCircleLine size={14} />
                       </button>
@@ -504,6 +529,11 @@ export default function CharacterEditor({
 
       {current === 'Details' && (
         <>
+          <label>
+            Tags
+            <TagChips tags={draft.tags ?? []} onChange={(tags) => set('tags', tags)} />
+          </label>
+
           <label>
             Personality
             <textarea
@@ -558,7 +588,7 @@ export default function CharacterEditor({
           initialCrop={cropSrc === draft.avatar ? draft.avatarCrop : undefined}
           onCancel={() => setCropSrc(null)}
           onConfirm={({ crop }) => {
-            change({ ...draft, avatar: cropSrc, avatarCrop: crop })
+            setAvatar(cropSrc, crop)
             setCropSrc(null)
           }}
         />

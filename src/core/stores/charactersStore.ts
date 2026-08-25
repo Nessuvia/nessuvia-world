@@ -25,6 +25,7 @@ export function newCharacter(): Character {
     activeDescriptionIndex: -1,
     alternateGreetings: [],
     gallery: [],
+    tags: [],
     createdAt: 0,
     updatedAt: 0,
     colors: emptyColors(),
@@ -42,8 +43,10 @@ interface CharactersState {
   load(): Promise<void>
   save(character: Character): Promise<number>
   /** The one card-import path: saves the character, then its lorebook against the new id. Every
-   *  caller goes through here so no import route can quietly drop a book. */
-  importCharacter(json: unknown, avatar?: string): Promise<number>
+   *  caller goes through here so no import route can quietly drop a book.
+   *  `tags` overrides whatever the card carried — the import review screen passes the ones the user
+   *  kept. Omitted (seeding, cards with no tags) means the card's own tags stand. */
+  importCharacter(json: unknown, avatar?: string, tags?: string[]): Promise<number>
   remove(id: number): Promise<void>
 }
 
@@ -76,6 +79,7 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
     for (const c of rows) {
       c.colors = { ...emptyColors(), ...c.colors }
       c.gallery = c.gallery ?? []
+      c.tags = c.tags ?? []
     }
     set({ characters: rows, loading: false })
   },
@@ -88,8 +92,12 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
     return id
   },
 
-  importCharacter: async (json, avatar) => {
-    const id = await get().save({ ...importCard(json), ...(avatar ? { avatar } : {}) })
+  importCharacter: async (json, avatar, tags) => {
+    const id = await get().save({
+      ...importCard(json),
+      ...(avatar ? { avatar } : {}),
+      ...(tags ? { tags } : {}),
+    })
     const { entries } = importBook(json)
     if (entries.length) await useWorldInfo.getState().addAll(id, entries)
     return id

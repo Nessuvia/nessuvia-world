@@ -7,9 +7,6 @@ Multiplayer Related:
 - Once the session chat is done and the host is looking at the chat created, it would be nice if there was an icon next to human user's usernames to show it was a message from a multiplayer session. Honestly the fact that usernames survive once the session is over is great; perhaps we can add a field to the message object for human/LLM sent, and owner/guest to mark human messages sent by others.
 - RESUME SESSION / CREATE SESSION FROM EXISTING CHAT (list current characters, guests can pick and those names match up)
 
-Chat -> Character landing page:
-- When changing avatar do not get rid of original saved avatar
-
 Chat homepage:
 - Chat groups / Character tagging (ie. "Konosuba", "Video Games", "Goonslop my beloved", etc.)
 - Import integration with https://aicharactercards.com/
