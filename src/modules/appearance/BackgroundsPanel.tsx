@@ -27,6 +27,7 @@ const fitLabel: Record<BackgroundFit, string> = {
   contain: 'Fit',
   stretch: 'Stretch',
   tile: 'Tile',
+  none: 'None',
 }
 
 /** How long after the last keystroke the layer picks up the drafts. */
@@ -240,6 +241,9 @@ export default function BackgroundsPanel() {
               ))}
             </select>
           </label>
+          {background.fit === 'none' && (
+            <p className="hint">Hides uploaded images; for using with custom HTML/CSS</p>
+          )}
 
           <label className="backgroundExcludeNav">
             <input

@@ -389,6 +389,7 @@ const sized: [Parameters<typeof fitStyle>[0], string, string][] = [
   ['center', 'auto', 'no-repeat'],
   ['stretch', '100% 100%', 'no-repeat'],
   ['tile', 'auto', 'repeat'],
+  ['none', 'auto', 'no-repeat'],
 ]
 for (const [fit, size, repeat] of sized) {
   assert.deepStrictEqual(fitStyle(fit), {

@@ -2,10 +2,10 @@
 
 /** The four background slots: a baseline for every page, and one per interacting page. */
 export type BackgroundSlot = 'all' | 'chat' | 'write' | 'prompts'
-export type BackgroundFit = 'center' | 'cover' | 'contain' | 'stretch' | 'tile'
+export type BackgroundFit = 'center' | 'cover' | 'contain' | 'stretch' | 'tile' | 'none'
 
 export const backgroundSlots: BackgroundSlot[] = ['all', 'chat', 'write', 'prompts']
-export const backgroundFits: BackgroundFit[] = ['center', 'cover', 'contain', 'stretch', 'tile']
+export const backgroundFits: BackgroundFit[] = ['center', 'cover', 'contain', 'stretch', 'tile', 'none']
 
 /**
  * One page's background layer. `imageId` points at a row in the `backgroundImages` table (the bytes
@@ -328,6 +328,8 @@ export function fitStyle(fit: BackgroundFit): {
   backgroundPosition: string
 } {
   const at = { backgroundPosition: 'center' }
+  // 'none' hides the image entirely, so the caller skips the style object; this is just a safe value.
+  if (fit === 'none') return { backgroundSize: 'auto', backgroundRepeat: 'no-repeat', ...at }
   if (fit === 'tile') return { backgroundSize: 'auto', backgroundRepeat: 'repeat', ...at }
   if (fit === 'stretch') return { backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', ...at }
   if (fit === 'center') return { backgroundSize: 'auto', backgroundRepeat: 'no-repeat', ...at }

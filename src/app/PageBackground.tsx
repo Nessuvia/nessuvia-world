@@ -240,7 +240,7 @@ function BackgroundLayer({ spec, leaving }: { spec: LayerSpec; leaving: boolean 
         ref={layer}
         className={`pageBackground pageBackground-${spec.slot}`}
         style={
-          spec.src
+          spec.src && spec.fit !== 'none'
             ? { backgroundImage: `url("${cssUrl(spec.src)}")`, ...fitStyle(spec.fit) }
             : undefined
         }
