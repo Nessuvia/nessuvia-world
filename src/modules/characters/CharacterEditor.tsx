@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { newCharacter, useCharacters } from '../../core/stores/charactersStore'
 import { useSettings } from '../../core/stores/settingsStore'
 import { ColorInput } from '../../app/ColorInput'
@@ -7,7 +7,14 @@ import ParamEditor from './ParamEditor'
 import AvatarCropDialog from './AvatarCropDialog'
 import GalleryLightbox from './GalleryLightbox'
 import { Avatar } from '../../app/Avatar'
-import { RiDeleteBinLine, RiImageCircleLine, RiUploadLine } from '@remixicon/react'
+import {
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiDeleteBinLine,
+  RiImageCircleLine,
+  RiUploadLine,
+} from '@remixicon/react'
+import { edgeState, type EdgeState } from './tabScroll'
 import { exportCardJson, exportCardPng } from './exportCard'
 import LorebookTab from './LorebookTab'
 import TagChips from './TagChips'
@@ -82,6 +89,57 @@ export default function CharacterEditor({
     const timer = setTimeout(persist, 1000)
     return () => clearTimeout(timer)
   }, [saved, draft, save, onCreated])
+
+  // The tab bar scrolls sideways on a phone. Two things are in the way: .appShell sets
+  // `touch-action: pan-y pinch-zoom` so the browser never pans this on its own, and the navbar's
+  // swipe (useSideDrawer) listens on document and would open the drawer instead. `data-noSwipe`
+  // handles the second; driving scrollLeft from the touch deltas handles the first.
+  //
+  // Above the `if (!draft)` return below, because hooks have to run every render.
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState<EdgeState>({ atStart: true, atEnd: true, scrollable: false })
+
+  useEffect(() => {
+    const el = tabsRef.current
+    if (!el) return
+    const sync = () => setEdges(edgeState(el.scrollLeft, el.scrollWidth, el.clientWidth))
+    sync()
+
+    let x0 = 0
+    let left0 = 0
+    let live = false
+    const start = (e: TouchEvent) => {
+      live = e.touches.length === 1
+      if (!live) return
+      x0 = e.touches[0].clientX
+      left0 = el.scrollLeft
+    }
+    const move = (e: TouchEvent) => {
+      if (live) el.scrollLeft = left0 - (e.touches[0].clientX - x0)
+    }
+    const end = () => {
+      live = false
+    }
+
+    // Passive throughout: nothing here calls preventDefault, and the drawer already stood down.
+    el.addEventListener('scroll', sync, { passive: true })
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: true })
+    el.addEventListener('touchend', end, { passive: true })
+    el.addEventListener('touchcancel', end, { passive: true })
+    // Rotating the phone or crossing the breakpoint changes whether it overflows at all.
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', sync)
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end)
+      el.removeEventListener('touchcancel', end)
+      ro.disconnect()
+    }
+    // The bar only exists once the draft loads, and the extra tab comes and goes with the viewport.
+  }, [draft !== null, extraTab?.label])
 
   if (!draft) return <p className="placeholder">Loading…</p>
 
@@ -161,19 +219,24 @@ export default function CharacterEditor({
   return (
     <div className="characters characterEditor screenFrame">
       <div className="charactersHeader">
-        <div className="editorTabs" role="tablist">
-          {tabList.map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={current === t}
-              className={current === t ? 'editorTab current' : 'editorTab'}
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="editorTabsWrap">
+          <div className="editorTabs" role="tablist" ref={tabsRef} data-noSwipe>
+            {tabList.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={current === t}
+                className={current === t ? 'editorTab current' : 'editorTab'}
+                onClick={() => setTab(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {/* Decoration over a scroller the user drags; the carets aren't buttons. */}
+          {edges.scrollable && !edges.atStart && <RiArrowLeftSLine className="tabsCaret start" size={20} />}
+          {edges.scrollable && !edges.atEnd && <RiArrowRightSLine className="tabsCaret end" size={20} />}
         </div>
         <span className="saveState">
           {draft.name.trim() ? (saved ? 'Saved' : 'Saving…') : 'Name required'}
@@ -203,15 +266,18 @@ export default function CharacterEditor({
             Avatar
             <span className="avatarRow">
               <Avatar of={draft} />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) readAvatar(file)
-                  e.target.value = '' // let the same file re-open the dialog
-                }}
-              />
+              <label className="fileButton">
+                Replace
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) readAvatar(file)
+                    e.target.value = '' // let the same file re-open the dialog
+                  }}
+                />
+              </label>
               {draft.avatar && (
                 <>
                   {/* Cropping re-bakes the pixels, which only works on the uploaded base64 original —

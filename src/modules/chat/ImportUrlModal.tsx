@@ -5,7 +5,8 @@ import { importCard } from '../characters/importCard'
 import { Avatar } from '../../app/Avatar'
 
 /** Import a character card from a URL. Generic URLs must return raw JSON; characterhub.org /
- *  chub.ai character pages are fetched through their download API. Preview validates before Import. */
+ *  chub.ai and aicharactercards.com pages are fetched through their download APIs. Preview
+ *  validates before Import. */
 export default function ImportUrlModal({
   onClose,
   onImport,
@@ -55,8 +56,8 @@ export default function ImportUrlModal({
         </div>
 
         <input
-          type="url"
-          placeholder="Raw JSON link, or a characterhub.org character page"
+          type="text"
+          placeholder="Raw JSON link, a characterhub.org or aicharactercards.com page, or an AICC card id"
           value={url}
           onChange={(e) => {
             setUrl(e.target.value)

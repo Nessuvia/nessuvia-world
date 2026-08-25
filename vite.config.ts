@@ -32,6 +32,17 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    // Dev half of the /aicc/ card download; src/index.js is the Worker half that serves a build.
+    // aicharactercards.com sends no CORS header, so the browser can't fetch it directly.
+    proxy: {
+      '/aicc': {
+        target: 'https://aicharactercards.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/aicc/, '/wp-json/pngapi/v1/image'),
+      },
+    },
+  },
   build: {
     // Sized to clear the one chunk that is legitimately huge: the tokenizer's BPE table
     // (~2 MB, see core/prompt/budget.ts), which loads on demand and never blocks first paint.

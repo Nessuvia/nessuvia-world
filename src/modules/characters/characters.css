@@ -98,10 +98,34 @@
 }
 
 /* Tab bar across the top of the character editor. */
+.editorTabsWrap {
+  position: relative;
+  min-width: 0;
+}
+
 .editorTabs {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+/* Carets sit over the ends of the scroller; the component mounts one only when there is more that
+   way. Not interactive — the bar is dragged, and a tap target here would swallow the drag. */
+.tabsCaret {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0.5;
+  color: var(--text);
+}
+
+.tabsCaret.start {
+  left: -2px;
+}
+
+.tabsCaret.end {
+  right: -2px;
 }
 
 .characters button.editorTab {
@@ -272,7 +296,54 @@
 .avatarRow {
   display: flex;
   gap: 10px;
+  row-gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+/* The native file input won't shrink, so it squeezed the buttons beside it. Hide it and style
+   its label to match .characters button. */
+.avatarRow .fileButton input[type='file'] {
+  display: none;
+}
+
+.avatarRow .fileButton {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surfaceRaised);
+  color: var(--text);
+}
+
+.avatarRow .fileButton:hover {
+  background: var(--surfaceActive);
+}
+
+/* ---- Colors fieldset ------------------------------------------------------ */
+
+.colorsGroup {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.colorsGroup legend,
+.colorsGroup > .hint {
+  grid-column: 1 / -1;
+}
+
+/* Swatch over its Clear button, so four columns fit without the row going wide. */
+.colorsGroup .colorInput {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 /* Export sits apart from the avatar image buttons, so it's pushed to the far right. */
@@ -584,6 +655,33 @@
   /* Export loses its far-right push once the row wraps. */
   .avatarRow .exportMenu {
     margin-left: 0;
+  }
+
+  .colorsGroup {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Eight tabs wrapped into three rows here. One scrolling row instead, on its own line below
+     saveState so it gets the full width. */
+  .editorTabsWrap {
+    order: 2;
+    width: 100%;
+  }
+
+  .editorTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* The carets overlap the ends, so the first and last tab need room to clear them. */
+    padding: 0 14px;
+  }
+
+  .editorTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .characters button.editorTab {
+    flex: 0 0 auto;
   }
 
   .galleryGrid img,

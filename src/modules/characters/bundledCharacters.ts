@@ -1,5 +1,5 @@
 import { importCard } from './importCard'
-import { parsePngCard, pngDataUrl } from './pngCard'
+import { parsePngCard, pngDataUrl } from '../../core/connectors/pngCard'
 import type { Character } from '../../core/storage/types'
 
 /**
