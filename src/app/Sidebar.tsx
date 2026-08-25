@@ -403,7 +403,7 @@ export default function Sidebar() {
               made by nessuvia •{' '}
               <a
                 className="sidebarCreditLink"
-                href="https://github.com/Nessuvia/nessuvia-world/wiki"
+                href="https://github.com/Nessuvia/xenia-nessuvia/wiki"
                 target="_blank"
                 rel="noreferrer"
                 title="Wiki on GitHub"

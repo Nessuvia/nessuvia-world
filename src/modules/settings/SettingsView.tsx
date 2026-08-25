@@ -249,17 +249,17 @@ export default function SettingsView() {
         <div className="dialogBackdrop" onClick={() => setResetting(false)}>
           <div className="panel dialog" onClick={(e) => e.stopPropagation()}>
             <h3>Clear all data</h3>
-            <p>This cannot be undone. Type nessuvia-world to confirm.</p>
+            <p>This cannot be undone. Type xenia-nessuvia to confirm.</p>
             <input
               value={resetPhrase}
               onChange={(e) => setResetPhrase(e.target.value)}
-              placeholder="nessuvia-world"
+              placeholder="xenia-nessuvia"
               autoFocus
             />
             <div className="dialogActions">
               <button
                 type="button"
-                disabled={resetPhrase !== 'nessuvia-world'}
+                disabled={resetPhrase !== 'xenia-nessuvia'}
                 onClick={async () => {
                   await wipeEverything()
                   location.reload()
