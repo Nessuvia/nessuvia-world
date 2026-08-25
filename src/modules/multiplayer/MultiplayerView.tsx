@@ -14,6 +14,7 @@ import { RelayNotice, relayNoticeAccepted, acceptRelayNotice } from './RelayNoti
 import { usePersonas } from '../../core/stores/personasStore'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
 import { useDragReorder } from '../../app/useDragReorder'
+import { useMediaQuery } from '../../app/useMediaQuery'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
 import { Avatar } from '../../app/Avatar'
 import '../../app/dragReorder.css'
@@ -70,7 +71,10 @@ function Landing(): JSX.Element {
   // write back to it — the narrower level is the one the user means when they choose a relay for
   // one room. The upgrade path if that turns out wrong is a "remember this" checkbox, not a
   // silent setRelay call.
-  const selfHostedReady = relayConfigured({ kind: 'centrifugo', url: storedRelay.url }, false)
+  // Running a relay needs a PC, so the option is struck out on a phone.
+  const isMobile = useMediaQuery('(max-width: 700px)')
+  const selfHostedReady =
+    !isMobile && relayConfigured({ kind: 'centrifugo', url: storedRelay.url }, false)
   const [relayKind, setRelayKind] = useState<RelayKind>(() => {
     // Land on a relay that can actually open. A build with no Supabase values but a stored URL
     // starts on the self-hosted one, and vice versa.
@@ -268,13 +272,15 @@ function Landing(): JSX.Element {
                   disabled={!selfHostedReady}
                   onChange={() => setRelayKind('centrifugo')}
                 />
-                Your relay
+                {isMobile ? <s>Your relay</s> : 'Your relay'}
               </label>
             </div>
             <p className="pickerHint">
-              {selfHostedReady
-                ? 'Set in Settings, under Multiplayer. Your relay puts its address on the invite link.'
-                : 'Add your own relay in Settings, under Multiplayer.'}
+              {isMobile
+                ? 'Running a relay requires a Windows PC.'
+                : selfHostedReady
+                  ? 'Set in Settings, under Multiplayer. Your relay puts its address on the invite link.'
+                  : 'Add your own relay in Settings, under Multiplayer.'}
             </p>
 
             <label className="pickerCheck">

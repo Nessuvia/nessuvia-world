@@ -8,7 +8,8 @@
   animation: pageLoaderIn 120ms linear 150ms both;
 }
 
-.pageLoader .ri-loader-4-line {
+/* @remixicon/react renders `class="remixicon"`, not the icon's own name. */
+.pageLoader svg {
   animation: pageLoaderSpin 800ms linear infinite;
   color: var(--borderStrong);
 }

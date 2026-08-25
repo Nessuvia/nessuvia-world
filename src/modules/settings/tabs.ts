@@ -2,7 +2,7 @@
 // is lazily loaded.
 export const tabs = [
   ['connections', 'Connections'],
-  ['textRules', 'Text Rules'],
+  ['textRules', 'Text'],
   ['relay', 'Multiplayer'],
-  ['debug', 'Miscellaneous'],
+  ['debug', 'Misc'],
 ] as const

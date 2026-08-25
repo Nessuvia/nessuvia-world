@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { RiCloseLine } from '@remixicon/react'
+import { RiChatSettingsLine, RiCloseLine } from '@remixicon/react'
 import { Avatar } from '../../app/Avatar'
 import { CollapseButton } from '../../app/CollapseButton'
 import { assistantName, useAsk } from '../../core/stores/askStore'
@@ -17,10 +17,13 @@ import EntityPicker, { type PickerItem } from '../../app/EntityPicker'
 import { oldMessageInstruction } from '../../core/prompt/rewrite'
 import { renderText } from '../chat/renderText'
 import MessageBubble, { colorVars } from '../chat/MessageBubble'
+import { useMediaQuery } from '../../app/useMediaQuery'
+import { useSideDrawer } from '../../app/useSideDrawer'
+import '../../app/sideDrawer.css'
 
 // System prompt, the text appended after every message, and the assistant prompt shown once a
 // character is picked. All global settings.
-function AskSettings() {
+function AskSettings({ className, style }: { className: string; style: CSSProperties }) {
   const askSystemPrompt = useSettings((s) => s.askSystemPrompt)
   const askSuffix = useSettings((s) => s.askSuffix)
   const askCharacterId = useSettings((s) => s.askCharacterId)
@@ -28,7 +31,7 @@ function AskSettings() {
   const setAsk = useSettings((s) => s.setAsk)
 
   return (
-    <aside className="panel askSidebar">
+    <aside className={`panel askSidebar ${className}`} style={style}>
       <h3>Ask</h3>
       <label className="askField">
         System prompt
@@ -141,8 +144,16 @@ export default function AskView() {
   const character = characters.find((c) => c.id === askCharacterId)
   // Which turn has the regen modal open. Lives here so an empty composer submit could open it.
   const [rewritingId, setRewritingId] = useState<number | null>(null)
+  const phone = useMediaQuery('(max-width: 700px)')
   // ponytail: session-local, not persisted. Move to settingsStore if it should survive reloads.
-  const [panelOpen, setPanelOpen] = useState(true)
+  // On a phone the panel is a drawer: closed on arrival, swipe from the right edge opens it.
+  const [panelOpen, setPanelOpen] = useState(!phone)
+  const drawer = useSideDrawer({
+    side: 'right',
+    enabled: phone,
+    open: panelOpen,
+    setOpen: setPanelOpen,
+  })
   // Same display pass as Chat: tag rules, replace rules and marker colours all apply here.
   const appearance = useAppearance()
   const palette = usePalette()
@@ -158,6 +169,11 @@ export default function AskView() {
   useEffect(() => {
     loadCharacters()
   }, [loadCharacters])
+
+  // Crossing the phone breakpoint: docked means open, drawer means closed.
+  useEffect(() => {
+    setPanelOpen(!phone)
+  }, [phone])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
@@ -185,17 +201,34 @@ export default function AskView() {
         } as CSSProperties
       }
     >
+      {phone && !panelOpen && (
+        <div className="drawerOpenButtons">
+          <button
+            type="button"
+            className="drawerOpenButton"
+            title="Open Ask panel"
+            aria-label="Open Ask panel"
+            onClick={() => setPanelOpen(true)}
+          >
+            <RiChatSettingsLine size={20} />
+          </button>
+        </div>
+      )}
+
       <div className="askMain">
         <div className="askHeader">
           <CharacterSelect />
           <button type="button" onClick={newChat} disabled={!turns.length && !streaming}>
             New chat
           </button>
-          <CollapseButton
-            label="Ask settings"
-            collapsed={!panelOpen}
-            onToggle={() => setPanelOpen(!panelOpen)}
-          />
+          {/* Phones open the panel with the fixed drawer button instead. */}
+          {!phone && (
+            <CollapseButton
+              label="Ask settings"
+              collapsed={!panelOpen}
+              onToggle={() => setPanelOpen(!panelOpen)}
+            />
+          )}
         </div>
 
         {/* .messageList and the whole MessageBubble chrome come from chat.css. */}
@@ -278,7 +311,8 @@ export default function AskView() {
         </div>
       </div>
 
-      {panelOpen && <AskSettings />}
+      {/* On a phone it stays mounted so it can slide, and the drawer classes park it off-screen. */}
+      {(phone || panelOpen) && <AskSettings className={drawer.className} style={drawer.style} />}
     </div>
   )
 }

@@ -6,11 +6,13 @@ import PageLoader from './PageLoader'
 
 export default function AppRoutes() {
   const writeEnabled = useSettings((s) => s.writeEnabled)
+  const multiplayerEnabled = useSettings((s) => s.multiplayerEnabled)
   const enabledPlugins = useSettings((s) => s.enabledPlugins)
   return (
     <Routes>
       {modules
         .filter((mod) => mod.id !== 'write' || writeEnabled)
+        .filter((mod) => mod.id !== 'multiplayer' || multiplayerEnabled)
         .filter((mod) => isEnabled(mod, enabledPlugins))
         .map((mod) => (
           <Route

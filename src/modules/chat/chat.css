@@ -1088,6 +1088,25 @@
     height: auto;
   }
 
+  /* Two cards per row: auto-fill's 180px floor drops to one column on a phone. Matches the story
+     shelf. The card is content-height here (see the 768px block), so nothing scrolls inside it. */
+  .pickerGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .chatPicker .pickerCard {
+    padding: 12px 8px;
+    min-width: 0;
+  }
+
+  /* A long name has half a phone's width; wrap it rather than push the card wider than its cell. */
+  .pickerCard .characterName,
+  .pickerCard .pickerMeta {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   .chatPickerHeader,
   .chatViewHeader {
     flex-wrap: wrap;

@@ -207,6 +207,8 @@ interface SettingsState {
   openStoryDirectly: boolean
   /** Write mode on. Off hides the Write tab and route and the Story side of the stack editor. */
   writeEnabled: boolean
+  /** Multiplayer on. Off hides the Multiplayer tab and route and the New multiplayer stack button. */
+  multiplayerEnabled: boolean
   /** Which plugin modules are on, by module id. Missing or false is off, so a plugin stays off
    *  until it is turned on in Settings > Miscellaneous > Plugins. */
   enabledPlugins: Record<string, boolean>
@@ -232,6 +234,7 @@ interface SettingsState {
   setPersonaTitleOff(on: boolean): void
   setCustomTitle(title: string): void
   setWriteEnabled(on: boolean): void
+  setMultiplayerEnabled(on: boolean): void
   setPluginEnabled(id: string, on: boolean): void
   addConnection(connection: Connection): void
   updateConnection(connection: Connection): void
@@ -275,6 +278,7 @@ export const useSettings = create<SettingsState>()(
       customTitle: '',
       openStoryDirectly: false,
       writeEnabled: true,
+      multiplayerEnabled: true,
       enabledPlugins: {},
       askSystemPrompt: '',
       askSuffix: '',
@@ -297,6 +301,8 @@ export const useSettings = create<SettingsState>()(
       setCustomTitle: (customTitle) => set({ customTitle }),
 
       setWriteEnabled: (writeEnabled) => set({ writeEnabled }),
+
+      setMultiplayerEnabled: (multiplayerEnabled) => set({ multiplayerEnabled }),
 
       setPluginEnabled: (id, on) =>
         set((s) => ({ enabledPlugins: { ...s.enabledPlugins, [id]: on } })),

@@ -26,7 +26,10 @@ export default function App() {
   useApplyWebfont()
 
   return (
-    <BrowserRouter>
+    // useTransitions={false}: React Router 7 wraps navigation in startTransition by default, and a
+    // transition keeps the current screen on screen instead of showing a Suspense fallback — so
+    // PageLoader never appeared and a slow module chunk read as the page hanging.
+    <BrowserRouter useTransitions={false}>
       <Routes>
         <Route path="/join/:sessionId" element={<JoinView />} />
         <Route path="*" element={<AppShell />} />

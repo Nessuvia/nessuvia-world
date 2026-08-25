@@ -765,6 +765,49 @@ h3.storyPreviewTitle {
 }
 
 @media (max-width: 700px) {
+  /* The header's three controls each take a row: side by side the button falls off the edge.
+     Order is set here rather than in the markup so the desktop row keeps its own order. */
+  .shelf {
+    padding: 1rem;
+  }
+
+  .shelfHeader h2 {
+    margin: 0;
+  }
+
+  .shelfHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .shelfHeaderRight {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .shelfHeaderRight .storySearch {
+    width: auto;
+    order: 1;
+  }
+
+  .shelfHeaderRight .shelfToggle {
+    order: 2;
+  }
+
+  .shelfHeaderRight button {
+    order: 3;
+  }
+
+  /* Two covers per row: auto-fill's 160px floor drops to one column on a phone. The cover keeps
+     its 3/4 aspect-ratio, so the cards grow to whatever half the shelf is. */
+  .shelfGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
   /* The panel covers the prose instead of splitting the width with it — at this size a column for
      each leaves neither usable. There is no rail at this width: it is a drawer on the right edge,
      and sideDrawer.css says where it sits and how it moves. */

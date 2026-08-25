@@ -21,6 +21,8 @@ import type { BlockType } from './blockTypes'
 import { boundSources, kindSources, stackKind, validateStack } from './stackKinds'
 import type { StackKind } from './stackKinds'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
+import { useMediaQuery } from '../../app/useMediaQuery'
+import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import BlockModal from './BlockModal'
 import { exportStack, parseStack } from './stackFile'
 import PromptPreview from './PromptPreview'
@@ -33,7 +35,7 @@ interface Drop {
   beforeId: string | null
 }
 
-const indent = (depth: number) => ({ marginLeft: depth * 20 })
+const indent = (depth: number, step: number) => ({ marginLeft: depth * step })
 
 function nextBlockLabel(stack: PromptStack) {
   const used = stack.active
@@ -49,6 +51,7 @@ export default function StackEditor() {
   // sidebar's edit link lands on the right builder.
   const [params] = useSearchParams()
   const writeEnabled = useSettings((s) => s.writeEnabled)
+  const multiplayerEnabled = useSettings((s) => s.multiplayerEnabled)
   const [kind, setKind] = useState<StackKind>(
     writeEnabled && params.get('kind') === 'story' ? 'story' : 'chat',
   )
@@ -68,6 +71,11 @@ export default function StackEditor() {
       sessionStorage.setItem('promptsCollapsed', JSON.stringify(next))
       return next
     })
+  // Phone width folds the action buttons into one Options menu and shortens the nesting indent —
+  // both change the shape of the row, which is more than a stylesheet can say.
+  const mobile = useMediaQuery('(max-width: 700px)')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useCloseOnOutside(menuOpen, () => setMenuOpen(false))
   const [saved, setSaved] = useState(false)
   // Not persisted, matching the chat list's copy of this: skipping the confirm is a decision for
   // this sitting, not a setting that follows you into the next one.
@@ -235,14 +243,15 @@ export default function StackEditor() {
   }
 
   function renderList(list: PromptBlock[], parentId: string | null, depth: number) {
+    const step = mobile ? 8 : 20
     return (
       <>
         {list.map((block, i) => (
           <div key={block.id}>
             {isDropHere(parentId, block.id) && (
-              <div className="dropLine" style={indent(depth)} />
+              <div className="dropLine" style={indent(depth, step)} />
             )}
-            <div style={indent(depth)}>
+            <div style={indent(depth, step)}>
               <BlockCard
                 block={block}
                 types={types}
@@ -264,12 +273,12 @@ export default function StackEditor() {
           </div>
         ))}
 
-        {isDropHere(parentId, null) && <div className="dropLine" style={indent(depth)} />}
+        {isDropHere(parentId, null) && <div className="dropLine" style={indent(depth, step)} />}
 
         {parentId !== null && list.length === 0 && (
           <div
             className="childSlot"
-            style={indent(depth)}
+            style={indent(depth, step)}
             onDragOver={(e) => {
               e.preventDefault()
               setDrop({ parentId, beforeId: null })
@@ -318,6 +327,20 @@ export default function StackEditor() {
     )
   }
 
+  // One list feeding both shapes: buttons on the row at desktop width, the Options menu below it on
+  // a phone. `icon` marks the two that sit in the right-hand group on desktop.
+  const actions = [
+    { label: 'New', run: () => create(kind) },
+    // A session-shaped chat stack: cast slots instead of the speaker's own description.
+    ...(kind === 'chat' && multiplayerEnabled
+      ? [{ label: 'New multiplayer', run: () => create('chat', 'multiplayer') }]
+      : []),
+    { label: 'Duplicate', run: () => duplicate(draft.id!) },
+    { label: 'Import', run: () => fileInput.current?.click(), icon: <RiUploadLine size={14} /> },
+    { label: 'Export', run: () => exportStack(draft), icon: <RiDownloadLine size={14} /> },
+    { label: 'Delete', run: () => remove(draft.id!), danger: true },
+  ] as { label: string; run: () => void; icon?: ReactNode; danger?: boolean }[]
+
   return (
     <div className="prompts screenFrame">
       <h2>Prompt stacks</h2>
@@ -362,30 +385,54 @@ export default function StackEditor() {
                 </option>
               ))}
           </select>
-          <button type="button" onClick={() => create(kind)}>
-            New
-          </button>
-          {/* A session-shaped chat stack: cast slots instead of the speaker's own description. */}
-          {kind === 'chat' && (
-            <button type="button" onClick={() => create('chat', 'multiplayer')}>
-              New multiplayer
-            </button>
+          {mobile ? (
+            <div className="presetMenuWrap" ref={menuRef}>
+              <button type="button" onClick={() => setMenuOpen((v) => !v)}>
+                Options
+              </button>
+              {menuOpen && (
+                <div className="panel presetMenu">
+                  {actions.map((a) => (
+                    <button
+                      key={a.label}
+                      type="button"
+                      className={a.danger ? 'danger' : undefined}
+                      onClick={() => {
+                        setMenuOpen(false)
+                        a.run()
+                      }}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            actions
+              .filter((a) => !a.icon)
+              .map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  className={a.danger ? 'danger' : undefined}
+                  onClick={a.run}
+                >
+                  {a.label}
+                </button>
+              ))
           )}
-          <button type="button" onClick={() => duplicate(draft.id!)}>
-            Duplicate
-          </button>
-          <button type="button" className="danger" onClick={() => remove(draft.id!)}>
-            Delete
-          </button>
         </div>
         <div>
           {reason ? <span className="error">{reason}</span> : saved && <span className="hint">Saved</span>}
-          <button type="button" onClick={() => fileInput.current?.click()}>
-            <RiUploadLine size={14} /> Import
-          </button>
-          <button type="button" onClick={() => exportStack(draft)}>
-            <RiDownloadLine size={14} /> Export
-          </button>
+          {!mobile &&
+            actions
+              .filter((a) => a.icon)
+              .map((a) => (
+                <button key={a.label} type="button" onClick={a.run}>
+                  {a.icon} {a.label}
+                </button>
+              ))}
           <input
             ref={fileInput}
             type="file"
@@ -410,7 +457,7 @@ export default function StackEditor() {
             checked={skipDeleteConfirm}
             onChange={(e) => setSkipDeleteConfirm(e.target.checked)}
           />
-          Immediately delete blocks when clicking Delete
+          Delete blocks without confirming
         </label>
       </div>
 

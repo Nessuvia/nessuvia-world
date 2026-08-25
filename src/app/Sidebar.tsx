@@ -23,6 +23,7 @@ export default function Sidebar() {
   const syncModule = modules.find((m) => m.id === 'sync')
   const debugMode = useSettings((s) => s.debugMode)
   const writeEnabled = useSettings((s) => s.writeEnabled)
+  const multiplayerEnabled = useSettings((s) => s.multiplayerEnabled)
   const enabledPlugins = useSettings((s) => s.enabledPlugins)
   // Gated on the route, not on the store: the open chat outlives navigating away from it.
   const chatId = useMatch('/chat/:chatId')?.params.chatId
@@ -206,6 +207,7 @@ export default function Sidebar() {
             modules
               .filter((mod) => !['personas', 'sync', 'ask', 'learn'].includes(mod.id))
               .filter((mod) => mod.id !== 'write' || writeEnabled)
+              .filter((mod) => mod.id !== 'multiplayer' || multiplayerEnabled)
               .filter((mod) => isEnabled(mod, enabledPlugins))
               .map((mod) => (
                 <NavLink
@@ -310,6 +312,7 @@ export default function Sidebar() {
               // Personas and Sync sit at the foot of the rail; Ask and Learn are icon buttons.
               .filter((mod) => !['personas', 'sync', 'ask', 'learn'].includes(mod.id))
               .filter((mod) => mod.id !== 'write' || writeEnabled)
+              .filter((mod) => mod.id !== 'multiplayer' || multiplayerEnabled)
               .filter((mod) => isEnabled(mod, enabledPlugins))
               .map((mod) => (
                 <div key={mod.id} className="sidebarNavGroup">

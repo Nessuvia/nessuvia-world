@@ -446,3 +446,93 @@
   font-variant-numeric: tabular-nums;
   color: var(--textMuted);
 }
+
+/* The Options menu. Only rendered at phone width, so no media query — the trigger is what's
+   conditional. Same shape as .personaSwitchMenu: absolute under the button, its own stacking. */
+.presetMenuWrap {
+  position: relative;
+}
+
+.presetMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  min-width: 170px;
+}
+
+#root .presetMenu button {
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+
+@media (max-width: 700px) {
+  /* Active over Preview, and .zones — which carries .screenBody — becomes the only scroller.
+     The panels' inner lists stand down so the page isn't three nested scroll boxes. */
+  .prompts .zones {
+    flex-direction: column;
+    overflow: hidden auto;
+  }
+
+  .stackZone,
+  .stackZone.preview {
+    flex: none;
+  }
+
+  .blockList,
+  .previewList {
+    flex: none;
+    overflow: visible;
+  }
+
+  /* A collapsed panel's rail sits across the column now, not beside it. */
+  .prompts .zones .collapsedRail,
+  .prompts .zones .collapsedInitials {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .kindSwitch,
+  .presetRow,
+  .presetRow div {
+    flex-wrap: wrap;
+  }
+
+  /* Its own line under Name — the nowrap is what ran it off the screen. */
+  .blockDeleteToggle {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+
+  /* Nothing here can pan sideways (.appContent is overflow: hidden), so everything wraps. */
+  .blockCard {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 4px;
+  }
+
+  .blockLabel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .prompts .blockType {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .rangeConfig {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .previewExamples {
+    flex-direction: column;
+  }
+}

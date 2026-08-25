@@ -102,3 +102,29 @@
   resize: vertical;
   color: var(--text);
 }
+
+/* Last in the file on purpose: .askSidebar's 300px and sideDrawer.css's 100% carry the same
+   specificity, so these have to come after both to win. */
+@media (max-width: 700px) {
+  /* The panel covers the transcript instead of splitting the width with it. */
+  .askSidebar {
+    width: 100%;
+    border-left: none;
+  }
+
+  /* The header is one row: the character name gives up width before anything wraps. */
+  .askHeader button {
+    white-space: nowrap;
+  }
+
+  .askCharacterSelect {
+    max-width: none;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .askCharacterField {
+    min-width: 0;
+  }
+}
