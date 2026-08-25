@@ -8,7 +8,6 @@ Multiplayer Related:
 - RESUME SESSION / CREATE SESSION FROM EXISTING CHAT (list current characters, guests can pick and those names match up)
 
 Chat homepage:
-- Chat groups / Character tagging (ie. "Konosuba", "Video Games", "Goonslop my beloved", etc.)
 - Import integration with https://aicharactercards.com/
 
 General/Unsorted:
