@@ -98,6 +98,19 @@
   flex: 1;
 }
 
+.blockDeleteToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* the row stretches its inputs; the checkbox is not the field that should grow. */
+.blockDeleteToggle input {
+  flex: none;
+}
+
 /* .zones carries .screenBody, but the scrolling happens one level down, inside each zone's list —
    the row itself is fixed to the height the frame gave it. */
 .prompts .zones {

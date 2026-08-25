@@ -72,6 +72,9 @@ export default function StackEditor() {
       return next
     })
   const [saved, setSaved] = useState(false)
+  // Not persisted, matching the chat list's copy of this: skipping the confirm is a decision for
+  // this sitting, not a setting that follows you into the next one.
+  const [skipDeleteConfirm, setSkipDeleteConfirm] = useState(false)
 
   const [nestError, setNestError] = useState('')
   // After a keyboard move the card lands in a new spot; refocus it so arrows keep working.
@@ -214,6 +217,12 @@ export default function StackEditor() {
 
   function deleteBlock(id: string) {
     if (!draft) return
+    // The only delete path for a block, so the confirm belongs here rather than in the modal.
+    const block = findBlock(draft.active, id) ?? findBlock(draft.inactive, id)
+    if (!skipDeleteConfirm && block) {
+      const nested = block.children?.length ? ' and the blocks inside it' : ''
+      if (!confirm(`Delete "${block.label}"${nested}?`)) return
+    }
     // Children go with the parent: a wrapper's contents don't outlive their tags.
     change({ ...draft, active: removeBlock(draft.active, id), inactive: removeBlock(draft.inactive, id) })
     setEditingId(null)
@@ -420,6 +429,14 @@ export default function StackEditor() {
           onChange={(e) => change({ ...draft, name: e.target.value })}
           aria-label="Stack name"
         />
+        <label className="blockDeleteToggle">
+          <input
+            type="checkbox"
+            checked={skipDeleteConfirm}
+            onChange={(e) => setSkipDeleteConfirm(e.target.checked)}
+          />
+          Immediately delete blocks when clicking Delete
+        </label>
       </div>
 
       {nestError && <p className="error">{nestError}</p>}
