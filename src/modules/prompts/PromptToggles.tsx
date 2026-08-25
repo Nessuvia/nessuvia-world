@@ -25,7 +25,6 @@ export default function PromptToggles({
     onChange({
       ...stack,
       active: replaceBlock(stack.active, block),
-      inactive: replaceBlock(stack.inactive, block),
     })
   const flipBlock = (block: PromptBlock) => patchBlock({ ...block, disabled: !block.disabled })
 
@@ -34,7 +33,7 @@ export default function PromptToggles({
   return (
     <>
       {optional.map(({ block }) => (
-        <div key={block.id} className="optionalBlock">
+        <div key={block.id} className="optionalBlock" title={block.info || undefined}>
           {block.toggleable && (
             <label className="checkboxRow">
               <input type="checkbox" checked={!block.disabled} onChange={() => flipBlock(block)} />

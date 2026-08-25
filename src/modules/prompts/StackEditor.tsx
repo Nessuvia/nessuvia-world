@@ -27,10 +27,7 @@ import PromptPreview from './PromptPreview'
 import './prompts.css'
 import { RiDownloadLine, RiUploadLine } from '@remixicon/react'
 
-type Zone = 'active' | 'inactive'
-
 interface Drop {
-  zone: Zone
   parentId: string | null
   /** The block the dragged one lands in front of; null appends to that list. */
   beforeId: string | null
@@ -39,7 +36,7 @@ interface Drop {
 const indent = (depth: number) => ({ marginLeft: depth * 20 })
 
 function nextBlockLabel(stack: PromptStack) {
-  const used = [...stack.active, ...stack.inactive]
+  const used = stack.active
     .map((b) => Number(/^Block (\d+)$/.exec(b.label)?.[1] ?? 0))
     .reduce((a, b) => Math.max(a, b), 0)
   return `Block ${used + 1}`
@@ -63,7 +60,7 @@ export default function StackEditor() {
   // sessionStorage, not a stored setting: survives navigation, clears on tab close.
   // ponytail: global for the tab, not per stack — key by stack id if that matters.
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
-    JSON.parse(sessionStorage.getItem('promptsCollapsed') ?? '{"inactive":true}'),
+    JSON.parse(sessionStorage.getItem('promptsCollapsed') ?? '{}'),
   )
   const toggleZone = (key: string) =>
     setCollapsed((c) => {
@@ -83,7 +80,7 @@ export default function StackEditor() {
   const fileInput = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState('')
 
-  const drag = useRef<{ id: string; zone: Zone } | null>(null)
+  const drag = useRef<string | null>(null)
   // Drop targets are addressed by parent and next-sibling id, not an index: after the dragged
   // block is pulled out of the tree every index would have shifted.
   const [drop, setDrop] = useState<Drop | null>(null)
@@ -131,7 +128,7 @@ export default function StackEditor() {
   // The bound sources and allowed sources for this stack's kind (chat vs story).
   const bound = boundSources[stackKind(draft)]
   const sources = kindSources(stackKind(draft))
-  const blocks = [...allBlocks(draft.active), ...allBlocks(draft.inactive)]
+  const blocks = allBlocks(draft.active)
   const editing = blocks.find((b) => b.id === editingId)
   const parentOf = (id: string) =>
     blocks.find((b) => (b.children ?? []).some((c) => c.id === id))
@@ -171,10 +168,10 @@ export default function StackEditor() {
   }
 
   function move(target: Drop) {
-    const from = drag.current
-    if (!from || !draft) return
-    const block = findBlock(draft[from.zone], from.id)
-    if (!block || target.beforeId === from.id) return
+    const fromId = drag.current
+    if (!fromId || !draft) return
+    const block = findBlock(draft.active, fromId)
+    if (!block || target.beforeId === fromId) return
     if (block.source === 'chatHistory' && target.parentId !== null) {
       setNestError("Chat History can't go inside another block — its turns carry their own roles.")
       return
@@ -182,49 +179,34 @@ export default function StackEditor() {
     // Dropping a container into its own subtree would detach both from the tree.
     if (target.parentId && contains(block, target.parentId)) return
 
-    const pruned = removeBlock(draft[from.zone], from.id)
-    if (from.zone === target.zone) {
-      change({
-        ...draft,
-        [target.zone]: insertBlock(pruned, block, target.parentId, target.beforeId),
-      })
-    } else {
-      change({
-        ...draft,
-        [from.zone]: pruned,
-        [target.zone]: insertBlock(draft[target.zone], block, target.parentId, target.beforeId),
-      })
-    }
+    const pruned = removeBlock(draft.active, fromId)
+    change({ ...draft, active: insertBlock(pruned, block, target.parentId, target.beforeId) })
   }
 
-  function moveBlock(zone: Zone, id: string, dir: MoveDir) {
+  function moveBlock(id: string, dir: MoveDir) {
     if (!draft) return
-    const next = moveByKey(draft[zone], id, dir)
+    const next = moveByKey(draft.active, id, dir)
     if (!next) return // edge of the list, already top level, or a nest Chat History can't take
-    change({ ...draft, [zone]: next })
+    change({ ...draft, active: next })
     setFocusId(id) // the card moved in the tree; put focus back on it
   }
 
   function replaceBlock(block: PromptBlock, closeModal = true) {
     if (!draft) return
-    change({
-      ...draft,
-      active: replaceInTree(draft.active, block),
-      inactive: replaceInTree(draft.inactive, block),
-    })
+    change({ ...draft, active: replaceInTree(draft.active, block) })
     if (closeModal) setEditingId(null)
   }
 
   function deleteBlock(id: string) {
     if (!draft) return
     // The only delete path for a block, so the confirm belongs here rather than in the modal.
-    const block = findBlock(draft.active, id) ?? findBlock(draft.inactive, id)
+    const block = findBlock(draft.active, id)
     if (!skipDeleteConfirm && block) {
       const nested = block.children?.length ? ' and the blocks inside it' : ''
       if (!confirm(`Delete "${block.label}"${nested}?`)) return
     }
     // Children go with the parent: a wrapper's contents don't outlive their tags.
-    change({ ...draft, active: removeBlock(draft.active, id), inactive: removeBlock(draft.inactive, id) })
+    change({ ...draft, active: removeBlock(draft.active, id) })
     setEditingId(null)
   }
 
@@ -241,23 +223,23 @@ export default function StackEditor() {
   const setType = (block: PromptBlock, type: BlockType) =>
     replaceBlock(applyType(block, type), false)
 
-  function addChildBlock(zone: Zone, parentId: string) {
+  function addChildBlock(parentId: string) {
     if (!draft) return
-    const child = newBlock({ label: nextBlockLabel(draft), role: findBlock(draft[zone], parentId)!.role })
-    change({ ...draft, [zone]: addChild(draft[zone], parentId, child) })
+    const child = newBlock({ label: nextBlockLabel(draft), role: findBlock(draft.active, parentId)!.role })
+    change({ ...draft, active: addChild(draft.active, parentId, child) })
     setEditingId(child.id)
   }
 
-  function isDropHere(zone: Zone, parentId: string | null, beforeId: string | null) {
-    return drop?.zone === zone && drop.parentId === parentId && drop.beforeId === beforeId
+  function isDropHere(parentId: string | null, beforeId: string | null) {
+    return drop?.parentId === parentId && drop.beforeId === beforeId
   }
 
-  function renderList(zone: Zone, list: PromptBlock[], parentId: string | null, depth: number) {
+  function renderList(list: PromptBlock[], parentId: string | null, depth: number) {
     return (
       <>
         {list.map((block, i) => (
           <div key={block.id}>
-            {isDropHere(zone, parentId, block.id) && (
+            {isDropHere(parentId, block.id) && (
               <div className="dropLine" style={indent(depth)} />
             )}
             <div style={indent(depth)}>
@@ -267,22 +249,22 @@ export default function StackEditor() {
                 takenTypes={takenTypes(block, parentId !== null)}
                 onClick={() => setEditingId(block.id)}
                 onType={(type) => setType(block, type)}
-                onAddChild={() => addChildBlock(zone, block.id)}
+                onAddChild={() => addChildBlock(block.id)}
                 onToggle={() => replaceBlock({ ...block, disabled: !block.disabled }, false)}
-                onMove={(dir) => moveBlock(zone, block.id, dir)}
-                onDragStart={() => (drag.current = { id: block.id, zone })}
+                onMove={(dir) => moveBlock(block.id, dir)}
+                onDragStart={() => (drag.current = block.id)}
                 onDragOver={(before) =>
                   // Below the midpoint means "in front of my next sibling", so a container's
                   // whole subtree stays together.
-                  setDrop({ zone, parentId, beforeId: before ? block.id : (list[i + 1]?.id ?? null) })
+                  setDrop({ parentId, beforeId: before ? block.id : (list[i + 1]?.id ?? null) })
                 }
               />
             </div>
-            {block.children && renderList(zone, block.children, block.id, depth + 1)}
+            {block.children && renderList(block.children, block.id, depth + 1)}
           </div>
         ))}
 
-        {isDropHere(zone, parentId, null) && <div className="dropLine" style={indent(depth)} />}
+        {isDropHere(parentId, null) && <div className="dropLine" style={indent(depth)} />}
 
         {parentId !== null && list.length === 0 && (
           <div
@@ -290,7 +272,7 @@ export default function StackEditor() {
             style={indent(depth)}
             onDragOver={(e) => {
               e.preventDefault()
-              setDrop({ zone, parentId, beforeId: null })
+              setDrop({ parentId, beforeId: null })
             }}
           />
         )}
@@ -298,25 +280,20 @@ export default function StackEditor() {
     )
   }
 
-  function renderZone(zone: Zone, title: string, hint: ReactNode) {
-    const list = draft![zone]
-    const shut = !!collapsed[zone]
-    if (shut) {
-      return (
-        <CollapseRail label={title} onToggle={() => toggleZone(zone)} />
-      )
-    }
+  function renderZone(title: string, hint: ReactNode) {
+    const list = draft!.active
+    if (collapsed.active) return <CollapseRail label={title} onToggle={() => toggleZone('active')} />
     return (
       <section
         className="panel stackZone"
         onDragOver={(e) => {
           e.preventDefault()
           // Bare zone background: land at the end of the top level, not inside anything.
-          if (e.target === e.currentTarget) setDrop({ zone, parentId: null, beforeId: null })
+          if (e.target === e.currentTarget) setDrop({ parentId: null, beforeId: null })
         }}
         onDrop={(e) => {
           e.preventDefault()
-          move(drop?.zone === zone ? drop : { zone, parentId: null, beforeId: null })
+          move(drop ?? { parentId: null, beforeId: null })
           drag.current = null
           setDrop(null)
         }}
@@ -326,17 +303,15 @@ export default function StackEditor() {
         }}
       >
         <div className="zoneHeader">
-          <CollapseButton label={title} collapsed={false} onToggle={() => toggleZone(zone)} />
+          <CollapseButton label={title} collapsed={false} onToggle={() => toggleZone('active')} />
           <h3>{title}</h3>
-          {zone === 'active' && (
-            <button type="button" onClick={addBlock}>
-              Add block
-            </button>
-          )}
+          <button type="button" onClick={addBlock}>
+            Add block
+          </button>
         </div>
         <p className="hint">{hint}</p>
         <div className="blockList">
-          {renderList(zone, list, null, 0)}
+          {renderList(list, null, 0)}
           {list.length === 0 && <p className="placeholder">Drop blocks here.</p>}
         </div>
       </section>
@@ -443,15 +418,6 @@ export default function StackEditor() {
 
       <div className="screenBody zones">
         {renderZone(
-          'inactive',
-          'Inactive',
-          <>
-            For when you want to <s>delete something but you have control issues</s> keep something
-            on the side.
-          </>,
-        )}
-        {renderZone(
-          'active',
           'Active stack',
           'Assembled top to bottom. “+” on a block nests another inside it.',
         )}

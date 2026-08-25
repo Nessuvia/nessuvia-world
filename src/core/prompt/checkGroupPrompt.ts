@@ -10,7 +10,7 @@ function block(b: Partial<PromptBlock>): PromptBlock {
 }
 
 function stack(active: PromptBlock[]): PromptStack {
-  return { ownerId: 'local', name: 's', active, inactive: [] }
+  return { ownerId: 'local', name: 's', active }
 }
 
 function character(id: number, name: string): Character {

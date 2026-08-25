@@ -10,7 +10,8 @@ interface StackFile {
   name: string
   kind: 'chat' | 'story'
   active: PromptBlock[]
-  inactive: PromptBlock[]
+  /** Written by older builds, when blocks could be parked out of the stack. Read, never written. */
+  inactive?: PromptBlock[]
 }
 
 const fileName = (name: string) =>
@@ -23,7 +24,6 @@ export function exportStack(stack: PromptStack) {
     name: stack.name,
     kind: stackKind(stack),
     active: stack.active,
-    inactive: stack.inactive,
   }
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }),
@@ -54,14 +54,13 @@ export function parseStack(text: string): PromptStack {
   }
   const file = data as Partial<StackFile>
   if (file?.format !== 'nessu-prompt-stack') throw new Error('That file is not a prompt stack.')
-  if (!Array.isArray(file.active) || !Array.isArray(file.inactive)) {
-    throw new Error('The stack file is missing its blocks.')
-  }
+  if (!Array.isArray(file.active)) throw new Error('The stack file is missing its blocks.')
+  // An older file's parked blocks import as disabled ones rather than being dropped.
+  const parked = Array.isArray(file.inactive) ? file.inactive.map((b) => ({ ...b, disabled: true })) : []
   return {
     ownerId: currentOwnerId(),
     name: typeof file.name === 'string' && file.name ? file.name : 'Imported stack',
     kind: file.kind === 'story' ? 'story' : 'chat',
-    active: reid(file.active),
-    inactive: reid(file.inactive),
+    active: reid([...file.active, ...parked]),
   }
 }

@@ -1,21 +1,20 @@
-Undo delete block from prompt
-add crop option to multiplayer
-character/palette colors for multiplayer
-user can skip their own turn
-the tag system stays fully functional, but has a new option to hide any dropdown from participants. 
-ending a session as host doesn't update the guests; they need 
+Multiplayer Related:
+- Add avatar crop option to multiplayer
+- Character/palette colors for multiplayer
+- Members can skip their own turn
+- The tag system stays fully functional, but has a new option to hide any dropdown from participants. 
+- Ending a session as host currently doesn't update the guests; would like it to say "Thanks for joining! Download transcript: (plaintext) (markdown) (JSON)" to guests once done.
+- Once the session chat is done and the host is looking at the chat created, it would be nice if there was an icon next to human user's usernames to show it was a message from a multiplayer session. Honestly the fact that usernames survive once the session is over is great; perhaps we can add a field to the message object for human/LLM sent, and owner/guest to mark human messages sent by others.
+- RESUME SESSION / CREATE SESSION FROM EXISTING CHAT (list current characters, guests can pick and those names match up)
 
-once the session chat is done and the host is looking at the chat created in the first character of the session, it would be nice if there was an icon next to human user's usernames to show it was from a session
+Chat -> Character landing page:
+- When changing avatar do not get rid of original saved avatar
 
-chat prompt options hover for info; block level info comments travel with toggle/scroll
+Chat homepage:
+- Chat groups / Character tagging (ie. "Konosuba", "Video Games", "Goonslop my beloved", etc.)
+- Import integration with https://aicharactercards.com/
 
-chat when changing avatar do not get rid of original saved avatar
-
-chat groups / character tagging
-
-remove inactive tab from prompt stack page
-
-integration with https://aicharactercards.com/
-
-PHONE TEXTING UI
-VISUAL NOVEL MODE
+Just ideas right now:
+- PHONE TEXTING UI
+- VISUAL NOVEL MODE
+- Stat tracking on chats? Used in multiplayer X times, Opened X times, X messages sent, etc...

@@ -13,8 +13,8 @@ function block(b: Partial<PromptBlock>): PromptBlock {
   return { id: `b${++n}`, label: 'b', source: 'text', role: 'system', content: '', ...b }
 }
 
-function stack(active: PromptBlock[], inactive: PromptBlock[] = []): PromptStack {
-  return { ownerId: 'local', name: 's', active, inactive }
+function stack(active: PromptBlock[]): PromptStack {
+  return { ownerId: 'local', name: 's', active }
 }
 
 // Damien-shaped: everything lives in `description`, the other bound fields are empty.

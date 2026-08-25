@@ -286,6 +286,8 @@ export interface PromptBlock {
   disabled?: boolean
   /** Shown in chat settings as an on/off checkbox. The on/off value is `disabled`. */
   toggleable?: boolean
+  /** Creator's explanation of this block, shown as the tooltip on its control in chat settings. */
+  info?: string
   /** Present (even empty) makes this a container. Children render between content and closeContent,
    *  newline-joined, and inherit this block's role. Chat History can't be nested. */
   children?: PromptBlock[]
@@ -315,7 +317,6 @@ export interface PromptStack {
    *  for rows written before the field existed. */
   kind?: 'chat' | 'story'
   active: PromptBlock[] // order = array order
-  inactive: PromptBlock[] // the pool; contributes nothing to the prompt
 }
 
 /**

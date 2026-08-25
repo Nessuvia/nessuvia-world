@@ -15,7 +15,7 @@ function block(b: Partial<PromptBlock>): PromptBlock {
   return { id: `b${++n}`, label: 'b', source: 'text', role: 'system', content: '', ...b }
 }
 function stack(active: PromptBlock[]): PromptStack {
-  return { ownerId: 'local', name: 's', kind: 'story', active, inactive: [] }
+  return { ownerId: 'local', name: 's', kind: 'story', active }
 }
 
 // A default-shaped Story stack: system, cast, story context, author's note.

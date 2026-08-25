@@ -325,6 +325,16 @@
   gap: 6px;
 }
 
+.blockInfo summary {
+  cursor: pointer;
+}
+
+.blockInfo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+}
+
 .rangeConfig {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

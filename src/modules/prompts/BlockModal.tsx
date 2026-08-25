@@ -230,6 +230,16 @@ export default function BlockModal({
           </label>
         )}
 
+        <details className="blockInfo">
+          <summary>Information</summary>
+          <textarea
+            rows={3}
+            value={draft.info ?? ''}
+            onChange={(e) => set({ info: e.target.value })}
+          />
+          <p className="hint">Shown when hovering this block's control in chat settings.</p>
+        </details>
+
         <div className="dialogActions">
           <button type="button" className="secondary" onClick={onClose}>
             Close

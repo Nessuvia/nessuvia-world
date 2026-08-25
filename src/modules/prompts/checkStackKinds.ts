@@ -8,7 +8,7 @@ function b(source: BlockSource, disabled = false): PromptBlock {
   return { id: `b${n++}`, label: source, source, role: 'system', content: '', ...(disabled && { disabled }) }
 }
 function stack(kind: 'chat' | 'story' | undefined, active: PromptBlock[]): PromptStack {
-  return { ownerId: 'local', name: 't', kind, active, inactive: [] }
+  return { ownerId: 'local', name: 't', kind, active }
 }
 
 // --- kind defaulting ----------------------------------------------------

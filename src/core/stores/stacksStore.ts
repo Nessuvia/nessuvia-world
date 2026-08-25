@@ -30,7 +30,6 @@ export function defaultStack(name = 'Default'): PromptStack {
       newBlock({ label: 'Character description', source: 'characterDescription' }),
       newBlock({ label: 'Chat History', source: 'chatHistory' }),
     ],
-    inactive: [],
   }
 }
 
@@ -83,7 +82,6 @@ export function defaultMultiplayerStack(name = 'Multiplayer'): PromptStack {
       newBlock({ label: 'People in the room', content: '{{personas}}' }),
       newBlock({ label: 'Chat History', source: 'chatHistory' }),
     ],
-    inactive: [],
   }
 }
 
@@ -112,11 +110,18 @@ export function defaultStoryStack(name = 'Story'): PromptStack {
       }),
       newBlock({ label: "Author's note", source: 'authorNote', depth: 2 }),
     ],
-    inactive: [],
   }
 }
 
 const stackKind = (s: PromptStack): 'chat' | 'story' => s.kind ?? 'chat'
+
+/** Legacy `inactive` pool → disabled blocks at the end of the active list. */
+function foldInactive(stack: PromptStack): PromptStack {
+  const parked = (stack as { inactive?: PromptBlock[] }).inactive
+  if (!parked?.length) return stack
+  const { inactive: _drop, ...rest } = stack as PromptStack & { inactive?: PromptBlock[] }
+  return { ...rest, active: [...stack.active, ...parked.map((b) => ({ ...b, disabled: true }))] }
+}
 
 function setActiveId(kind: 'chat' | 'story', id: number | null) {
   useSettings.setState(kind === 'story' ? { activeStoryStackId: id } : { activeStackId: id })
@@ -144,7 +149,9 @@ export const useStacks = create<StacksState>()((set, get) => ({
 
   load: async () => {
     const rows = (await storage.getAll('promptStacks')) as unknown as PromptStack[]
-    set({ stacks: rows })
+    // Rows written while the Inactive pool existed still carry one. Its blocks come back as
+    // disabled active blocks so nothing parked there disappears. Drop this once such rows are gone.
+    set({ stacks: rows.map(foldInactive) })
   },
 
   save: async (stack) => {
@@ -176,7 +183,6 @@ export const useStacks = create<StacksState>()((set, get) => ({
       kind: stackKind(source),
       // Fresh ids: two stacks must never share a block identity while dragging.
       active: source.active.map((b) => ({ ...b, id: crypto.randomUUID() })),
-      inactive: source.inactive.map((b) => ({ ...b, id: crypto.randomUUID() })),
     }
     const newId = await get().save(copy)
     setActiveId(stackKind(source), newId)
