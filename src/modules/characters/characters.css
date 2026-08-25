@@ -1,0 +1,601 @@
+.characters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.charactersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.charactersHeader h2 {
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* File inputs can't be styled; the label is the button. */
+.characters label.importButton {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.characters label.importButton:hover {
+  background: var(--borderStrong);
+}
+
+.characters label.importButton input {
+  display: none;
+}
+
+.characters .error {
+  color: var(--danger);
+  margin: 0;
+}
+
+.characters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.characters input,
+.characters textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.characters input[type='radio'] {
+  flex: none;
+  margin-top: 10px;
+}
+
+.characters button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.characters button:hover:not(:disabled) {
+  background: var(--borderStrong);
+}
+
+.characters button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.characters button.danger {
+  color: var(--danger);
+}
+
+.characters button.secondary {
+  background: transparent;
+}
+
+/* Tab bar across the top of the character editor. */
+.editorTabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.characters button.editorTab {
+  background: transparent;
+  border-color: transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--textMuted);
+}
+
+.characters button.editorTab:hover {
+  background: var(--surfaceActive);
+}
+
+.characters button.editorTab.current {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* The one field that eats the leftover height instead of scrolling the panel. */
+.characters label.grow {
+  flex: 1;
+  min-height: 160px;
+}
+
+.characters label.grow textarea {
+  flex: 1;
+  resize: none;
+}
+
+/* Alternate descriptions tab: the cards split the leftover height evenly, and once there are
+   more than three (basis 33% each, no shrink) the list scrolls instead of squeezing them. */
+.altTab {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.variantList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.variantList > .variantRow {
+  flex: 1 0 33%;
+  min-height: 33%;
+  align-items: stretch; /* otherwise the fields keep their content height in a taller row */
+}
+
+.variants.grow {
+  flex: 1;
+  min-height: 0;
+}
+
+.variantList .variantFields {
+  min-height: 0;
+}
+
+.variantList > .variantRow > textarea {
+  resize: none;
+}
+
+.variantList .variantFields textarea {
+  flex: 1;
+  resize: none;
+}
+
+.defaultRow .flavor {
+  display: block;
+  color: var(--textDim);
+  font-size: 12px;
+}
+
+.saveState {
+  font-size: 12px;
+  color: var(--textDim);
+}
+
+.characterList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.characterList li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.avatar.initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surfaceActive);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.characterName {
+  flex: 1;
+  font-weight: 600;
+}
+
+.characterName a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.characterName a:hover {
+  text-decoration: underline;
+}
+
+.variantTitle {
+  color: var(--textDim);
+  font-size: 12px;
+}
+
+.variants {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--textMuted);
+  font-size: 13px;
+}
+
+.variantRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.variantRow textarea {
+  flex: 1;
+}
+
+.variantFields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.avatarRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Export sits apart from the avatar image buttons, so it's pushed to the far right. */
+.avatarRow .exportMenu {
+  margin-left: auto;
+  position: relative;
+}
+
+.avatarRow .exportMenu > button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.exportMenuList {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: var(--surfaceRaised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  gap: 2px;
+  /* % resolves against .exportMenu, so this is twice the Export button, right edges aligned. */
+  min-width: 200%;
+}
+
+.exportMenuList button {
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.editorActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ParamEditor — lives with the component because the chat settings panel renders it too. */
+.paramEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.paramField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.paramLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.paramSource {
+  color: var(--textDim);
+  font-size: 11px;
+}
+
+.paramInput {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.paramInput > input,
+.paramInput > textarea {
+  flex: 1;
+  min-width: 0;
+}
+
+/* #root because the chat module styles every `.chatView button`, and this one is the component's,
+   not the tab's — stylesheet order isn't something to rely on. */
+#root .paramClear {
+  flex: none;
+  padding: 2px 7px;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  font: inherit;
+  cursor: pointer;
+}
+
+#root .paramClear:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.avatarCropDialog img {
+  max-width: 100%;
+  max-height: 60vh;
+}
+
+/* `.hint` is scoped per module */
+.hint {
+  margin: 0;
+  color: var(--textDim);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.galleryTab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.galleryAdd {
+  display: flex;
+  gap: 8px;
+}
+
+.galleryAdd input {
+  flex: 1;
+  min-width: 0;
+}
+
+.galleryGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.galleryGrid figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
+}
+
+/* Fixed height, natural width: rows flow and nothing is cropped. */
+.galleryGrid img {
+  display: block;
+  height: 240px;
+  width: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.galleryBroken {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 240px;
+  width: 240px;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.galleryTileNote {
+  color: var(--textMuted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.galleryBrokenUrl {
+  color: var(--textDim);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.galleryLightbox {
+  position: relative;
+  display: flex;
+}
+
+/* No width/height set, so the image draws at natural size; the caps only ever shrink it. */
+.galleryLightbox img {
+  display: block;
+  height: auto;
+  width: auto;
+  max-height: 80vh;
+  max-width: 60vw;
+  border-radius: var(--radius);
+}
+
+#root .galleryLightboxClose {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Lorebook tab. One row per entry, its text folded away until asked for. */
+.lorebookBook {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Sits on the same row as the two book fields, pushed to the far edge. */
+.lorebookAdd {
+  margin-left: auto;
+}
+
+.lorebookBook input {
+  width: 8ch;
+}
+
+.lorebookList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lorebookEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+}
+
+/* The row's own height, plus matching heights on the controls that can take one. Checkboxes are
+   left alone — a min-height stretches the box rather than the space around it. */
+.lorebookRow {
+  min-height: 34px;
+}
+
+.lorebookRow input:not([type='checkbox']),
+.lorebookRow button {
+  min-height: 32px;
+}
+
+/* Opened by the Text button: sized to the entry rather than to a row count, so a card entry of
+   several hundred words is read in one go. Capped so one entry can't fill the viewport. */
+.lorebookText {
+  field-sizing: content;
+  min-height: 12em;
+  max-height: 60vh;
+}
+
+.lorebookRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lorebookName {
+  flex: 1 1 12ch;
+  min-width: 0;
+}
+
+/* Wider than the name: a card entry often carries several keys. */
+.lorebookKeys {
+  flex: 2 1 20ch;
+  min-width: 0;
+}
+
+.lorebookAlways {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.lorebookDepth {
+  width: 6ch;
+}
+
+.lorebookSnippet {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 700px) {
+  .charactersHeader,
+  .headerActions,
+  .avatarRow,
+  .editorActions,
+  .lorebookBook,
+  .lorebookRow {
+    flex-wrap: wrap;
+  }
+
+  /* Export loses its far-right push once the row wraps. */
+  .avatarRow .exportMenu {
+    margin-left: 0;
+  }
+
+  .galleryGrid img,
+  .galleryBroken {
+    height: 150px;
+  }
+
+  .galleryBroken {
+    width: 150px;
+  }
+
+  .galleryLightbox img {
+    max-width: 92vw;
+  }
+}

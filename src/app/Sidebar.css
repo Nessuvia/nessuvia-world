@@ -1,0 +1,280 @@
+/* --sidebarWidth is set only once you've dragged the edge; until then these defaults stand. */
+.sidebar {
+  position: relative;
+  /* Above .pageBackgroundLayer, which now runs the full width of the shell. */
+  z-index: 1;
+  width: var(--sidebarWidth, 200px);
+  flex: 0 0 var(--sidebarWidth, 200px);
+  overflow: hidden;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The rail carries the open chat's settings, so it needs room for form fields. */
+.sidebar.inChat {
+  width: var(--sidebarWidth, 280px);
+  flex: 0 0 var(--sidebarWidth, 280px);
+}
+
+.sidebarResize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sidebarResize:hover,
+.sidebarResize:active {
+  background: var(--surfaceActive);
+}
+
+/* Only present between a resize drag and saving it. */
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  padding: 4px 10px 14px;
+  color: var(--text);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  text-decoration: none;
+}
+
+.sidebar-item:hover {
+  background: var(--surfaceHover);
+  color: var(--text);
+}
+
+/* Tabs of a page, in a panel beside the rail while the nav item or the panel is hovered.
+   Fixed-positioned from JS off the nav item's rect (see Sidebar.tsx) — the rail is overflow:hidden,
+   so a panel laid out inside it would be clipped. Opening is immediate; .closing fades it over
+   500ms while it stays mounted and hoverable, so a mouse that comes back inside the grace window
+   picks it up again rather than starting over from the nav item. */
+.sidebarFlyout {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 4px;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  opacity: 1;
+  transition: opacity 120ms;
+}
+
+.sidebarFlyout.closing {
+  opacity: 0;
+  transition: opacity 500ms;
+}
+
+.sidebarTab {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Above the Import/Export pair, which now anchors the bottom of the rail. */
+.debugBadge {
+  padding: 8px 10px;
+  color: var(--textBright);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-item.active {
+  background: var(--surfaceActive);
+  color: var(--textBright);
+}
+
+/* Import and Export sit at the foot of the rail, below whatever fills it. */
+.sidebarBackup {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Avatar first, then the link fills the rest of the row. */
+.sidebarPersona {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+}
+
+.sidebarPersona .sidebar-item {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sidebarIconRow {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sidebarIconButton {
+  flex: 1;
+  justify-content: center;
+}
+
+.sidebarCredit {
+  padding: 8px 0 0;
+  color: var(--textMuted);
+  font-size: 11px;
+}
+
+.sidebarCreditLink {
+  color: inherit;
+  vertical-align: -2px;
+}
+
+.sidebarCreditLink:hover {
+  color: var(--text);
+}
+
+.sidebarBackup label {
+  cursor: pointer;
+}
+
+.sidebarBackup input {
+  display: none;
+}
+
+.sidebarBackup button {
+  background: transparent;
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Opens the phone drawer. Fixed over the content rather than in any module's header, so one button
+   serves every view. Only rendered while the drawer is closed (Sidebar.tsx). */
+.sidebarOpenButton {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 29;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Collapse toggle */
+.sidebarCollapseToggle {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  cursor: pointer;
+  flex: none;
+}
+
+.sidebarCollapseToggle:hover {
+  background: var(--surfaceActive);
+  border-color: var(--borderStrong);
+  color: var(--text);
+}
+
+/* Collapsed sidebar */
+.sidebar.collapsed {
+  width: 52px;
+  flex: 0 0 52px;
+  padding: 8px 6px;
+  gap: 2px;
+  align-items: center;
+}
+
+.sidebar.collapsed.inChat {
+  width: 52px;
+  flex: 0 0 52px;
+}
+
+.sidebar.collapsed .sidebarCollapseToggle {
+  margin-bottom: 8px;
+}
+
+/* Icon-only nav links in collapsed rail */
+.sidebarIconOnly {
+  justify-content: center;
+  padding: 8px 6px;
+}
+
+.sidebar.collapsed .sidebarBackup {
+  margin-top: auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.sidebar.collapsed .debugBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 0;
+  letter-spacing: 0;
+}
+
+.sidebar.collapsed .sidebarIconRow {
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Phones: the rail leaves the flex row and becomes a full-screen drawer, off to the left until a
+   left-to-right swipe pulls it in. Where it sits and how it moves is in sideDrawer.css, shared with
+   every other drawer; what is left here is the rail's own padding and the widths it has to give up.
+   Sidebar.tsx forces the collapsed state off and drops the inline --sidebarWidth at this width, so
+   nothing overrides these.
+
+   No transform in this block: these selectors are more specific than .sideDrawer.drawerOpen and a
+   transform here would pin the drawer shut. */
+@media (max-width: 700px) {
+  .sidebar,
+  .sidebar.inChat,
+  .sidebar.collapsed,
+  .sidebar.collapsed.inChat {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    flex: none;
+    padding: 16px 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Above the other drawers: the navbar is the way out of any screen. */
+  .sidebar.sideDrawer {
+    z-index: 30;
+  }
+}

@@ -1,0 +1,138 @@
+/*
+ * Glass. Every color here comes from the active palette, so the skin composes with any of them —
+ * a light palette gets light glass.
+ *
+ * The four vars below are the knobs, declared in skins.ts and overridable per palette. They are
+ * scoped to the skin rather than to index.css because they mean nothing without it. Anything else a
+ * palette can already set (radius, the surface ramp) is deliberately not repeated here.
+ *
+ * What makes this read as glass rather than as fog: the tint stays low, the blur stays moderate, and
+ * the *edges* carry the effect — a bright hairline along the top where light would catch, and a dim
+ * one below. A high tint plus a heavy blur is a frosted panel with no edges, which looks like haze.
+ */
+[data-skin='glass'] {
+  --glassTint: 46%; /* how much of --surface is mixed in; the rest is transparent */
+  --glassBlur: 12px;
+  --glassEdge: 40%; /* strength of the border and the top highlight */
+  --glassShade: 22%; /* drop shadow depth */
+}
+
+/*
+ * The `#root` prefix is the repo convention for a shared rule that has to beat a module's own
+ * selector. It is needed here: module stylesheets are imported by the module files, so they load
+ * after this one, and a two-class module selector like `.chatSettings.screenBody` would otherwise
+ * win the tie on order alone. Every skin rule below needs it for the same reason.
+ */
+/*
+ * Per-surface tint and blur are separate vars from the two knobs, and every surface sets both. A
+ * surface rule cannot write `--glassTint: calc(var(--glassTint) + 18%)` — a custom property that
+ * references itself is a cycle, so it and everything built from it become invalid and the surface
+ * paints as nothing at all. That is why these exist, and why the shared rule below sets them for the
+ * base case instead of letting the surface rules fall back: a value left unset would inherit from
+ * whatever surface encloses this one.
+ */
+[data-skin='glass'] #root .panel,
+[data-skin='glass'] #root .navbar,
+[data-skin='glass'] #root .card,
+[data-skin='glass'] #root .bubble {
+  --surfaceTint: var(--glassTint);
+  --surfaceBlur: var(--glassBlur);
+  background: color-mix(in srgb, var(--surface) var(--surfaceTint), transparent);
+  border-color: color-mix(in srgb, var(--borderStrong) var(--glassEdge), transparent);
+  /* The lit top edge. An inset hairline rather than a border so it lands inside the radius, and
+     drawn from --textBright so a light palette gets a light highlight instead of a grey smear. */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--textBright) calc(var(--glassEdge) / 2), transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--bg) calc(var(--glassEdge) / 3), transparent);
+}
+
+/*
+ * The blur, and the two things that keep it affordable.
+ *
+ * A backdrop-filter result is cached only while the backdrop holds still. Once a custom background
+ * animates, every blurred element re-runs a full-window blur pass per frame — so the cost is set by
+ * how many of these exist, not by how heavy the background is.
+ *
+ * Hence no `.bubble`: there is one per message, so including it scaled the per-frame cost with the
+ * length of the chat. Bubbles keep the tint, the border and the edges, and sit inside an
+ * already-blurred `.panel` — nested backdrop-filters do not compound anyway (see `.card` below).
+ *
+ * And hence `:not([data-bg-animated])`: `.panel` and `.card` are per-item in list views too (palettes,
+ * the prompt stack's zones), so trimming the selector is not enough on its own.
+ * PageBackground sets that attribute when the background's CSS declares keyframes, which drops the
+ * blur to a plain tint for exactly the backgrounds that cannot afford it. A moving background is
+ * already carrying the visual interest the glass was there to provide.
+ *
+ * -webkit- prefix included: Safari still needs it. Saturation is kept close to 1 — pushing it is
+ * what gives cheap glass its tinted-plastic look.
+ */
+[data-skin='glass']:not([data-bg-animated]) #root .panel,
+[data-skin='glass']:not([data-bg-animated]) #root .navbar,
+[data-skin='glass']:not([data-bg-animated]) #root .card {
+  -webkit-backdrop-filter: blur(var(--surfaceBlur)) saturate(1.15);
+  backdrop-filter: blur(var(--surfaceBlur)) saturate(1.15);
+}
+
+/* Regions read as lifted off the page; the rail and the message surface do not. */
+[data-skin='glass'] #root .panel,
+[data-skin='glass'] #root .navbar {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--textBright) calc(var(--glassEdge) / 2), transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--bg) calc(var(--glassEdge) / 3), transparent),
+    0 8px 24px -12px color-mix(in srgb, #000 var(--glassShade), transparent);
+}
+
+/* The rail is the frame around everything: less tint, a little more blur than the panes it borders. */
+[data-skin='glass'] #root .navbar {
+  --surfaceTint: max(0%, calc(var(--glassTint) - 8%));
+  --surfaceBlur: calc(var(--glassBlur) + 4px);
+}
+
+/*
+ * The sidebar rail, specifically. This is the one place the skin names something outside the four
+ * contract classes, because the rail is the only navbar that is vertical: a shadow thrown downward
+ * and hairlines along the top and bottom are the wrong axis for it, so both are turned a quarter
+ * turn. The rail also runs the full height of the window with no radius, so its lit edge is a
+ * border-side highlight rather than an inset that has to stay inside a corner.
+ */
+[data-skin='glass'] #root .navbar.sidebar {
+  box-shadow:
+    inset -1px 0 0 color-mix(in srgb, var(--textBright) calc(var(--glassEdge) / 2), transparent),
+    8px 0 24px -12px color-mix(in srgb, #000 var(--glassShade), transparent);
+}
+
+/*
+ * Nav items are painted from the opaque surface ramp, which over glass reads as solid blocks pasted
+ * onto the rail. Mixed down to the same degree the rail itself is, so hover and the active item stay
+ * a step of the same material.
+ */
+[data-skin='glass'] #root .navbar .sidebar-item:hover {
+  background: color-mix(in srgb, var(--surfaceHover) var(--glassTint), transparent);
+}
+
+[data-skin='glass'] #root .navbar .sidebar-item.active {
+  background: color-mix(in srgb, var(--surfaceActive) var(--glassTint), transparent);
+}
+
+/* Cards sit inside panels, already looking through one layer, so they get less tint again — nested
+   backdrop-filters do not compound, which is why this is a tint choice and not a blur one. */
+[data-skin='glass'] #root .card {
+  --surfaceTint: max(0%, calc(var(--glassTint) - 14%));
+}
+
+[data-skin='glass'] #root .card:hover {
+  background: color-mix(in srgb, var(--surfaceHover) var(--surfaceTint), transparent);
+}
+
+/* Messages are the reading surface: more tint than anything else, less blur, so body text over a
+   busy background image stays legible. */
+[data-skin='glass'] #root .bubble {
+  --surfaceTint: min(100%, calc(var(--glassTint) + 18%));
+  --surfaceBlur: max(0px, calc(var(--glassBlur) - 4px));
+}
+
+/* The base stylesheet gives a user message a raised shade; the shared rule above outspecifies it, so
+   the distinction is restated here rather than lost. */
+[data-skin='glass'] #root .bubble.user {
+  background: color-mix(in srgb, var(--surfaceRaised) var(--surfaceTint), transparent);
+}

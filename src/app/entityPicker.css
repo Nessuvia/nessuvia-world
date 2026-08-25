@@ -1,0 +1,59 @@
+.entityPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem;
+  background: var(--surface);
+}
+
+.entityPickerSearch {
+  width: 100%;
+}
+
+.entityPickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Cap at --pickerRows rows, scroll past that. Row = 40px avatar + 0.3rem padding top/bottom. */
+  max-height: calc(var(--pickerRows, 4) * (40px + 0.6rem));
+  overflow-y: auto;
+}
+
+.entityPickerList li button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.3rem;
+}
+
+.entityPickerList li button:hover:not(:disabled) {
+  background: var(--surfaceHover);
+}
+
+/* A picked row. The background is the whole signal, so it has to beat :hover above. */
+#root .entityPickerList li button.selected {
+  background: var(--surfaceSelected);
+}
+
+.entityPickerList li button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Also used by Write's cast rows, so a picked entry reads the same as it did in the list. */
+.entityPickerName {
+  flex: 1;
+}
+
+.entityPickerKind {
+  font-size: 0.7rem;
+  color: var(--textDim);
+  text-transform: uppercase;
+}

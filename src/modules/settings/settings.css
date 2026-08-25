@@ -1,0 +1,531 @@
+/* Settings-only styles. The generic page shell, form controls and tab bar live in
+   app/formPage.css; the text-styling and palette rules moved to modules/appearance. */
+
+.relayUrlField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.relayUrlField input {
+  width: 100%;
+}
+
+.connectionList {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.connectionList li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.connectionList li.active {
+  border-color: var(--borderAccent);
+}
+
+.connectionName {
+  font-weight: 600;
+}
+
+.connectionUrl {
+  flex: 1;
+  color: var(--textDim);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connectionActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.connectionEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.fieldRow {
+  display: flex;
+  gap: 12px;
+}
+
+/* A folded section of the connection editor. The param builder stays open below them. */
+.editorSection > summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+.editorSection[open] > summary {
+  margin-bottom: 12px;
+}
+
+/* The connection's plumbing fields, packed onto a four-column grid so they take a few short rows
+   instead of one field per line — the param builder underneath is what the page is really for. */
+.connectionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+/* #root to beat `.formPage label`, which is inline-flex and shrink-to-fit — a grid cell has to
+   fill its track or the inputs collapse to their intrinsic width. */
+#root .connectionGrid > label {
+  display: flex;
+  align-self: stretch;
+  min-width: 0;
+}
+
+.connectionGrid .span2 {
+  grid-column: span 2;
+}
+
+.connectionGrid .span3 {
+  grid-column: span 3;
+}
+
+.connectionGrid .span4 {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .connectionGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .connectionGrid .span3 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .connectionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .connectionGrid .span2,
+  .connectionGrid .span3 {
+    grid-column: span 1;
+  }
+}
+
+.modelRow {
+  display: flex;
+  gap: 6px;
+}
+
+.modelRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.modelPicker {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.modelOptions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 2px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surfaceRaised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.modelOptions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.modelOptions li:hover {
+  background: var(--surfaceHover);
+}
+
+.testResult {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.editorActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* One card per setting. Fixed three columns, and grid-auto-rows: 1fr makes every row as tall as
+   the tallest card on the page, so adding a long setting evens out the rest. Content starts at the
+   top; the leftover space falls to the bottom of the card. */
+.settingsCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .settingsCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settingsCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+}
+
+.settingsCard h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+/* #root to beat .formPage label, which stacks label content in a column. A checkbox belongs on
+   the same line as its text. */
+#root .debugToggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.debugToggle input[type='checkbox'] {
+  margin: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.titleInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.charCount {
+  color: var(--textDim);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.debugHint {
+  margin: 6px 0 0;
+  color: var(--textDim);
+  font-size: 12px;
+}
+/* Tag rules and Find & Replace share a section shell. */
+/* Text Rules: one card per rule set. Three to a row on desktop, single file on a phone.
+   grid-auto-rows: 100% makes every row exactly the height of the page — the three rule sets are
+   one row, so they fit the screen with nothing to scroll, and a fourth would start a screen below.
+   The card's own list scrolls inside it (each panel carries a .screenBody), so the page scroll only
+   ever moves between rows. */
+.textRulesCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 100%;
+  gap: 12px;
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .textRulesCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* A grid item's default min-width is auto, so a card with a wide row widens the column past the
+   viewport instead of letting its own content wrap. */
+.textRulesCards > .textRules {
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+}
+
+.textRules h3 {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.textRules h3:first-child {
+  margin-top: 0;
+}
+
+.textRules .hint {
+  margin: 6px 0 12px;
+  color: var(--textDim);
+  font-size: 12px;
+}
+
+.tagRules {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.tagRules li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tagRules input,
+.tagRules select {
+  flex: 1 1 110px;
+  min-width: 0;
+}
+
+/* Invalid-regex message under a Find & Replace row; full-width so it wraps below the inputs. */
+.tagRules .hint.danger {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--danger);
+}
+
+/* Grammar Hammer panel. */
+.titleContainer {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  align-items: center;
+}
+
+.grammarHammer .checkboxRow {
+  display: flex;
+  flex-grow: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+/* Grammar Hammer rules as a card list. */
+.ruleCards {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ruleCard {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ruleCardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ruleCardHead button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ruleCardHead .ruleToggle {
+  display: flex;
+  align-items: center;
+}
+
+.ruleCardHead .labelInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.ruleCardHead select {
+  flex: 0 0 auto;
+}
+
+/* The tag beats `.formPage label`, which makes labels inline-flex and shrink-to-fit — that was
+   capping the pattern input at its intrinsic width. The Action field is a div, so it was fine. */
+label.ruleField {
+  display: flex;
+  align-self: stretch;
+}
+
+.ruleField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.ruleField > span {
+  font-size: 11px;
+  color: var(--textDim);
+}
+
+.ruleField .patternInput {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--mono, monospace);
+}
+
+.ruleActionRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ruleActionRow select {
+  flex: 0 0 auto;
+}
+
+.ruleActionRow .patternInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.replacedSpan {
+  color: var(--accent, var(--textMuted));
+}
+
+.previewLabel {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  color: var(--textDim);
+}
+
+.previewResult {
+  margin-top: 0;
+}
+
+.ruleCard .hint.danger {
+  margin: 6px 0 0;
+  color: var(--danger);
+}
+
+.grammarActions {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.cheatSheet {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--textDim);
+}
+
+.cheatSheet p {
+  margin: 4px 0;
+}
+
+.cheatSheet code {
+  font-family: var(--mono, monospace);
+}
+
+.grammarPreview textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--mono, monospace);
+}
+
+.previewOut {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.strippedSpan {
+  text-decoration: line-through;
+  color: var(--textMuted);
+}
+
+/* Phone width. The cards are already one per row by 900px; these keep the rows inside them from
+   setting a minimum width the screen can't scroll to. */
+@media (max-width: 700px) {
+  .ruleCardHead {
+    flex-wrap: wrap;
+  }
+
+  .ruleCardHead .labelInput {
+    flex: 1 1 100%;
+  }
+
+  /* Icons only — the label span is hidden by .btnText in formPage.css. */
+  .ruleCardHead button {
+    padding: 7px 8px;
+    line-height: 0;
+  }
+
+  .tagRules .checkboxRow {
+    flex: 0 0 auto;
+  }
+
+  .grammarPreview textarea {
+    min-width: 0;
+  }
+}

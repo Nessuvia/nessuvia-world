@@ -1,0 +1,13 @@
+/* Sizing and shape stay with the caller's class (.avatar, .personaSwitchAvatar, …); this only
+   sets up the window the cropped image is positioned inside. */
+.cropped {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.cropped > img {
+  position: absolute;
+  max-width: none;
+  max-height: none;
+}

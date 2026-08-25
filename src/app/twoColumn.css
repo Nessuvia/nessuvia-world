@@ -1,0 +1,53 @@
+/* The frame holds two independently scrolling columns, so it doesn't scroll itself — this beats the
+   overflow .screenBody sets on the same element. */
+.twoColumn {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.twoColumnList {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* With a detail panel open the list gives up the extra width instead of stretching its rows. */
+.twoColumn.split .twoColumnList {
+  flex: 0 1 clamp(260px, 34%, 460px);
+}
+
+.twoColumnDetail {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Phones: the detail panel goes under the list instead of beside it, and the frame scrolls as one
+   page. Two side-by-side scrollers don't fit in the width, and a nested scroller inside a short
+   viewport is worse than the page scroll a phone already has. */
+@media (max-width: 700px) {
+  .twoColumn {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .twoColumnList,
+  .twoColumn.split .twoColumnList,
+  .twoColumnDetail {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+}
+
+/* The open row in the list. An outline, not a background or a border: the glass skin's `#root .card`
+   sets both of those and would beat a module's own selector for the row. */
+.twoColumn .card.editing {
+  outline: 1px solid var(--borderAccent);
+}

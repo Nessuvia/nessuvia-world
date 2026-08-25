@@ -1,0 +1,11 @@
+# Written by `pnpm approve-builds`: the two dependencies whose install scripts are allowed to run.
+# esbuild and workerd arrived with wrangler. `allowBuilds` is pnpm 11 syntax, and pnpm 10 rejects
+# this file outright for having no `packages` field — hence the pinned packageManager version in
+# package.json.
+#
+# protobufjs came in under centrifuge. Its protobuf transport is unused — the relay talks JSON —
+# so its install script stays denied rather than approved.
+allowBuilds:
+  esbuild: true
+  protobufjs: false
+  workerd: true

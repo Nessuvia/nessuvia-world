@@ -1,0 +1,89 @@
+.sync {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sync > h2 {
+  margin: 0;
+}
+
+.syncNote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+/* Two columns so the six fields don't run down the whole screen. */
+.syncBucket {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  max-width: 640px;
+}
+
+.syncBucket label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.syncBucket input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.syncActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.syncComparison {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+/* Name and verdict take the space; the two radios sit at a fixed width so they line up down the
+   column rather than tracking each table name's length. */
+.syncRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px 100px;
+  align-items: center;
+  gap: 8px;
+}
+
+.syncRowName {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.syncRow label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.syncError {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}

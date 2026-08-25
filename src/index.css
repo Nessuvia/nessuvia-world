@@ -1,0 +1,267 @@
+/* Every color in the app lives here. Module .css files reference these vars and never
+   hardcode a hex — swapping a theme means editing this block (or overriding it at runtime). */
+:root {
+  /* Set by the active palette, derived from its background. Dark until a palette applies. */
+  color-scheme: var(--colorScheme, dark);
+  font-family: system-ui, sans-serif;
+
+  --composerButton: 72px;
+  /* The general panel/button corner. Larger surfaces use calc(var(--radius) + 2px|4px). */
+  --radius: 6px;
+
+  --bg: #101014;
+  --surfaceSunken: #131318;
+  --surface: #16161c;
+  --surfaceRaised: #1b1b26;
+  --surfaceHover: #22222b;
+  --surfaceActive: #2d2d3a;
+  --surfaceSelected: #3f3f52;
+
+  --border: #2a2a33;
+  --borderStrong: #3a3a48;
+  --borderAccent: #4a4a6a;
+
+  --accent: #6c6cff;
+  --danger: #ff8a8a;
+
+  /* Backtick spans and fenced blocks in messages. Fixed, not palette-driven: a palette's text
+     colors are for prose, and code has to stay readable against its own background. */
+  --codeBg: #0b0b0f;
+  --codeText: #e2e2ea;
+
+  --text: #e6e6ea;
+  --textBright: #fff;
+  --textSoft: #c8c8d2;
+  --textMuted: #a0a0ac;
+  --textDim: #6c6c7a;
+
+  --overlay: #00000099;
+}
+
+* {
+  box-sizing: border-box;
+  /* Thumb then track. Follows the palette, and `thin` is narrower than the platform default.
+     The raised/sunken pair puts the thumb on the lighter side in both light and dark palettes. */
+  scrollbar-color: var(--surfaceRaised) var(--surfaceSunken);
+  scrollbar-width: thin;
+}
+
+/* Added briefly by useApplyPalette during a palette swap so the color change fades instead of
+   snapping. Scoped to the swap window so hover/focus states stay instant the rest of the time. */
+.paletteFading * {
+  transition: background-color 0.5s, color 0.5s, border-color 0.5s, fill 0.5s;
+}
+
+/* Nothing in the app scrolls sideways: wide content wraps or clips instead. The phone drawer opens
+   on a left-to-right swipe from anywhere on the screen (useDrawerSwipe.ts), and any horizontal
+   scroller would eat that swipe wherever it sat. This is the backstop — a new offender degrades to
+   clipped rather than to a drawer that won't open over it. */
+html,
+body {
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  /* Horizontal edge drags belong to the sidebar swipe in Sidebar.tsx, so the browser must not turn
+     them into back/forward navigation. */
+  overscroll-behavior-x: none;
+}
+
+.appShell {
+  display: flex;
+  height: 100vh;
+  /* The containing block for .pageBackgroundLayer, which spans the window behind sidebar and all. */
+  position: relative;
+  /* Vertical scrolling and pinch-zoom stay with the browser; sideways panning belongs to the phone
+     drawer's swipe (useDrawerSwipe.ts), which has to be able to preventDefault it. Bare `pan-y`
+     would take pinch-zoom away too. */
+  touch-action: pan-y pinch-zoom;
+}
+
+.appContent {
+  flex: 1;
+  /* Without this the flex default of `min-width: auto` lets anything wider than the viewport push
+     the shell past 100vw, and the whole document scrolls sideways instead of the overflow below
+     clipping it. That sideways scroll is also what a swipe-from-anywhere gesture can't survive. */
+  min-width: 0;
+  overflow: hidden;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* The background layer. Sized to the window: the sidebar sits over it rather than beside it, so a
+   translucent rail shows and blurs the same background the content area does.
+
+   Also the scope root for user CSS (see scopeCss.ts) — which is why it's a separate element from
+   `.pageBackground` below: a user writing `.pageBackground { … }` needs that class to be a
+   descendant of the scope root, not the root itself.
+
+   Clipped and contained, so nothing the user's HTML or CSS does inside can move page content or
+   paint outside the window. `contain` also makes this the containing block for their
+   `position: absolute`/`fixed` elements, so a fixed child can't escape to the viewport. */
+.pageBackgroundLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  contain: layout paint;
+  pointer-events: none;
+  /* A new layer mounts on top of the outgoing one and fades up as that fades down. Animations, not
+     transitions: an element that has just mounted has nothing to transition from. Keep the timings
+     in step with fadeMs in PageBackground.tsx. */
+  animation: fadeBackgroundIn 0.5s ease both;
+}
+
+/* Per-slot opt-out of spanning the sidebar. --navbarWidth is the rail's measured width, written to
+   <html> by Sidebar.tsx, so resizing and collapsing move this edge too. Not anchor positioning:
+   Firefox doesn't have it. */
+.pageBackgroundLayer.excludeNav {
+  left: var(--navbarWidth, 0px);
+}
+
+/* Still painted for the length of the fade, then unmounted. It stays first in the DOM, so the
+   incoming layer draws over it — no z-index, which would put it above .appContent. */
+.pageBackgroundLayer.leaving {
+  animation: fadeBackgroundOut 0.5s ease both;
+}
+
+@keyframes fadeBackgroundIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeBackgroundOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* The element a user's background CSS targets, and the parent their HTML is placed in. Fills the
+   layer; `position: relative` so their absolute positioning anchors here.
+
+   Structure only. How the chosen image paints is set inline by PageBackground, and with no image
+   set nothing here touches `background`, so the element is a blank canvas for custom CSS. */
+.pageBackground {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.appContentInner {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* No-page-scroll primitive. A module's root gets .screenFrame; the one child that should
+   absorb overflow gets .screenBody. Everything else in the frame stays fixed height. */
+.screenFrame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.screenBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Baseline dropdown style. Mirrors the per-module select styling (e.g. .prompts select) so an
+   unstyled select anywhere reads as part of the app; module rules still override where needed. */
+select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Text entry baseline. Mirrors module rules (e.g. .formPage textarea, .prompts textarea) so an
+   unstyled field reads as part of the app; module rules still override where needed. */
+textarea,
+input[type='text'],
+input[type='search'] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--borderAccent);
+}
+
+input[type='search'] {
+  /* Drop the WebKit default clear/decoration styling so the field matches other inputs. */
+  appearance: none;
+}
+
+/* Range inputs use the palette accent everywhere a module doesn't override it, so sliders from
+   the Connections panel to the skin knobs share the same palette-driven color. */
+input[type='range'] {
+  accent-color: var(--accent);
+}
+
+/* Button baseline. Mirrors .formPage button. Buttons carrying their own module styling override. */
+button,
+a.button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+button:hover:not(:disabled),
+a.button:hover {
+  background: var(--borderStrong);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.placeholder {
+  color: var(--textDim);
+  font-size: 20px;
+}
+
+/* Phone-width adjustments. 700px is the breakpoint the whole app uses, including the sidebar's
+   collapsed-by-default in Sidebar.tsx. Not a mobile layout — only the fixes that pay for a line. */
+@media (max-width: 700px) {
+  .appContent {
+    padding: 10px;
+    /* Clearance for .sidebarOpenButton, which is fixed at the top-left corner over this area
+       whenever the drawer is closed (Sidebar.css). */
+    padding-top: 52px;
+  }
+
+  /* "Use max width on mobile": ignore the palette's chat and story widths at phone width. The
+     selector carries the extra specificity needed to beat each module's own width rule. */
+  :root[data-mobile-full-width] .chatView,
+  :root[data-mobile-full-width] .chapterEditor {
+    width: 100%;
+  }
+}

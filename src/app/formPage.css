@@ -1,0 +1,105 @@
+/* Base layout, form controls and tab bar for a full-page settings-style screen. Settings and
+   Appearance both use it; hoisted out of settings.css when Appearance became its own module. */
+
+.formPage {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.formPage h2,
+.formPage h3 {
+  margin: 0 0 12px;
+}
+
+/* Shrink-to-fit by default: a stretched label sits alone on an otherwise empty line, which reads
+   as a layout bug. Labels that should share a row opt in with `.grow`. */
+.formPage label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--textMuted);
+  align-self: flex-start;
+}
+
+.formPage label.grow {
+  align-self: auto;
+  flex: 1;
+}
+
+.formPage input,
+.formPage textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.formPage button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.formPage button:hover:not(:disabled) {
+  background: var(--borderStrong);
+}
+
+.formPage button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.formPage button.danger {
+  color: var(--danger);
+}
+
+.formPage button.secondary {
+  background: transparent;
+}
+
+.formPage .error {
+  color: var(--danger);
+}
+
+/* A button's text label beside its icon. Dropped at phone width, where the icon carries the
+   button on its own — the callers pair it with a title/aria-label so the icon stays named. */
+@media (max-width: 700px) {
+  .btnText {
+    display: none;
+  }
+}
+
+/* Tab bar across the top of the page. */
+.pageTabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: -12px;
+}
+
+.formPage button.pageTab {
+  background: transparent;
+  border-color: transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--textMuted);
+}
+
+.formPage button.pageTab:hover {
+  background: var(--surfaceActive);
+}
+
+.formPage button.pageTab.current {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}

@@ -1,0 +1,263 @@
+# CLAUDE.md — Nessu's Tavern
+
+## What this is
+
+A local-first character app that runs in the browser: chat with character cards, a Write mode for
+longer-form stories, an Ask scratchpad, and a multiplayer mode where guests join a host's chat from
+a link. All data lives in the user's browser and there are no accounts.
+
+Three paths leave the tab, and nothing else does:
+
+- The model endpoint, OpenAI-compatible, hosted or localhost, with the user's own key.
+- The multiplayer relay — Supabase Realtime on a build, or a Centrifugo instance the user runs.
+  Broadcast and presence only; nothing is stored there and API keys never reach it.
+- The user's own S3-compatible bucket, when sync is on. There is no server of ours in it.
+
+The build ships as static assets behind a Cloudflare Worker (`src/index.js`, `wrangler.jsonc`) that
+serves `dist` and has no routes of its own, and it installs as a PWA.
+
+Every record carries an `ownerId`, hardcoded to `"local"`. It exists so a multi-user backend stays
+possible later — do not build anything around it now.
+
+This codebase is a WIP; don't worry about any data that's been imported or is already in IndexedDB.
+Skip migrations and back-compat shims for old records; clearing site data is a fine answer.
+
+## Stack
+
+Vite · React 19 + TypeScript · plain CSS · React Router · Zustand · Dexie (IndexedDB) · pnpm
+
+Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (token budgeting),
+`compromise` (POS tagging for the grammar hammer), `@supabase/supabase-js` and `centrifuge`
+(multiplayer relays), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping).
+Dev side adds `vite-plugin-pwa` and `wrangler`.
+
+There is no drag-and-drop library. Reordering is hand-rolled in `app/useDragReorder.ts`; use it.
+
+Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, imported directly.
+No utility framework, no CSS-in-JS.
+
+## Structure
+
+```
+/src
+  /app          sidebar, module registry, routing, shared components and hooks
+    /skins      the structural half of a palette — see Style
+  /core
+    /storage    Dexie + the storage interface — the ONLY place that touches Dexie
+    /connectors the model endpoint: request bodies, SSE streaming, model lists
+    /stores     Zustand stores
+    /prompt     prompt assembly: buildPrompt, buildStoryPrompt, budget, worldInfo, conditions
+    /palette    appearance: palettes, webfonts, background HTML/CSS sanitizing
+    /params     the sampler library — params as data, not code
+    /hammer     grammar rules run over model output
+    /multiplayer  relay channels, session protocol, turn order, narrator
+    /sync       S3 bucket push/pull and dirty-table tracking
+    /settings   settings resolution helpers
+  /modules
+    /<name>     one folder per feature: index.ts self-registers it, plus its components and .css
+  /resources    organization folder for markdown plans, etc.
+```
+
+Modules self-register by calling `registerModule` from their `index.ts`; the sidebar and the router
+both derive from that registry. Adding a feature means adding a folder and importing it in
+`main.tsx` — never editing a central list of screens. Beyond `{ id, label, icon, route, component }`
+a module may declare:
+
+- `tabs` — `[hashId, label]` pairs shown as sidebar sub-items; the view reads the hash
+  (`app/useHashTab.ts`).
+- `plugin: true` — listed in Settings › Miscellaneous and off until enabled there.
+- `chatPanels` — sections contributed to the chat sidebar, ordered by registration order in
+  `main.tsx`. A panel that shouldn't show renders null; there is no visibility API.
+- `decorateMessage(ctx)` — text appended to the outgoing user message before token substitution.
+
+`component` is `lazy()` for route views; `chatPanels` stay eager, since they render inside the chat
+rather than behind a route.
+
+Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `prompts`,
+`appearance`, `settings`, plus four special cases —
+
+- `bodyMap` is a plugin: registered, but off until enabled in Settings.
+- `learn` is registered in every build; the sidebar only shows its button on dev
+  (`import.meta.env.DEV` in `Sidebar.tsx`), so `/learn` resolves on live without a way in.
+- `sync` is commented out in `main.tsx`. The code works and the BYO-S3 decision is unmade;
+  unregistering is the whole switch. Re-enable by uncommenting.
+- `join` is not a module. `App.tsx` mounts `/join/:sessionId` outside the app shell, so a guest
+  never loads the sidebar.
+
+## Seams — reuse these, don't reinvent
+
+- **Prompt assembly** — `core/prompt`. `buildPrompt` (chat), `buildStoryPrompt` (Write),
+  `budget` (token counting and history trimming), `flattenPrompt` (text-completion connections),
+  `swapTokens`, `worldInfo`, `conditions`, `chapterGuide`, `rewrite`. Anything changing what the
+  model receives goes through one of these.
+- **Model calls** — `core/connectors`. `openaiCompatible` (streaming), `dummy` (local generator for
+  debugging), `buildRequestBody` + `completionUrl`, `listModels` + `modelsUrl`, `snapshot`.
+- **Multiplayer** — `core/multiplayer/channel.ts` is the interface; `supabaseChannel` and
+  `centrifugoChannel` are the two implementations and nothing above them knows which is live.
+  `protocol.ts` holds the event shapes, `protocolVersion` (guests reject a mismatch) and the
+  240 KB event cap. `hostSession`, `turnOrder`, `narrator`, `rosterAvatar` sit on top.
+- **Sync** — `core/sync/syncClient.ts` is the only outward-facing file; `dirtyTables.ts` decides
+  what needs pushing.
+- **Appearance** — `core/palette` for palettes, webfonts and the sanitizers; `app/skins` for the
+  structural layer.
+- **Sampler params** — `core/params`. A param def is a row, not code, so a new sampler needs no
+  release.
+- **Grammar hammer** — `core/hammer`. `tagger` → `pattern` → `matcher` → `repair`/`strip`, with
+  `exclusions` marking spans a rule may not touch.
+
+## Data
+
+Everything durable is in Dexie (`core/storage/db.ts`), currently `db.version(12)`: `characters`,
+`personas`, `worldInfo`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`, `macros`,
+`palettes`, `backgroundImages`, `bodyTrackers`, `bodyMaps`, `paramDefs`.
+
+- Adding a table or index means appending a new `db.version(N).stores({...})` block with the
+  **complete** schema, leaving every older block in place — Dexie needs the whole chain to upgrade
+  an existing local DB. Then add the name to `TableName` in `storageInterface.ts`.
+- Adding a plain field needs no version bump: put it in `types.ts` and default it in the store's
+  `newX()` factory. Indexes are only for fields you query with `find()`.
+- `storage.put/remove/clear/putAll` call `markDirty` before the write, which is how sync knows what
+  changed. A whole-table replacement (restore, pull) runs inside `withDirtySuppressed`.
+
+Three Zustand stores persist to localStorage instead of Dexie, via `zustand/middleware` `persist`:
+`settingsStore` (`nessuTavern.settings` — connections, and the API keys with them),
+`askStore` (`nessuTavern.ask`), `blipStore` (`nessuTavern.blips`).
+
+`core/storage/backup.ts` is the only code that reads or writes those keys for export/import, and
+`stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file
+leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
+
+## Conventions
+
+- camelCase everywhere — variables, functions, filenames. Exceptions only where the platform forces
+  otherwise (CSS class names, HTML attributes).
+- Plain functions, not classes. State lives in Zustand stores. Avoid inheritance, factories, and any
+  abstraction layer with one implementation.
+- Write TypeScript like JavaScript. Interfaces for data shapes and function signatures where they
+  prevent real mistakes. Avoid generics gymnastics and decorators.
+- Components read from and call into stores. **A component must never touch Dexie.** `core/storage`
+  is the only importer of Dexie and that rule has no exceptions.
+- The send path never calls `fetch` from a component: it goes store → connector. Four files outside
+  `core/connectors` talk outward on purpose, each saying why in its header — `sync/syncClient.ts`
+  (every request is SigV4-signed, so threading a signer elsewhere buys nothing),
+  `multiplayer/realtimeClient.ts` (the relay client), and the two Settings probes,
+  `ConnectionEditor.tsx`'s connection test and `readContextLimit.ts`, which are one-shot diagnostics
+  built from the connectors' own `completionUrl`/`modelsUrl`/`buildRequestBody`. Don't add a fifth
+  without the same kind of comment.
+- Model output and imported character cards are untrusted input. Render them as React elements,
+  never via `dangerouslySetInnerHTML` — this origin holds API keys in localStorage. User markup has
+  exactly one vetted route: `palette/sanitizeHtml.ts` (a `<template>` parse against a structural
+  allowlist, rejecting the whole input rather than scrubbing it) attached with `replaceChildren` in
+  `PageBackground.tsx`, and `palette/scopeCss.ts` for user CSS, which wraps it in `@scope` and
+  refuses it whole if a stray `}` escapes the block.
+- Store what the model actually said. Formatting is a display concern; never rewrite stored content.
+- A file that a `check*` script imports uses explicit `.ts` extensions in its own imports — node
+  strips types, it doesn't resolve like Vite. `core/params/paramDef.ts` and
+  `core/multiplayer/relayConfig.ts` are the pattern.
+
+## Specificity
+
+Before wiring up any edit, ask what scope it should change. The same control can sensibly write to
+any of these levels, and the right one is a design decision, not an accident of which record was
+closest to hand:
+
+- a single message
+- a single chat
+- all chats with a character
+- all chats using a prompt stack / connection / persona
+- everything (a global default)
+
+Write to the narrowest level that matches what the user meant, and make the level obvious in the UI.
+A knob that silently edits a wider scope than it appears to is the failure mode to watch for: picking
+a prompt option inside a chat writes back to the shared stack, so the next new chat inherits it —
+fine if that's intended and surprising if it isn't. When a level is chosen for expedience rather than
+intent, leave a comment naming the level and the upgrade path (e.g. per-chat override).
+
+## Style
+
+Keep styling light until the polishing phase — a screen that works and looks plain is done; pixel
+work waits. But build the pieces so polish is cheap later:
+
+- All colors are CSS vars in `:root` in `index.css`. Never hardcode a hex in a module stylesheet.
+  The active palette overwrites those vars at runtime (`palette/useApplyPalette.ts`), so a
+  hardcoded color is a value that stops following the user's theme.
+- Shared UI patterns live in `/app` with their own `.css`, and modules import them: `CollapseButton`
+  (chevron and rail), `Avatar`, `ColorInput`, `ColorStack`, `EntityPicker`, `TwoColumn`,
+  `PageLoader`, `PromptPreviewPanel`, and the hooks `useCloseOnOutside` (every button dropdown uses
+  it), `useDragReorder`, `useHashTab`, `useMediaQuery`. Second copy of a pattern is a nudge; third is
+  the cue to hoist it — small component, obvious props, room to grow.
+- Skins are the structural half of a palette: a `data-skin` attribute on the root and a stylesheet of
+  `[data-skin='x'] #root .panel { … }` rules. Four classes are the whole contract — `panel`,
+  `navbar`, `card`, `bubble`. A skin may only change how a surface is painted (background, border,
+  shadow, filter); radius, padding and spacing stay in the base stylesheet, so a skin can look wrong
+  but never break layout. A new skin is a file, a line in `app/skins/index.ts`, and an entry in
+  `skins.ts`.
+- Mobile: CSS handles anything a stylesheet can say on its own. Reach for
+  `useMediaQuery('(max-width: 700px)')` only where the layout changes shape rather than style.
+- Icons come from `@remixicon/react`. Never stand in an emoji or a unicode glyph for an icon.
+  Typography characters (`…`, `·`, `→`) are fine.
+- Module `.css` files hold only what's specific to that tab. Anything two tabs share belongs in the
+  shared component's stylesheet.
+- A shared rule that has to beat a module's generic selector (`.prompts button`) gets a `#root`
+  prefix and a comment saying why — stylesheet order isn't something to rely on.
+
+## UI copy
+
+Every string a user reads — labels, buttons, placeholders, hints, empty states, errors — is plain
+and boring. State what the thing does and stop. Leave out the pitch, the personality and the
+reassurance.
+
+Write the shortest sentence that carries the fact. Then check it against these, which are the tells
+that give away machine-written copy:
+
+- The rhetorical triple and its shorter cousin, the negated pair: "no requests, no spend", "not a
+  warning, not a block", "faster, simpler, cheaper". Never use either. State the positive fact
+  instead: "Requests are not sent."
+- The em-dash aside that adds a flourish rather than information.
+- Words that praise the feature: seamlessly, simply, just, effortlessly, powerful, robust, smart.
+- Explaining *why* a design is good, or what it saves the user, in copy that should only say what
+  it does.
+
+`"Replies come from a local generator. Requests are not sent."` — good. `"Replies come from a
+local lorem ipsum generator instead of the connection — streamed as real SSE, so nothing else
+changes. No requests, no spend."` — an actual string this codebase shipped, and exactly the thing
+to avoid: three clauses of salesmanship for one fact.
+
+This is about user-visible text only. Code comments explain reasoning and can breathe.
+
+## Builds
+
+`npx pnpm build` builds against `.env`; `npx pnpm build:release` builds `--mode release` against
+`.env.release`. Both files are committed and hold only public values — the Supabase URL and anon
+key, which are designed to ship in a client bundle. Nothing secret goes in either.
+
+`wrangler.jsonc` (dev) and `wrangler.release.jsonc` (live) deploy the built `dist`. Neither holds a
+binding beyond `ASSETS`.
+
+`pnpm-workspace.yaml` pins which install scripts may run and explains the `packageManager` pin in
+`package.json`; pnpm 10 rejects that file outright.
+
+## Verifying work
+
+`npx pnpm build` (runs `tsc -b` then the Vite build) and the `check*` scripts must both pass. The
+checks are plain `node --experimental-strip-types` scripts with `assert`. `tsconfig.check.json`
+puts them in the `tsc -b` chain, so the build typechecks them but never runs their assertions —
+run those separately:
+
+```
+find src -name 'check*' -exec node --experimental-strip-types {} \;
+```
+
+One is `.mjs` (`core/multiplayer/checkTurnOrder.mjs`); the glob above catches it. There is no test
+framework — don't add one unasked.
+
+When you add non-trivial logic (a branch, a loop, a parser, a security path), add one `check*.ts`
+next to it — the smallest thing that fails if the logic breaks. No frameworks, no fixtures, no
+per-function suites unless asked. Trivial one-liners need no check.
+
+**Then stop and hand off.** User drives Chrome and tests in the browser personally. Don't launch
+a browser, don't drive the Chrome tools, and don't leave `npx pnpm dev` running in the background unless
+asked. Report that the build and checks are clean and say what's ready to look at.
+
+`npx pnpm lint` (oxlint) exists from the Vite template but isn't enforced. Don't run it or add lint
+gates unless asked.

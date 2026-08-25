@@ -1,0 +1,57 @@
+// Per-kind config for the stack editor: which bound sources a kind exposes and how it validates.
+// The difference between a Chat stack and a Story stack is data, not control flow — StackEditor
+// reads these tables and stays one code path.
+import type { BlockSource, PromptBlock, PromptStack } from '../../core/storage/types'
+
+export type StackKind = 'chat' | 'story'
+
+/** A stack's kind, defaulting rows written before the field existed to 'chat'. */
+export const stackKind = (stack: Pick<PromptStack, 'kind'>): StackKind => stack.kind ?? 'chat'
+
+/** Bound sources per kind — pulled in from elsewhere in the app, allowed once each at top level. */
+export const boundSources: Record<StackKind, BlockSource[]> = {
+  chat: [
+    'characterDescription',
+    'characterPersonality',
+    'characterScenario',
+    'characterExampleDialogue',
+    'personaDescription',
+    'worldInfo',
+    'authorNote',
+    'chatHistory',
+  ],
+  story: ['cast', 'storyContext', 'storyTrailing', 'chapterGuide', 'authorNote'],
+}
+
+/** Sources a block of this kind may take: freeform text plus the kind's bound sources. */
+export const kindSources = (kind: StackKind): BlockSource[] => ['text', ...boundSources[kind]]
+
+// Switched on only, at any depth — nesting a bound block inside a wrapper still uses that source,
+// so it counts. A disabled block takes its whole subtree out of the prompt, so neither counts.
+const countIn = (list: PromptBlock[], source: BlockSource): number =>
+  list.reduce(
+    (n, b) =>
+      b.disabled ? n : n + (b.source === source ? 1 : 0) + countIn(b.children ?? [], source),
+    0,
+  )
+
+const count = (stack: PromptStack, source: BlockSource) => countIn(stack.active, source)
+
+/** Why the stack can't be saved, or '' when it's valid. Keyed by kind. */
+export function validateStack(stack: PromptStack): string {
+  if (count(stack, 'authorNote') > 1) return "Only one Author's note block allowed"
+  if (count(stack, 'worldInfo') > 1) return 'Only one World info block allowed'
+  if (stackKind(stack) === 'story') {
+    if (count(stack, 'chatHistory') > 0) return 'Story stacks have no Chat History block'
+    if (count(stack, 'storyContext') === 0) return 'Add a Story context block'
+    if (count(stack, 'storyContext') > 1) return 'Only one Story context block allowed'
+    // Optional, unlike Story context: a stack without one is valid and Stories still generate.
+    if (count(stack, 'chapterGuide') > 1) return 'Only one Chapter guide block allowed'
+    // Also optional: it renders empty whenever generation is at the end of a Chapter.
+    if (count(stack, 'storyTrailing') > 1) return 'Only one What follows block allowed'
+    return ''
+  }
+  if (count(stack, 'chatHistory') === 0) return 'Add a Chat History block'
+  if (count(stack, 'chatHistory') > 1) return 'Only one Chat History block allowed'
+  return ''
+}

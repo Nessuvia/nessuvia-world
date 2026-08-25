@@ -1,0 +1,79 @@
+/* Shared phone drawer: a panel that leaves the layout at phone width and covers the screen, off to
+   one edge until a swipe pulls it in. useSideDrawer.ts owns the gesture and puts these classes on.
+
+   A panel keeps its own stylesheet for everything else — this file only says where the drawer sits
+   and how it moves, so a panel reads the same open on a phone as it does docked on a desktop. */
+@media (max-width: 700px) {
+  .sideDrawer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    flex: none;
+    /* Under the navbar drawer (30) and its open button (29): the navbar is the way out of any
+       screen and must never end up behind a panel. */
+    z-index: 28;
+    transition: transform 220ms ease;
+    /* The drawer is the full height of the screen and its contents can outrun it. Sideways it
+       clips, the same as everywhere else — see the overflow rules in index.css. */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sideDrawer.leftDrawer {
+    transform: translateX(-100%);
+  }
+
+  .sideDrawer.rightDrawer {
+    transform: translateX(100%);
+  }
+
+  .sideDrawer.drawerOpen {
+    transform: translateX(0);
+  }
+
+  /* While the finger is down the inline transform from useSideDrawer drives it, and a transition
+     would lag a frame behind every move. */
+  .sideDrawer.dragging {
+    transition: none;
+  }
+
+  /* Opens the drawers on the right edge. Fixed over the content rather than in a panel header,
+     which is inside the drawer being opened. Stacked, so a screen with two panels shows two
+     buttons rather than one on top of the other. */
+  .drawerOpenButtons {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 27;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+/* Off a phone the buttons have nothing to open: the panels are in the layout. */
+@media (min-width: 701px) {
+  .drawerOpenButtons {
+    display: none;
+  }
+}
+
+#root .drawerOpenButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sideDrawer {
+    transition: none;
+  }
+}

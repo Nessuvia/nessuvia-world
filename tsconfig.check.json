@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.check.tsbuildinfo",
+    "types": []
+  },
+  "include": ["src/**/check*.ts", "src/assert.d.ts"],
+  "exclude": []
+}

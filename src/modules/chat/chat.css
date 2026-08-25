@@ -1,0 +1,1211 @@
+.chatPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chatPicker h2 {
+  margin: 0;
+}
+
+.chatPickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chatPicker button,
+.chatView button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chatPicker button:hover:not(:disabled),
+.chatView button:hover:not(:disabled) {
+  background: var(--borderStrong);
+}
+
+.chatPicker button:disabled,
+.chatView button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chatPicker button.danger,
+.chatView button.danger {
+  color: var(--danger);
+}
+
+.chatPicker button.secondary,
+.chatView button.secondary {
+  background: transparent;
+}
+
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pickerList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pickerList > li > button:first-child {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  text-align: left;
+  font-size: 14px;
+}
+
+/* Two columns: character details on the left, its chats on the right. */
+.characterPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.characterPanel > .chatPickerHeader button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.characterPanel > .chatPickerHeader button:hover {
+  background: var(--borderStrong);
+}
+
+.characterPanel > .chatPickerHeader button.danger {
+  color: var(--danger);
+}
+
+.characterPanel > .chatPickerHeader button.secondary {
+  background: transparent;
+}
+
+.characterPanelColumns {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  gap: 24px;
+}
+
+/* .screenBody supplies flex:1/min-height:0/overflow-y:auto — the editor's own 720px cap would
+   leave the freed space empty when Chats collapses, so each column fills and scrolls on its own. */
+.characterPanelColumn {
+  min-width: 0;
+}
+
+/* A definite height, not min-height: the editor's tabs size their cards as a percentage of it,
+   and a percentage of a content-sized box resolves to auto. */
+.characterPanelColumn > .characters {
+  height: 100%;
+}
+
+.characterPanel .chatPickerHeader h2 {
+  margin: 0;
+}
+
+.characterPanelColumn.chats {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.characterPanelColumn.chats .chatPicker {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The title and its chevron sit together on the left of the Chats header. */
+.chatPickerTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chatSearchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatSearchRow .chatSearch {
+  flex: 1;
+  min-width: 0;
+}
+
+.chatSearchInside {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.chatDeleteToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.chatMatchCount {
+  white-space: nowrap;
+}
+
+.chatSearch {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.charSearchWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.charSearchIcon {
+  position: absolute;
+  left: 8px;
+  color: var(--textMuted);
+  pointer-events: none;
+}
+
+.charSearch {
+  padding-left: 28px;
+}
+
+.importMenu {
+  position: relative;
+}
+
+.chatPicker .importButton {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chatPicker .importButton:hover {
+  background: var(--borderStrong);
+}
+
+.importMenuList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+
+/* File inputs can't be styled; the label is the button. */
+.importMenuList label,
+.importMenuList button {
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.importMenuList label:hover,
+.importMenuList button:hover {
+  background: var(--surfaceActive);
+}
+
+.importMenuList input {
+  display: none;
+}
+
+.importUrlDialog input[type='url'] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+}
+
+.importUrlPreview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.chatPicker .error {
+  color: var(--danger);
+  margin: 0;
+}
+
+/* align-content defaults to stretch, which hands a single row all the leftover height of the
+   panel and stretches the cards with it. Rows stay at content height. */
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  align-content: start;
+  gap: 12px;
+}
+
+.chatPicker .pickerCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  text-align: center;
+  max-height: 18vh;
+}
+
+.pickerCard .avatar {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+}
+
+.pickerCard .characterName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pickerMeta {
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.chatRow {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+}
+
+.chatRow input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  color: var(--text);
+  font: inherit;
+}
+
+.chatTitle {
+  flex: 1;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.chatTitle:hover {
+  text-decoration: underline;
+}
+
+/* Star toggle in a chat row and in the sidebar bookmark list. */
+.starButton {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: none;
+  border: none;
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+.starButton:hover {
+  color: var(--text);
+}
+
+/* Bookmarked chats pinned under the Chat nav item. */
+.sidebarBookmarks {
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 0 0 0 26px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarBookmarks li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bookmarkTitle {
+  flex: 1;
+  color: var(--textMuted);
+  text-decoration: none;
+  padding: 4px 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmarkTitle:hover {
+  color: var(--text);
+}
+
+/* New chat dialog */
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  padding: 20px;
+  width: min(680px, 100%);
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dialog h3 {
+  margin: 0;
+}
+
+.greetingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.greetingList li {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.greetingHeader {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.greetingPreview {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--textMuted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dialogActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Conversation */
+.chatView {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.chatViewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chatViewHeader h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.chatViewHeader h2 {
+  cursor: text;
+}
+
+.titleEdit {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+/* The open chat's settings, rendered in the sidebar under the module links. Fill/scroll behavior
+   comes from .screenBody on the element; this rule only adds what's specific to the panel. */
+.chatSettings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.chatSettings summary {
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* The panel's gap only reaches its own children; inside a <details> they're plain block flow.
+   Not `display: flex` on the details itself — that costs the disclosure marker. */
+.chatSettings details > *:not(summary) {
+  margin-top: 8px;
+}
+
+.chatSettingsMeta {
+  margin: 0;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.chatSettingsPick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.chatSettingsPick select {
+  width: 100%;
+}
+
+/* `.hint` is scoped per module, and this one renders outside every module's root element. */
+.chatSettings .hint {
+  margin: 0;
+  color: var(--textDim);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.chatSettings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.chatSettings textarea,
+.chatSettings input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.chatSettings .noteDepth input,
+.chatSettings .replyCount input {
+  width: 80px;
+}
+
+.chatSettings label.checkboxRow {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.chatSettings label.ruleToggleRow {
+  padding-left: 16px;
+}
+
+.chatSettings .optionalBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chatSettings .scrollPick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The prompt preview's own styles live in app/promptPreviewPanel.css — Chat and Story share it. */
+
+.messageList {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.message {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.message.user {
+  background: var(--surfaceRaised);
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.messageWho {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--textMuted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.messageAvatar {
+  width: 20px;
+  height: 20px;
+}
+
+/* The roster and the chat toolbar share the row above the composer. */
+/* The right edge lines up with the composer's textarea: leave the Send button's column empty. */
+.chatBottomBar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-right: calc(var(--composerButton) + 8px);
+}
+
+.chatToolbar {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.rangeInputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rangeInputs label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.rangeInputs input {
+  width: 80px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 8px;
+  color: var(--text);
+  font: inherit;
+}
+
+.rangeCount {
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.rangeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.rangeList strong {
+  font-size: 12px;
+}
+
+.rosterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rosterMember {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  padding-right: 2px;
+}
+
+.rosterMember.upNext {
+  border-color: var(--borderStrong);
+}
+
+.chatView .rosterMember button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  padding: 3px 4px 3px 3px;
+  font-size: 12px;
+}
+
+.rosterMember .avatar {
+  width: 22px;
+  height: 22px;
+}
+
+.rosterMember.upNext .rosterName {
+  font-weight: 600;
+}
+
+.rosterAdd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 8px;
+  color: var(--textMuted);
+  font: inherit;
+  font-size: 12px;
+}
+
+.messageActions {
+  display: flex;
+  gap: 4px;
+  visibility: hidden;
+}
+
+.message:hover .messageActions {
+  visibility: visible;
+}
+
+.messageActions button {
+  padding: 2px 6px;
+  font-size: 12px;
+  background: transparent;
+  border-color: transparent;
+}
+
+/* The appearance vars are set on .chatView; unset ones fall through to these values. */
+.messageBody {
+  white-space: pre-wrap;
+  line-height: var(--chatLineHeight, 1.55);
+  font-family: var(--chatFont, inherit);
+  font-size: var(--chatFontSize, inherit);
+  color: var(--textColor, inherit);
+}
+
+.messageBody .spokenText {
+  color: var(--quoteColor, inherit);
+}
+
+.messageBody .emphasisText {
+  color: var(--emphasisColor, inherit);
+}
+
+.messageBody .boldText {
+  color: var(--boldColor, inherit);
+}
+
+/* `code` and ```fenced```. Both opt out of --chatFont and the palette text colors. */
+.messageBody .codeText,
+.messageBody .codeBlock {
+  background: var(--codeBg);
+  color: var(--codeText);
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.messageBody .codeText {
+  padding: 1px 5px;
+}
+
+/* Wraps rather than scrolling sideways: a horizontal scroller here would swallow the phone drawer's
+   open swipe over any message that holds code. Long unbroken tokens break mid-word rather than
+   widening the message. */
+.messageBody .codeBlock {
+  display: block;
+  margin: 6px 0;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Tag rules in collapse mode. <details> carries the open/closed state, so there's no component. */
+.taggedBlock {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 2px solid var(--border);
+  color: var(--textMuted);
+  font-size: 0.92em;
+}
+
+.taggedBlock > summary {
+  cursor: pointer;
+  color: var(--textMuted);
+  font-size: 0.9em;
+  letter-spacing: 0.04em;
+}
+
+.messageEdit {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-family: var(--chatFont, inherit);
+  font-size: var(--chatFontSize, inherit);
+  line-height: var(--chatLineHeight, 1.55);
+  resize: none;
+}
+
+.swipes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.swipeCount {
+  color: var(--textDim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.messageActions button:disabled {
+  opacity: 0.35;
+}
+
+.quickActions {
+  position: relative;
+}
+
+.quickActions summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--textDim);
+}
+
+.quickActions summary::-webkit-details-marker {
+  display: none;
+}
+
+.quickActionsMenu {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.quickActionsMenu button {
+  text-align: left;
+  padding: 6px 8px;
+  background: transparent;
+  border-color: transparent;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.quickActionsMenu button:hover {
+  background: var(--border);
+}
+
+.rewriteDialog {
+  width: min(560px, 100%);
+}
+
+.rewriteBox {
+  width: 100%;
+  resize: vertical;
+}
+
+/* Cancel left, Send right. */
+.rewriteActions {
+  justify-content: space-between;
+}
+
+.staleNote {
+  margin: 6px 0 0;
+  color: var(--textDim);
+  font-size: 11px;
+}
+
+.editHint {
+  margin: 4px 0 0;
+  color: var(--textDim);
+  font-size: 11px;
+}
+
+.caret {
+  color: var(--textDim);
+}
+
+.chatError {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.trimNote {
+  margin: 0;
+  color: var(--textDim);
+  font-size: 12px;
+}
+
+.composer {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+/* Slash-command list, anchored above the input the way .personaSwitchMenu is above its avatar. */
+.commandMenu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: var(--composerButton);
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  z-index: 5;
+}
+
+.commandRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.commandRow.active {
+  background: var(--surfaceRaised);
+}
+
+.commandName {
+  white-space: nowrap;
+}
+
+.commandHint {
+  color: var(--textDim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commandAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  font-size: 12px;
+}
+
+/* fixed send-button width so the toolbar row can reserve the same gutter. */
+.composerControls > button {
+  width: var(--composerButton);
+  justify-content: center;
+}
+
+/* Persona avatar sits above the Send button, both centred in the button column. */
+.composerControls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* .personaSwitch* live in app/personaSwitcher.css — the sidebar uses them too. */
+
+.composer textarea {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 10px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.chatView {
+  /* Narrowed by the Chat visuals width setting; stays centred as it shrinks. */
+  width: var(--chatWidth, 100%);
+  margin: 0 auto;
+}
+
+/* Same pattern as .checkboxRow: beats the panel's column-flex label rule. */
+.chatSettings label.chatWidth {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.chatSettings .chatWidth input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+/* Room for the spin buttons: at 52px the default padding squeezed them out of the box. */
+.chatSettings .chatWidth input[type='number'] {
+  width: 64px;
+  flex: none;
+  padding: 6px 2px 6px 6px;
+}
+
+.chatSettings .speakerColorsTitle {
+  font-size: 0.85em;
+}
+
+@media (max-width: 700px) {
+  /* Character page: details and chats stack instead of splitting a phone's width in two. The
+     editor's height:100% goes with them — stacked columns are sized by their content and the
+     page scrolls. */
+  .characterPanelColumns {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    /* Stacked, the columns are content-height and each one's own .screenBody scroller has nothing
+       to scroll — so the scrolling moves out here, to the pair of them. */
+    overflow-y: auto;
+  }
+
+  .characterPanelColumn {
+    flex: none;
+    overflow: visible;
+  }
+
+  .characterPanelColumn > .characters {
+    height: auto;
+  }
+
+  .chatPickerHeader,
+  .chatViewHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* The width setting is for wide screens; there's nothing to give back here. */
+  .chatView {
+    width: 100%;
+  }
+
+  .chatBottomBar {
+    padding-right: 0;
+  }
+
+  /* Title on its own line, star/Rename/Delete under it. One line for all four cramps the buttons
+     past the edge of the column. */
+  .chatPicker .pickerList li.chatRow {
+    flex-wrap: wrap;
+  }
+
+  .chatPicker .chatRow .chatTitle,
+  .chatPicker .chatRow > input {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  /* 18vh is a short box on a phone — the name and the meta line fell outside it and the button
+     clipped them. Let the card take the height its content needs, on a smaller avatar. */
+  .chatPicker .pickerCard {
+    max-height: none;
+  }
+
+  .pickerCard .avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+  }
+}
+
+/* Delete Swipe(s) modal. Reuses .dialogBackdrop / .dialog / .dialogActions. */
+.swipePicker {
+  width: min(420px, 100%);
+}
+
+.swipeNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.swipeNumbers button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.swipePreview {
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 25em;
+  max-height: 25em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px;
+  background: var(--codeBg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--codeText);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.swipePreview code {
+  display: block;
+  width: 100%;
+}
+
+/* A character replied while you were elsewhere: a faint ring around the avatar with one light
+   travelling round it. Both layers are absolutely positioned over the avatar, so the ring costs
+   no width and the grid doesn't shift when it appears. */
+.blipRing {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.blipRing::before,
+.blipRing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.blipRing::before {
+  box-shadow: inset 0 0 0 2px var(--borderAccent);
+}
+
+/* The light: a short bright arc of a conic gradient, masked down to the ring itself and spun. */
+.blipRing::after {
+  background: conic-gradient(from 0deg, transparent 0deg 320deg, var(--accent) 352deg, var(--textBright) 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  animation: blipSpin 1.8s linear infinite;
+}
+
+@keyframes blipSpin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blipRing::after {
+    animation: none;
+  }
+}

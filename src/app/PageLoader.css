@@ -1,0 +1,29 @@
+.pageLoader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 50vh;
+  /* Hold blank briefly so a chunk that lands fast never flashes a spinner. */
+  animation: pageLoaderIn 120ms linear 150ms both;
+}
+
+.pageLoader .ri-loader-4-line {
+  animation: pageLoaderSpin 800ms linear infinite;
+  color: var(--borderStrong);
+}
+
+@keyframes pageLoaderIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pageLoaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

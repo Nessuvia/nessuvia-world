@@ -1,0 +1,60 @@
+/* Shared collapse chevron + collapsed rail. Used by any panel that can shrink to its edge.
+
+   #root prefix on the chevron is deliberate: modules style their buttons generically
+   (`.prompts button`, `.chatPicker button`), and this has to win no matter which
+   stylesheet the bundler emits last. */
+#root button.collapseChevron {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  cursor: pointer;
+  transition: transform 120ms;
+}
+
+#root button.collapseChevron:hover:not(:disabled) {
+  background: var(--surfaceActive);
+  border-color: var(--borderStrong);
+  color: var(--text);
+}
+
+/* Points left when open, right when shut. */
+#root button.collapseChevron.shut {
+  transform: rotate(180deg);
+}
+
+/* The collapsed panel: chevron above a vertical label, stretched to its neighbours' height. */
+.collapsedRail {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surfaceSunken);
+}
+
+.collapsedInitials {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--textMuted);
+}
+
+.collapsedInitials h2 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}

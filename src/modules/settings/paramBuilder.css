@@ -1,0 +1,207 @@
+/* The two-column form builder in the connection editor, plus the new-parameter modal. */
+
+.paramBuilder {
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, 0.5fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.paramColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 6rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.paramColumn h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--textMuted);
+}
+
+.paramColumn .empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--textMuted);
+}
+
+/* The pane a drop would land in. Both panes accept a drop, so the highlight is what says which. */
+.paramColumn.dropTarget {
+  border-color: var(--borderAccent);
+}
+
+.paramRow,
+.libraryRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.3rem;
+  border-radius: var(--radius);
+  background: var(--surfaceRaised);
+}
+
+.paramRow {
+  grid-template-columns: auto minmax(6rem, 1fr) minmax(6rem, 1.2fr) auto;
+}
+
+.paramRow.dragging {
+  opacity: 0.5;
+}
+
+.paramRow .dragHandle {
+  cursor: grab;
+  color: var(--textMuted);
+}
+
+.paramRowLabel {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.paramRowLabel code {
+  font-size: 0.7rem;
+  color: var(--textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paramRow .paramHint,
+.paramEditor .paramHint {
+  grid-column: 1 / -1;
+  color: var(--textMuted);
+}
+
+.paramSlider {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.paramSlider input[type='range'] {
+  flex: 1;
+  min-width: 3rem;
+}
+
+.paramSlider input[type='number'] {
+  width: 4.5rem;
+}
+
+.paramRemove,
+.paramAdd {
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+  background: none;
+  border: none;
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+.paramRemove:hover,
+.paramAdd:hover {
+  color: var(--textBright);
+}
+
+.libraryRow {
+  cursor: grab;
+}
+
+/* Modal */
+
+.paramModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay);
+}
+
+.paramModal {
+  width: min(40rem, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.paramModal h3 {
+  margin: 0;
+}
+
+.paramModal .appliesTo {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+}
+
+.paramModal .appliesTo label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Instruct template */
+
+.templateEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+}
+
+.templateEditor .checkboxRow {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (width <= 720px) {
+  .paramBuilder {
+    grid-template-columns: 1fr;
+  }
+
+  .paramRow {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .paramRow > .paramSlider,
+  .paramRow > input,
+  .paramRow > select,
+  .paramRow > textarea {
+    grid-column: 2 / -1;
+  }
+}
+
+.libraryActions,
+.confirmDelete {
+  display: flex;
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.confirmDelete button {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+}

@@ -1,0 +1,635 @@
+/* Text styling and palette controls. Moved out of settings.css when Appearance became its own
+   module; the generic page/form rules live in app/formPage.css. */
+
+/* `.hint` is scoped per module, matching the other modules' stylesheets. */
+.appearance .hint {
+  margin: 6px 0 12px;
+  color: var(--textDim);
+  font-size: 12px;
+}
+
+.appearance h3 {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.appearance h3:first-child {
+  margin-top: 0;
+}
+
+/* Two classes so this beats `.chatSettings label`, which stacks labels vertically —
+   the same panel renders inside the chat rail's Visual Options. */
+.appearance .appearanceRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* Fluid, not fixed: the rail is ~280px and the Appearance tab is full width. */
+.appearance .appearanceRow > span {
+  flex: 1 1 110px;
+  min-width: 0;
+}
+
+.appearance .appearanceRow select {
+  flex: 1 1 110px;
+  min-width: 0;
+}
+
+/* Shrinkable rather than fixed: at 64px flat this is what pushed the font size and line height rows
+   past the right edge of a phone-width rail. */
+.appearance .appearanceRow input[type='number'] {
+  flex: 0 1 64px;
+  min-width: 0;
+}
+
+/* Name and the skin picker share a row: the name input takes half the container, the picker is
+   pushed to the right edge. */
+.paletteEditor .nameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.paletteEditor .nameRow > span {
+  flex: 0 0 auto;
+}
+
+.paletteEditor .nameRow .paletteNameInput {
+  flex: 0 0 50%;
+  min-width: 0;
+}
+
+.paletteEditor .nameRow .skinLabel {
+  margin-left: auto;
+}
+
+/* The row is nowrap by design, so on a phone-width rail it has nothing to give and would run past
+   the edge. Wrapping is the only way it fits. */
+@media (max-width: 700px) {
+  .paletteEditor .nameRow {
+    flex-wrap: wrap;
+  }
+
+  .paletteEditor .nameRow .paletteNameInput {
+    flex: 1 1 100%;
+  }
+}
+
+/* --- Structure (skin) row ------------------------------------------------- */
+
+/* The dropdown holds two words, so it does not get the fluid `flex: 1 1 110px` the other selects
+   do — the space it gives up is where the knobs sit. */
+.appearance .appearanceRow .skinSelect {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+}
+
+/* Four knobs to a row, each cell one horizontal line: label, slider, typed value. The knobs take a
+   line of their own under the dropdown — sharing the Structure line left each cell too narrow to
+   lay out sideways. The fixed column count keeps cells the same width when a skin has fewer. */
+.skinKnobs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1 1 100%;
+  gap: 4px 10px;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+/* Four cells across a phone leaves each one too narrow to touch. */
+@media (max-width: 700px) {
+  .skinKnobs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.skinKnob {
+  display: flex;
+  flex-grow: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 0.8em;
+  color: var(--textMuted);
+}
+
+/* Ellipsis rather than wrap: a long knob name must not make its cell taller than the others. */
+.skinKnobLabel {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skinKnobControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.skinKnob input[type='range'] {
+  flex: 1 1 40px;
+  min-width: 0;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+/* Fixed width so typing or dragging doesn't shift the row as the number gains a digit. The tag
+   selector is there to beat `.appearance .appearanceRow input[type='number']`, which is 64px. */
+.skinKnob input.skinKnobNumber {
+  flex: 0 0 42px;
+  width: 42px;
+  padding: 1px 3px;
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.skinKnobUnit {
+  flex: 0 0 auto;
+  color: var(--textDim);
+}
+
+/* --- Webfont picker ------------------------------------------------------- */
+
+/* The toggle and its option stay pinned top-left while the search grows to the right. */
+.webfontRow .appearanceRow {
+  align-items: flex-start;
+}
+
+.webfontLeft {
+  flex: 1 1 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* A press-in/out box rather than a checkbox: raised when off, sunken when on. */
+.webfontToggle {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  background: var(--surfaceRaised);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 0 var(--borderStrong);
+}
+
+.webfontToggle[aria-pressed='true'] {
+  background: var(--surfaceSunken);
+  color: var(--textBright);
+  border-color: var(--borderAccent);
+  box-shadow: inset 0 1px 3px var(--overlay);
+}
+
+.webfontToggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Sits directly under the toggle: checkbox, then text, on one vertically centred line. Two classes
+   plus the tag so it beats `.formPage label` and `.chatSettings label`, which both stack the parts
+   into a column — the picker renders under each. */
+#root .webfontLeft label.webfontOption {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--textSoft);
+}
+
+.webfontOption input[type='checkbox'] {
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.webfontOption .hint {
+  margin: 0;
+  color: var(--textDim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.webfontRow .webfontSearch {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* An editable scratch box between the toggle column and the font list, rendered in the applied
+   family — type here to try the font. */
+.webfontPreview {
+  flex: 1 1 140px;
+  min-width: 0;
+  align-self: stretch;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.4;
+  resize: none;
+}
+
+.webfontSearch input[type='search'] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.webfontResults {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.webfontResults li {
+  padding: 0;
+}
+
+.webfontResult {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.webfontResult:hover {
+  background: var(--surfaceHover);
+}
+
+.webfontResult.selected {
+  background: var(--surfaceSelected);
+}
+
+.webfontEmpty {
+  padding: 6px 8px;
+  color: var(--textDim);
+  font-size: 12px;
+}
+
+/* --- User options (persist across palette swaps) -------------------------- */
+
+.userOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.userOptions h3 {
+  margin: 0;
+}
+
+/* --- Palettes (Themes tab) ------------------------------------------------ */
+
+.palettes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paletteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.paletteList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.paletteList li:hover {
+  background: var(--surfaceHover);
+}
+
+.paletteList li.active {
+  border-color: var(--borderAccent);
+}
+
+.paletteList li.editing {
+  background: var(--surfaceSelected);
+}
+
+.paletteList .paletteName {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.paletteSwatches {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.paletteSwatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.paletteActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paletteActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paletteActions em {
+  font-size: 12px;
+  color: var(--textMuted);
+  font-style: normal;
+}
+
+.paletteEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  /* A fieldset's default min-inline-size is min-content, so it refuses to shrink below its widest
+     row — that width propagates up and pushes the color swatches past the clipped page edge. */
+  min-inline-size: 0;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.paletteEditor:disabled {
+  opacity: 0.5;
+}
+
+.paletteEditor h4 {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.paletteGroup summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--textSoft);
+  padding: 4px 0;
+}
+
+.paletteColorRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0 3px 12px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+/* Sits under the list in the left column. */
+.paletteTransfer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.paletteImport {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.paletteImport input[type='file'] {
+  display: none;
+}
+
+.paletteTransfer button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.palettesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.palettesHead h3 {
+  margin: 0;
+}
+
+.palettesHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.palettesHeadActions button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paletteAsk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paletteAsk input {
+  flex: 1;
+  min-width: 0;
+}
+
+.paletteAsk button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* The failed reply, verbatim. Scrolls rather than wraps the panel open: a reasoning trace can run
+   for pages, and the point is to skim the start of it. */
+.paletteReply summary {
+  cursor: pointer;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.paletteReply pre {
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 0 8px;
+  padding: 8px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textSoft);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Sits at the end of an editor row, and inside a <label> in several of them — hence the
+   preventDefault at the call site. Only rendered for a field the model overwrote. */
+#root .palettes .paletteRewind {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  background: none;
+  border: none;
+  color: var(--textMuted);
+}
+
+#root .palettes .paletteRewind:hover {
+  color: var(--accent);
+  background: none;
+}
+
+/* The group rewind sits inside the summary. Left inline rather than flexed: `display: flex` on a
+   summary drops the disclosure triangle. */
+.paletteGroup summary .paletteRewind {
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.palettePromptDialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(720px, 90vw);
+}
+
+.palettePromptHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.palettePromptHead h3 {
+  margin: 0;
+}
+
+.palettePromptDialog textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* --- Phone width ---------------------------------------------------------- */
+
+/* Every row here is laid out for a wide column. At phone width the page can't scroll sideways
+   (.appContent clips), so anything that doesn't fit is unreachable rather than just cramped. */
+@media (max-width: 700px) {
+  .palettesHead,
+  .palettesHeadActions,
+  .paletteTransfer,
+  .paletteAsk {
+    flex-wrap: wrap;
+  }
+
+  .paletteList .paletteName {
+    flex-wrap: wrap;
+  }
+
+  /* Icons only — the label span is hidden by .btnText in formPage.css. */
+  .paletteActions button {
+    padding: 7px 8px;
+    line-height: 0;
+  }
+
+  /* One knob per line: a slider and its typed value need the full width to be draggable. */
+  .skinKnobs {
+    grid-template-columns: 1fr;
+  }
+
+  .skinKnobLabel {
+    flex: 0 0 40%;
+  }
+
+  .paletteEditor .nameRow {
+    flex-wrap: wrap;
+  }
+
+  .paletteEditor .nameRow .paletteNameInput {
+    flex: 1 1 100%;
+  }
+
+  .paletteEditor .nameRow .skinLabel {
+    margin-left: 0;
+  }
+
+  .paletteColorRow {
+    padding-left: 4px;
+  }
+
+  /* The overlay row's text field, the one control here that isn't a fixed-width swatch. */
+  .paletteColorRow > input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .paletteColorRow > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

@@ -1,0 +1,59 @@
+/* Moved out of settings.css when Write grew its own color list — the pattern has two callers now,
+   so its styles travel with the component. */
+/* A fieldset so `disabled` greys the whole list at once; the browser default border and padding
+   have to be cleared for it to lay out like the div it replaced. */
+.colorStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.colorStack:disabled {
+  opacity: 0.5;
+}
+
+.colorStack:disabled .dragHandle {
+  cursor: default;
+}
+
+.colorStackRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.colorStackRow > span {
+  flex: 1 1 auto;
+}
+
+/* Swatch flush right, Clear to its left — the label above already pushes the whole control right. */
+.colorStackRow .colorInput {
+  flex-direction: row-reverse;
+}
+
+.colorStackRow.dragging {
+  opacity: 0.5;
+}
+
+.colorStackRow .dragHandle {
+  cursor: grab;
+  color: var(--textDim);
+  flex: 0 0 auto;
+}
+
+/* The Text row is the fixed baseline — no reordering, so no grab affordance. */
+.colorStackRow.fixed {
+  cursor: default;
+}
+
+.colorStackRow.fixed .dragHandle {
+  visibility: hidden;
+}

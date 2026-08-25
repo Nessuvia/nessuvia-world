@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Vite Dev Server",
+      "type": "node-terminal",
+      "command": "npm run dev",
+      "request": "launch"
+    },
+    {
+      "name": "Attach to Firefox Tab",
+      "type": "chrome",
+      "request": "attach",
+      "url": "http://localhost",
+      "port": 5173,
+      "webRoot": "${workspaceFolder}",
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug React App",
+      "configurations": [
+        "Vite Dev Server",
+        "Attach to Firefox Tab"
+      ]
+    }
+  ]
+}

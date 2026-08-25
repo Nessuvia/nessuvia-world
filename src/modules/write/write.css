@@ -1,0 +1,818 @@
+.shelfLayout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.shelf {
+  padding: 1.5rem;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.shelfHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.shelfHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.shelfToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--textDim);
+  font-size: 0.85rem;
+}
+
+.shelfGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.25rem;
+}
+
+.storySearch {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.shelfHeaderRight .storySearch {
+  width: 220px;
+}
+
+.storyCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* A button, not a link: whether it navigates or opens the preview is a setting. */
+.storyCover {
+  display: block;
+  width: 100%;
+  padding: 0;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  overflow: hidden;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.storyCard.selected .storyCover {
+  border-color: var(--accent);
+}
+
+.storyCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--textDim);
+}
+
+.storyTitle {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Shelf preview panel */
+.storyPreview {
+  position: relative;
+  width: 33%;
+  flex: none;
+  border-left: 1px solid var(--border);
+  padding: 1.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.storyPreviewClose {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  padding: 0.25rem;
+}
+
+/* A button: clicking the cover picks a new image. */
+.storyPreviewCover {
+  display: block;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  overflow: hidden;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+/* No cover yet: a dashed drop-target outline around a plus. */
+.storyPreviewCover.empty {
+  border-style: dashed;
+  border-color: var(--textDim);
+  color: var(--textDim);
+}
+
+.storyPreviewCover.empty .coverPlaceholder {
+  color: inherit;
+}
+
+.storyPreviewCover.empty:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.storyPreviewCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.storyPreviewContinue {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.storyPreviewTitle {
+  margin: 1rem 0 0.5rem;
+  display: block;
+  width: 100%;
+}
+
+h3.storyPreviewTitle {
+  cursor: text;
+}
+
+.storyPreviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.storyPreviewActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.storyPreviewFacts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.75rem;
+}
+
+.storyPreviewFacts dt {
+  color: var(--textDim);
+}
+
+.storyPreviewFacts dd {
+  margin: 0;
+  color: var(--text);
+}
+
+/* Editor + sidebar */
+.storyEditor {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.storyMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.storyBar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.storyBar h2 {
+  margin: 0;
+  cursor: text;
+}
+
+/* Same inline-rename affordance as a chat's title. Styled here rather than shared: the only other
+   copy is chat.css, and a third would be the cue to hoist it into /app. */
+.storyBar .titleEdit {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.storyBar .stylingToggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--textDim);
+}
+
+.storyBar .stylingToggle.on {
+  color: var(--text);
+}
+
+.chapterEditor {
+  flex: 1;
+  min-height: 60vh;
+  /* Reading width: set per Story in the rail panel; stays centred as it shrinks. */
+  width: var(--storyWidth, 100%);
+  margin: 0 auto;
+}
+
+/* Inline markers. The marker spans are always in the DOM — hiding them is presentation only, and
+   the prose read back out of the editor still carries every asterisk. .showMarkers is Toggle
+   Styling in its off state: markers visible, no weight or slant applied. */
+.chapterEditor .proseBold {
+  font-weight: 700;
+}
+
+.chapterEditor .proseEm {
+  font-style: italic;
+}
+
+/* Color goes on the span that won its kind, which decorateProse decides from the Story color order.
+   A span that lost stamps no data-win and inherits the winner's color. */
+.chapterEditor [data-win='emphasis'] {
+  color: var(--storyEmphasisColor, inherit);
+}
+
+.chapterEditor [data-win='bold'] {
+  color: var(--storyBoldColor, inherit);
+}
+
+.chapterEditor [data-win='quotes'] {
+  color: var(--storyQuoteColor, inherit);
+}
+
+.chapterEditor .proseCode {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+  color: var(--codeText);
+}
+
+.chapterEditor .proseMark {
+  display: none;
+}
+
+.chapterEditor.showMarkers .proseMark {
+  display: inline;
+  color: var(--textDim);
+}
+
+.chapterEditor.showMarkers .proseBold {
+  font-weight: inherit;
+}
+
+.chapterEditor.showMarkers .proseEm {
+  font-style: inherit;
+}
+
+.chapterEditor.showMarkers .proseCode {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Styling off means the raw text: no weight, no slant, no color. Quotes keep theirs — the quote
+   marks are prose either way, so the run never looked decorated. */
+.chapterEditor.showMarkers [data-win='emphasis'],
+.chapterEditor.showMarkers [data-win='bold'] {
+  color: inherit;
+}
+
+/* One region per Chapter, stacked. The last one carries the tail of the document, so it keeps the
+   room to write into; the ones above are as tall as their prose. */
+.chapterRegion {
+  display: flex;
+  flex-direction: column;
+}
+
+.chapterRegion:last-child .storyProse {
+  min-height: 50vh;
+}
+
+/* Structure, not text: a rule across the editor with the Chapter title on it. Deliberately unlike
+   prose, because it is not a line that can be backspaced away. */
+.chapterDivider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2.5rem 0 1.5rem;
+  color: var(--textDim);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.chapterDivider::before,
+.chapterDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.storyProse {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 4rem;
+  outline: none;
+  line-height: var(--storyLineHeight, 1.6);
+  /* The Story's own text color; unset falls straight to the theme's, never to the chat's. */
+  color: var(--storyTextColor, var(--text));
+}
+
+.storyProse:empty::before {
+  content: attr(data-placeholder);
+  color: var(--textDim);
+}
+
+.streamingTail {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: var(--storyLineHeight, 1.6);
+  color: var(--textMuted);
+}
+
+.streamingTail .caret {
+  color: var(--accent, var(--text));
+}
+
+.storySidebar {
+  width: var(--sidebarWidth, 320px);
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.storySidebarHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.storySidebarHead h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.directionBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Grows with the Direction rather than sitting at a fixed row count, so a long one is read in one
+   go. Capped so it can't push the rest of the panel off the screen. */
+.directionBox textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  field-sizing: content;
+  min-height: 6em;
+  max-height: 50vh;
+}
+
+/* Direct/Stop plus Retry, Continue and Undo — wraps rather than overflowing the rail on a narrow
+   panel. */
+.directionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.activeChapterName {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--textDim);
+}
+
+.accordionSection {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+
+.accordionSection > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.accordionSection > *:not(summary) {
+  margin-top: 0.5rem;
+}
+
+.editStackLink {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--textMuted);
+  font-size: 0.85rem;
+}
+
+.castList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.castList li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Same row shape as .entityPickerList buttons — the whole row is the on/off toggle. */
+.castRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.3rem;
+}
+
+/* Off is meant to read at a glance: dim the whole row, avatar included. */
+.castRow[aria-pressed='false'] {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.castRow[aria-pressed='false'] .entityPickerName {
+  color: var(--textDim);
+}
+
+/* The gear is a Link, the remove is a button — same square icon slot either way. */
+.castRowAction {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+.castRowAction:hover {
+  background: var(--surfaceActive);
+  border-color: var(--borderStrong);
+  color: var(--text);
+}
+
+.castAddSlot {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--textMuted);
+}
+
+.storyColorRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* The Story width row in the rail panel. Same shape as the chat's width row, which lives in
+   chat.css next to the chat-only rules it belongs with. */
+.chatSettings label.storyWidth {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.chatSettings .storyWidth input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+/* Room for the spin buttons: at 52px the default padding squeezed them out of the box. */
+.chatSettings .storyWidth input[type='number'] {
+  width: 64px;
+  flex: none;
+  padding: 6px 2px 6px 6px;
+}
+
+/* The bookmark strip: one row per Chapter, click to jump and activate. */
+.chapterSection,
+.scratchSection,
+.stackSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scratchNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.scratchNote textarea {
+  flex: 1;
+  font: inherit;
+  resize: vertical;
+}
+
+.chapterNav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chapterNav li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chapterNav .active .chapterNavTitle {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chapterNavRow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.35rem 0.4rem;
+  background: none;
+  border: none;
+  color: var(--textMuted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chapterNavNum {
+  color: var(--textDim);
+  font-variant-numeric: tabular-nums;
+}
+
+.chapterNavTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authorNoteBox {
+  width: 100%;
+  font: inherit;
+  resize: vertical;
+}
+
+/* The Chapter modal: the only place a Chapter is created, renamed, reordered or deleted. */
+.chapterDialog {
+  width: min(40rem, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.chapterDialogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chapterEditList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chapterEdit {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+
+.chapterEditRow {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chapterTitleInput {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+}
+
+.chapterEditToggle {
+  background: none;
+  border: none;
+  color: var(--textDim);
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.chapterPlan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chapterPlan label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chapterPlan textarea {
+  width: 100%;
+  font: inherit;
+  resize: vertical;
+}
+
+.chapterPlanLabel {
+  color: var(--textDim);
+}
+
+.beatList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.beatList li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.beatList input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+}
+
+.writeToast {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 40rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--danger, var(--border));
+  border-radius: var(--radius);
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.findReplace {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.findReplace input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.findReplaceButtons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.findReplaceButtons button {
+  flex: 1;
+}
+
+.findReplaceNote {
+  margin: 0;
+  color: var(--textMuted);
+  font-size: 0.85em;
+}
+
+@media (max-width: 700px) {
+  /* The panel covers the prose instead of splitting the width with it — at this size a column for
+     each leaves neither usable. There is no rail at this width: it is a drawer on the right edge,
+     and sideDrawer.css says where it sits and how it moves. */
+  .storySidebar {
+    width: 100%;
+    border-left: none;
+  }
+
+  /* Sits directly under .storySidebar and matches it. --surface is the palette's panel color, so
+     a glass panel over it reads as the panel does everywhere else. Fixed, not absolute: the panel
+     over it is fixed too, and an absolute backdrop stops at the editor's own box. */
+  .storyPanelBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 27;
+    background: var(--surface);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+
+  .storyPanelBackdrop.shown {
+    opacity: 1;
+  }
+
+  /* The shelf's preview is a drawer too: the grid stays put behind it rather than losing a third
+     of a phone's width to a column. */
+  .storyPreview {
+    width: 100%;
+    border-left: none;
+  }
+
+  /* Both panels carry a `position` of their own at this specificity; sideDrawer.css does not, so
+     say it here where it beats them. */
+  .storySidebar.sideDrawer,
+  .storyPreview.sideDrawer {
+    position: fixed;
+  }
+
+  /* Chevron on the left edge of the header, title beside it. row-reverse packs to the left. */
+  .storySidebarHead {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+  }
+}
+
+/* Match highlight in the Chapter editor, drawn with the CSS Custom Highlight API. */
+::highlight(proseFind) {
+  background: var(--surfaceSelected);
+  color: var(--textBright);
+}

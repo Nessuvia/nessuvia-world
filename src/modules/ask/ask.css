@@ -1,0 +1,104 @@
+.ask {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.askMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px;
+  gap: 8px;
+}
+
+.askHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.askHeader .collapseChevron {
+  margin-left: auto;
+}
+
+.askCharacterSelect {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 240px;
+}
+
+/* Anchor for the picker, which floats rather than taking space in the layout. */
+.askCharacterField {
+  position: relative;
+}
+
+.askCharacterField .entityPicker {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  width: 260px;
+}
+
+.askTranscript {
+  min-height: 0;
+}
+
+.askError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  color: var(--danger);
+}
+
+.askComposer {
+  display: flex;
+  gap: 8px;
+}
+
+.askComposer textarea {
+  flex: 1;
+  resize: vertical;
+}
+
+.askComposer button {
+  width: var(--composerButton);
+}
+
+.askSidebar {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surfaceSunken);
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.askSidebar h3 {
+  margin: 0 0 12px;
+}
+
+.askField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  color: var(--textMuted);
+  font-size: 13px;
+}
+
+.askField button {
+  align-self: flex-start;
+}
+
+.askField textarea {
+  resize: vertical;
+  color: var(--text);
+}

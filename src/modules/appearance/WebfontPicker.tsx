@@ -1,0 +1,298 @@
+import { useEffect, useRef, useState } from 'react'
+import type { Palette } from '../../core/palette/palette'
+import { listFonts, searchFonts, type FontsourceFont } from '../../core/connectors/listFonts'
+
+const pangram = 'The quick brown fox jumps over the lazy dog'
+
+/**
+ * The Font row in the Appearance panel, with a Webfont checkbox that swaps the stack dropdown for a
+ * Fontsource catalog search.
+ *
+ * The Webfont checkbox is an on/off toggle: unchecking it keeps the chosen family stored (so the
+ * font can be switched back on later) and falls the app back to the stack `<select>`. While off, the
+ * row is the four-option `<select>`. While on, the `<select>` is hidden and a search input plus a
+ * scrollable results list take its place, with the current family previewed above and highlighted in
+ * the list.
+ *
+ * Results are plain family names (no per-row font loading) and paginate by infinite scroll: a
+ * sentinel `<li>` at the list bottom drives an `IntersectionObserver` that appends the next 10.
+ */
+export default function WebfontPicker({
+  palette,
+  locked,
+  patch,
+  fonts,
+  rewind,
+  compact = false,
+}: {
+  palette: Palette
+  locked: boolean
+  patch: (fields: Partial<Palette>) => void
+  /** The four hardcoded stacks from AppearancePanel, passed in to keep this component free of it. */
+  fonts: [string, string][]
+  /** Optional rewind control rendered after the row, used by PalettesPanel. */
+  rewind?: React.ReactNode
+  /** Chat rail mode: no Webfont toggle, no preview, no per-row font loading. Either the four
+   *  stacks or — when the palette already names a webfont — just the search box and list. */
+  compact?: boolean
+}) {
+  const { fontFamily, useWebfont, webfont, webfontId } = palette
+  // A picker preference, not a palette value: whether result rows load their own font as they scroll
+  // into view. Local state, so it resets per mount — it doesn't belong on the stored palette.
+  const [loadFonts, setLoadFonts] = useState(false)
+  // Editable sample text — a scratch space to try a font, seeded with a pangram on each pick and on
+  // open when the palette already has a webfont, so a set font shows rather than looking unset. Local
+  // state, not stored: it's the digital pen-test scribble, not a palette value.
+  const [sample, setSample] = useState(webfont ? pangram : '')
+
+  if (compact) {
+    return (
+      <section className="webfontRow">
+        <div className="appearanceRow">
+          {useWebfont && webfont ? (
+            <WebfontSearch
+              family={webfont}
+              id={webfontId}
+              locked={locked}
+              loadFonts={false}
+              onPick={(f) => patch({ webfont: f.family, webfontId: f.id, useWebfont: true })}
+            />
+          ) : (
+            <select
+              value={fontFamily}
+              disabled={locked}
+              onChange={(e) => patch({ fontFamily: e.target.value })}
+            >
+              {fonts.map(([value, label]) => (
+                <option key={label} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="webfontRow">
+      <div className="appearanceRow">
+        <div className="webfontLeft">
+          <button
+            type="button"
+            className="webfontToggle"
+            aria-pressed={useWebfont}
+            disabled={locked}
+            onClick={() => patch({ useWebfont: !useWebfont })}
+          >
+            Webfont
+          </button>
+          {useWebfont && (
+            <label className="webfontOption">
+              <input
+                type="checkbox"
+                checked={loadFonts}
+                disabled={locked}
+                onChange={(e) => setLoadFonts(e.target.checked)}
+              />
+              <span>Load fonts while scrolling</span>
+              <span className="hint">May be slow.</span>
+            </label>
+          )}
+        </div>
+        {!useWebfont ? (
+          <select
+            value={fontFamily}
+            disabled={locked}
+            onChange={(e) => patch({ fontFamily: e.target.value })}
+          >
+            {fonts.map(([value, label]) => (
+              <option key={label} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            {webfont && (
+              <textarea
+                className="webfontPreview"
+                style={{ fontFamily: `"${webfont}", sans-serif` }}
+                value={sample}
+                disabled={locked}
+                onChange={(e) => setSample(e.target.value)}
+              />
+            )}
+            <WebfontSearch
+              family={webfont}
+              id={webfontId}
+              locked={locked}
+              loadFonts={loadFonts}
+              onPick={(f) => {
+                patch({ webfont: f.family, webfontId: f.id, useWebfont: true })
+                setSample(pangram)
+              }}
+            />
+          </>
+        )}
+        {rewind}
+      </div>
+    </section>
+  )
+}
+
+/** The search box + scrollable results list, shown while Webfont is on. */
+function WebfontSearch({
+  family,
+  id,
+  locked,
+  loadFonts,
+  onPick,
+}: {
+  family: string
+  id: string
+  locked: boolean
+  /** Load each result's font as it renders so the name shows in its own typeface. Slow at scale. */
+  loadFonts: boolean
+  onPick: (f: FontsourceFont) => void
+}) {
+  // Seeded with the current family so the box names the font in use. Initial value only — picking a
+  // result must not overwrite what the user has typed.
+  const [query, setQuery] = useState(family)
+  const [page, setPage] = useState(0)
+  const [results, setResults] = useState<FontsourceFont[]>([])
+  const [hasMore, setHasMore] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const catalog = useRef<FontsourceFont[] | null>(null)
+  const sentinel = useRef<HTMLLIElement | null>(null)
+  const root = useRef<HTMLUListElement | null>(null)
+
+  // Load the selected family's CSS so the preview renders in the font itself, not the system
+  // default. This is the picker's own concern — useApplyWebfont loads the active palette's font for
+  // the chat surfaces, but the picker needs the font regardless of which palette is active.
+  useEffect(() => {
+    const linkId = 'webfontPreview'
+    if (!family || !id) {
+      document.getElementById(linkId)?.remove()
+      return
+    }
+    let link = document.getElementById(linkId) as HTMLLinkElement | null
+    const href = `https://cdn.jsdelivr.net/fontsource/css/${id}@latest/index.css`
+    if (link?.getAttribute('href') === href) return
+    if (!link) {
+      link = document.createElement('link')
+      link.id = linkId
+      link.rel = 'stylesheet'
+      document.head.append(link)
+    }
+    link.setAttribute('href', href)
+  }, [family, id])
+
+  // Reset paging whenever the query changes.
+  useEffect(() => {
+    setResults([])
+    setPage(0)
+    setHasMore(true)
+  }, [query])
+
+  // Load a page. Runs on query change (page reset to 0 by the effect above) and on each page bump.
+  // ponytail: `loading` is deliberately not a dep — it's set inside, so including it cancelled the
+  // fetch and re-entered on the guard, leaving the list stuck on "Loading…".
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    ;(async () => {
+      try {
+        if (!catalog.current) catalog.current = await listFonts()
+        if (cancelled) return
+        const next = searchFonts(catalog.current, query, page)
+        setResults((prev) => (page === 0 ? next : [...prev, ...next]))
+        // If the slice was short, there are no more rows for this query.
+        setHasMore(next.length === 10)
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [query, page])
+
+  // Infinite scroll: when the sentinel enters view, load the next page.
+  useEffect(() => {
+    const el = sentinel.current
+    const rootEl = root.current
+    if (!el || !rootEl) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) setPage((p) => p + 1)
+      },
+      { root: rootEl, rootMargin: '40px' },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [hasMore, loading])
+
+  return (
+    <div className="webfontSearch">
+      <input
+        type="search"
+        placeholder="Search Fontsource families..."
+        value={query}
+        disabled={locked}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {error && <p className="hint">{error}</p>}
+      <ul ref={root} className="panel webfontResults">
+        {results.map((f) => (
+          <li key={f.id}>
+            {loadFonts && <WebfontFace id={f.id} />}
+            <button
+              type="button"
+              className={f.id === id ? 'webfontResult selected' : 'webfontResult'}
+              style={loadFonts ? { fontFamily: `"${f.family}", sans-serif` } : undefined}
+              disabled={locked}
+              onClick={() => onPick(f)}
+            >
+              {f.family}
+            </button>
+          </li>
+        ))}
+        {!results.length && !loading && !error && (
+          <li className="webfontEmpty">No families match.</li>
+        )}
+        {loading && <li className="webfontEmpty">Loading…</li>}
+        <li ref={sentinel} aria-hidden />
+      </ul>
+    </div>
+  )
+}
+
+/** Injects the Fontsource CSS `<link>` for one family so a result row can render in it. Deduped by
+ *  id across rows; the link is removed when the last row using it unmounts. */
+function WebfontFace({ id }: { id: string }) {
+  useEffect(() => {
+    const linkId = `webfontFace-${id}`
+    let link = document.getElementById(linkId) as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.id = linkId
+      link.rel = 'stylesheet'
+      link.dataset.refs = '0'
+      link.href = `https://cdn.jsdelivr.net/fontsource/css/${id}@latest/index.css`
+      document.head.append(link)
+    }
+    link.dataset.refs = String(Number(link.dataset.refs) + 1)
+    return () => {
+      const refs = Number(link!.dataset.refs) - 1
+      if (refs <= 0) link!.remove()
+      else link!.dataset.refs = String(refs)
+    }
+  }, [id])
+  return null
+}

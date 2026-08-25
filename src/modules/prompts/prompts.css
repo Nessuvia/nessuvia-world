@@ -1,0 +1,425 @@
+.prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prompts h2,
+.prompts h3 {
+  margin: 0;
+}
+
+.kindSwitch {
+  display: inline-flex;
+  gap: 0;
+}
+
+.kindSwitch button {
+  border-radius: 0;
+}
+
+.kindSwitch button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.kindSwitch button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+
+.kindSwitch button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.prompts .hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--textDim);
+}
+
+.prompts .error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.prompts button,
+.prompts select,
+.prompts input,
+.prompts textarea {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.prompts input,
+.prompts textarea,
+.prompts select {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.prompts button {
+  cursor: pointer;
+}
+
+.prompts button:hover:not(:disabled) {
+  background: var(--borderStrong);
+}
+
+.prompts button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.prompts button.danger {
+  color: var(--danger);
+}
+
+.presetRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.presetRow div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.presetRow input {
+  flex: 1;
+}
+
+/* .zones carries .screenBody, but the scrolling happens one level down, inside each zone's list —
+   the row itself is fixed to the height the frame gave it. */
+.prompts .zones {
+  display: flex;
+  gap: 16px;
+  /* stretch, not flex-start: a collapsed panel keeps the height of the open ones. */
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.stackZone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surfaceSunken);
+  /* Zero, not a floor: the zone takes the row's height and its list scrolls inside. */
+  min-height: 0;
+}
+
+.zoneHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zoneHeader h3 {
+  flex: 1;
+}
+
+.zoneHeader select {
+  min-width: 0;
+  flex: 1;
+}
+
+.blockList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.blockCard {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  cursor: grab;
+}
+
+.blockCard:hover {
+  border-color: var(--borderAccent);
+}
+
+/* A container's children are indented; the left edge marks what it wraps. */
+.blockCard.container {
+  border-left: 2px solid var(--borderAccent);
+}
+
+.blockCard.off {
+  opacity: 0.45;
+}
+
+/* A depth block lands relative to the history, not where it sits — the dashed edge says so. */
+.blockCard.pinned {
+  border-style: dashed;
+}
+
+.blockDepth {
+  font-size: 11px;
+  color: var(--textDim);
+}
+
+.prompts .blockSwitch {
+  flex: none;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.prompts .blockCard button.addChild {
+  padding: 0 6px;
+  line-height: 18px;
+  font-size: 14px;
+  background: transparent;
+  border-color: var(--borderStrong);
+}
+
+.childSlot {
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  font-size: 12px;
+  color: var(--textDim);
+}
+
+.blockLabel {
+  flex: 1;
+  font-weight: 600;
+}
+
+.blockRole {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--textMuted);
+}
+
+.stackZone.preview {
+  flex: 1.6;
+  cursor: default;
+}
+
+.previewExamples {
+  display: flex;
+  gap: 8px;
+}
+
+.previewExamples label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--textMuted);
+}
+
+.previewExamples textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--textSoft);
+}
+
+/* Fills the height the preview panel got from the row and scrolls inside it. `min-height: 0`
+   because a flex item won't shrink below its content otherwise, which is what pushed the panel
+   past its siblings. */
+.previewList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.previewMessage {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  padding: 8px 10px;
+}
+
+.previewMessageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.previewMessage pre {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 12px;
+  color: var(--textSoft);
+}
+
+.dropLine {
+  height: 2px;
+  margin: 2px 0;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* The modal reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. */
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+/* A checkbox reads left-to-right, not stacked like the text fields above. */
+.dialog label.checkboxRow {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.optionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rangeConfig {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rangeConfig label {
+  min-width: 0;
+}
+
+.rangeConfig input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rangeConfig .hint {
+  grid-column: 1 / -1;
+}
+
+.optionContentHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.optionContentHead .addOption {
+  width: 24px;
+  padding: 0;
+}
+
+.optionTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.optionTabs button.active {
+  border-color: var(--accent);
+}
+
+/* The type picker on a block card — quiet until you go for it; the card is the primary target. */
+.prompts .blockType {
+  flex: 0 0 auto;
+  max-width: 170px;
+  padding: 2px 4px;
+  font-size: 11px;
+  color: var(--textMuted);
+  background: transparent;
+  border-color: transparent;
+}
+
+.prompts .blockType:hover,
+.prompts .blockType:focus {
+  color: var(--text);
+  border-color: var(--borderStrong);
+}
+
+.rangeDefault {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The two-ended scroll control. Lives here with the block editor; the chat and Story settings
+   panels render the same component, and this stylesheet loads with the module registry. */
+.rangeSlider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rangeTrack {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surfaceActive);
+}
+
+.rangeFill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+#root .rangeThumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid var(--borderStrong);
+  background: var(--surfaceRaised);
+  cursor: grab;
+  touch-action: none;
+}
+
+#root .rangeThumb:hover {
+  border-color: var(--accent);
+}
+
+.rangeVals {
+  font-variant-numeric: tabular-nums;
+  color: var(--textMuted);
+}

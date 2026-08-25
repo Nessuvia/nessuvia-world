@@ -1,0 +1,158 @@
+.personas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.personasHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.personasHeader h2 {
+  margin: 0;
+}
+
+.personas label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.personas input,
+.personas textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.personas input[type='radio'] {
+  flex: none;
+  margin: 0;
+}
+
+.personas button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.personas button:hover:not(:disabled) {
+  background: var(--borderStrong);
+}
+
+.personas button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.personas button.danger {
+  color: var(--danger);
+}
+
+.personas button.secondary {
+  background: transparent;
+}
+
+.personaList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.personaList li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.personaList li:hover {
+  background: var(--surfaceHover);
+}
+
+.personaList li.active {
+  border-color: var(--borderAccent);
+}
+
+.personaList li.editing {
+  background: var(--surfaceSelected);
+}
+
+.personaName {
+  flex: 1;
+  font-weight: 600;
+}
+
+.personaBlurb {
+  color: var(--textDim);
+  font-size: 12px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Same look as the character rows, scoped here so this module stands alone. */
+.personas .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.personas .avatar.initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surfaceActive);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.personaEditor {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.personaAvatarRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.personas .hint {
+  color: var(--textDim);
+  font-size: 12px;
+  margin: 0;
+}
+
+.personaActions {
+  display: flex;
+  gap: 8px;
+}

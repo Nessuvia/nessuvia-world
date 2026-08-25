@@ -1,0 +1,51 @@
+.colorInput {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.colorInput .swatch {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Unset reads as a white swatch otherwise. The native input can't show text, so cover it with an
+   em-dash on the surface color. Anchored to .swatch, not the row — module CSS moves the input. */
+.colorInput.unset .swatch::after {
+  content: '—';
+  position: absolute;
+  inset: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--textMuted);
+  pointer-events: none;
+}
+
+/* #root beats each module's generic `.characters input` / `.prompts input` etc., whose padding
+   and background collapse the native swatch to a dash. This shared control owns its swatch. */
+#root .colorInput input[type='color'] {
+  width: 40px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* Dense rows: the clear sits in the swatch corner so a set/unset swatch takes the same width and
+   the columns stay aligned. */
+#root .colorInput.compact .clearSwatch {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surfaceRaised);
+  color: var(--textMuted);
+  cursor: pointer;
+}

@@ -1,0 +1,62 @@
+/* Live prompt preview. Rendered in a sidebar in both Chat and Story, so everything here is scoped
+   to the panel. `.promptRaw` also styles the per-message inspector, which uses the same markup. */
+.promptPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.promptPanel .rawToggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.promptList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.promptMessage {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  background: var(--bg);
+}
+
+.promptMessage.dropped {
+  opacity: 0.5;
+}
+
+.promptMessageHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.promptRole {
+  color: var(--textMuted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.promptMessage pre,
+.promptRaw pre {
+  margin: 4px 0 0;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  color: var(--textMuted);
+}
+
+.promptRaw {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  background: var(--bg);
+}

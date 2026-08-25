@@ -1,0 +1,12 @@
+{
+  "name": "nessuvia-world-dev",
+  "main": "src/index.js",
+  "compatibility_date": "2026-01-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "build": { "command": "pnpm build" },
+  "assets": { "directory": "./dist", "not_found_handling": "single-page-application", "binding": "ASSETS" },
+  // No R2 binding and no SUPABASE_URL: the Worker serves the built app and holds no data. The
+  // browser's Supabase Realtime credentials come from .env at build time, not from here.
+  "routes": [{ "pattern": "dev.nessuvia.world/*", "zone_name": "nessuvia.world" }]
+}
