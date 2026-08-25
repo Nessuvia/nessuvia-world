@@ -1,6 +1,8 @@
 Xenia (ξενία, zenee-a) - the ancient Greek concept of hospitality; "guest-friendship," rooted in generosity and reciprocity. 
 [Encyclopedia Britannica](https://www.britannica.com/topic/xenia-sociology)
 
+Alternate Names: Xenia, X.N, Xen (/zɛn/, zen)
+
 # Xenia Nessuvia
 
 Xenia Nessuvia is character chat app inspired by SillyTavern. It runs entirely in the browser. Chats, characters, and settings live in IndexedDB. Model requests go from your browser to an OpenAI-compatible endpoint using the key you provide.
