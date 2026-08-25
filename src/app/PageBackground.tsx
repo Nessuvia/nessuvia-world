@@ -8,7 +8,13 @@ import {
   type BackgroundSlot,
 } from '../core/palette/palette'
 import { sanitizeBackgroundHtml } from '../core/palette/sanitizeHtml'
-import { scopeBackgroundCss, scopeRootClass, scopeRootClassFor } from '../core/palette/scopeCss'
+import {
+  cssUrl,
+  scopeBackgroundCss,
+  scopeRootClass,
+  scopeRootClassFor,
+  substituteImageUrl,
+} from '../core/palette/scopeCss'
 import { usePalette } from '../core/stores/palettesStore'
 import { useBackgroundCss } from '../core/stores/backgroundCssStore'
 import { useBackgroundImages } from '../core/stores/backgroundImagesStore'
@@ -204,7 +210,12 @@ function BackgroundLayer({ spec, leaving }: { spec: LayerSpec; leaving: boolean 
       style.id = id
     }
     // Wrapped in @scope so it only reaches inside this layer, and refused whole if it breaks out.
-    style.textContent = scopeBackgroundCss(spec.css, scopeRootClassFor(spec.parity)).css
+    // spec.src is substituted for `url(image.jpg)` first, the CSS half of the same stand-in name the
+    // HTML box uses — that's what lets four pages share one stylesheet and each paint its own image.
+    style.textContent = scopeBackgroundCss(
+      substituteImageUrl(spec.css, spec.src),
+      scopeRootClassFor(spec.parity),
+    ).css
     // Which layer's CSS is in there, so unmounting doesn't clear a style another layer has claimed.
     style.dataset.owner = String(spec.key)
     // Appended every time, not just on create: `append` moves an existing node, which keeps this
@@ -216,7 +227,7 @@ function BackgroundLayer({ spec, leaving }: { spec: LayerSpec; leaving: boolean 
       // The layer is gone; its CSS would otherwise sit in <head> scoped to nothing.
       if (owned.dataset.owner === String(spec.key)) owned.textContent = ''
     }
-  }, [spec.css, spec.parity, spec.key])
+  }, [spec.css, spec.src, spec.parity, spec.key])
 
   return (
     <div
@@ -264,9 +275,4 @@ function decoded(src: string): Promise<void> {
     ready.catch(() => {}),
     new Promise<void>((resolve) => setTimeout(resolve, decodeTimeout)),
   ])
-}
-
-/** A user-supplied URL goes inside a CSS `url("…")`; quotes and backslashes would break out of it. */
-function cssUrl(src: string): string {
-  return src.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
