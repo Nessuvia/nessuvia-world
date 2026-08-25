@@ -1,13 +1,16 @@
-# Nessu's Tavern
+Xenia (ξενία, zenee-a) - the ancient Greek concept of hospitality; "guest-friendship," rooted in generosity and reciprocity. 
+[Encyclopedia Britannica](https://www.britannica.com/topic/xenia-sociology)
 
-A character chat app inspired by SillyTavern. It runs entirely in the browser. Chats, characters, and settings live in IndexedDB. Model requests go from your browser to an OpenAI-compatible endpoint using the key you provide.
+# Xenia Nessuvia
+
+Xenia Nessuvia is character chat app inspired by SillyTavern. It runs entirely in the browser. Chats, characters, and settings live in IndexedDB. Model requests go from your browser to an OpenAI-compatible endpoint using the key you provide.
 
 There's no backend and no accounts by design. You could download the source code and run it fully locally if you wish.
 
-On [Nessuvia's World](https://nessuvia.world/), the site can install as a PWA and run in fullscreen.
+On [nessuvia.world](https://nessuvia.world/), the site can install as a PWA and run in fullscreen.
 
 ## Why?
-I made this for myself after a long time of using SillyTavern. I'll say straight up I have nothing but appreciation for everyone who's contributed to the codebase in any way. It's an amazing application. With that said, I made Nessu's Tavern/nessuvia.world because I wanted a statically served frontend I could access from any device with internet access, and I wanted my saves to be easily portable. The portability is the main reason behind most of the weird limitations, like how the Character Gallery only accepts links and not uploading your own pictures. Keeping links is just way, way smaller in size (I'm not against some image uploads, like Persona or Character avatars).
+I made this for myself after a long time of using SillyTavern. I'll say straight up I have nothing but appreciation for everyone who's contributed to the codebase in any way. It's an amazing application. With that said, I made Xenia Nessuvia because I wanted a statically served frontend I could access from any device with internet access, and I wanted my saves to be easily portable. The portability is the main reason behind most of the weird limitations, like how the Character Gallery only accepts links and not uploading your own pictures. Keeping links is just way, way smaller in size (I'm not against some image uploads, like Persona or Character avatars).
 
 **Multiplayer**
 
@@ -17,7 +20,7 @@ This is the one I haven't seen anywhere else, at least not built-in* in any fron
 
 **Mobile**
 
-Mobile support was something that started small, but I fully intend to make it a first-class feature. Nessu's Tavern is supported as a PWA, so you can add it to the home screen of your mobile devices and use it in full screen, inspired by ST-android.
+Mobile support was something that started small, but I fully intend to make it a first-class feature. Xenia Nessuvia is supported as a PWA, so you can add it to the home screen of your mobile devices and use it in full screen, inspired by ST-android.
 
 **Palette**
 
@@ -86,4 +89,4 @@ You should have received a copy of the GNU General Public License along with
 this program. If not, see <https://www.gnu.org/licenses/>.
 ```
 
-Real documention coming soon™.
+Real documentation coming soon™.

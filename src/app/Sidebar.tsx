@@ -42,10 +42,10 @@ export default function Sidebar() {
   // "User" is the persona a fresh install creates, so it does not count as a name the user picked.
   const named = personaName?.trim() && personaName.trim().toLowerCase() !== 'user' ? personaName.trim() : ''
   const title = personaTitleOff
-    ? customTitle.trim() || "Nessu's Tavern"
+    ? customTitle.trim() || 'Xenia Nessuvia'
     : named
-      ? `${named}'s Tavern`
-      : "Nessu's Tavern"
+      ? `Xenia ${named}`
+      : 'Xenia Nessuvia'
 
   const { palette, locked, patch } = usePaletteEditor()
   // On phones the rail is a full-screen drawer and the drag handle is gone: a resizable edge

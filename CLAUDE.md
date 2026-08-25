@@ -1,4 +1,4 @@
-# CLAUDE.md — Nessu's Tavern
+# CLAUDE.md — Xenia Nessuvia
 
 ## What this is
 

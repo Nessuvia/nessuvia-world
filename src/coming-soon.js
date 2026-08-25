@@ -8,9 +8,9 @@ const html = `<!doctype html>
 <!-- Link previews. og:image points at the dev host because this worker answers every path
      on nessuvia.world with this HTML — there is no asset to serve the logo from here. -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Nessuvia's World">
-<meta property="og:title" content="Nessuvia's World">
-<meta property="og:description" content="The home for Nessuvia's works.">
+<meta property="og:site_name" content="Xenia Nessuvia">
+<meta property="og:title" content="Xenia Nessuvia">
+<meta property="og:description" content="The home for Xenia Nessuvia.">
 <meta property="og:url" content="https://nessuvia.world/">
 <meta property="og:image" content="https://dev.nessuvia.world/android-chrome-512x512.png">
 <meta name="theme-color" content="#6c6cff">

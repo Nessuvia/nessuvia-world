@@ -182,7 +182,7 @@ export default function SettingsView() {
                   className="titleInput"
                   value={customTitle}
                   maxLength={80}
-                  placeholder="Nessu's Tavern"
+                  placeholder="Xenia Nessuvia"
                   onChange={(e) => setCustomTitle(e.target.value.slice(0, 80))}
                 />
                 <span className="charCount">{customTitle.length}/80</span>

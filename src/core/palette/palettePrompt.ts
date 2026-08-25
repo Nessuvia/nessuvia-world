@@ -11,7 +11,7 @@ import type { ChatMessage } from '../connectors/connectorInterface.ts'
  * only `surfaceRaised` has to guess. The rules at the end are the ones whose absence produces a
  * palette that looks fine as a list of hex codes and is unusable on screen.
  */
-export const defaultPalettePrompt = `You are designing a color scheme for Nessu's Tavern, a local character-chat and prose-writing app that runs in a browser. It is a dense, quiet, reading-focused interface: a left nav rail, a center column of chat messages or manuscript prose, and settings panels of small controls.
+export const defaultPalettePrompt = `You are designing a color scheme for Xenia Nessuvia, a local character-chat and prose-writing app that runs in a browser. It is a dense, quiet, reading-focused interface: a left nav rail, a center column of chat messages or manuscript prose, and settings panels of small controls.
 
 Reply with one JSON object and nothing else. No prose, no explanation, no code fence. Every color is a hex string.
 

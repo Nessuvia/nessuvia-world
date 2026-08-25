@@ -52,7 +52,7 @@ export function downloadBackup(backup: Backup) {
   // Minutes as well as the date: exporting twice in one day is the normal case when moving between
   // devices, and two files called the same thing is how the wrong one gets imported.
   const at = new Date(backup.exportedAt).toISOString().slice(0, 16).replace('T', '-').replace(':', '')
-  link.download = `nessuTavern-${at}.json`
+  link.download = `XeniaNessuvia-${at}.json`
   link.click()
   URL.revokeObjectURL(url)
 }

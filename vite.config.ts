@@ -12,8 +12,8 @@ export default defineConfig({
       // public/site.webmanifest that used to live there.
       manifestFilename: 'site.webmanifest',
       manifest: {
-        name: "Nessuvia's World",
-        short_name: "Nessuvia's World",
+        name: 'Xenia Nessuvia',
+        short_name: 'Xenia',
         display: 'standalone',
         // Baked in when the app is installed and not re-read on a palette swap, so these are the
         // Default palette's background rather than anything live. theme_color is the status bar
