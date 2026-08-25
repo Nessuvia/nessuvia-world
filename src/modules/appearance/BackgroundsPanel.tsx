@@ -235,6 +235,9 @@ export default function BackgroundsPanel() {
               <code>style</code>, <code>src</code>, <code>alt</code>. Anything else is rejected until
               you remove it. Put CSS in the CSS box, not in a <code>&lt;style&gt;</code> tag.
             </p>
+            <p className="backgroundsHint">
+              <code>&lt;img src="image.jpg"&gt;</code> loads this slot's image.
+            </p>
             {invalidHtml.length > 0 && (
               <p className="backgroundCssInvalid">Not allowed: {invalidHtml.join(', ')}</p>
             )}

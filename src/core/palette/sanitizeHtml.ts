@@ -37,7 +37,23 @@ export interface SanitizeResult {
   invalid: string[]
 }
 
-export function sanitizeBackgroundHtml(raw: string): SanitizeResult {
+/**
+ * The stand-in name for the slot's own background image in `<img src="…">`. An uploaded image lives
+ * in IndexedDB as a data URL with no path a user could type, so the HTML box needs a name to point
+ * at; there is only ever one image per slot, so one name is enough. Bare `image` counts too, since
+ * the extension carries no meaning here.
+ */
+const imageRef = /^image(\.(jpe?g|png|gif|webp|avif|svg))?$/i
+
+export function isBackgroundImageRef(src: string): boolean {
+  return imageRef.test(src.trim())
+}
+
+/**
+ * @param imageSrc the slot's background image, substituted for `src="image.jpg"`. Omit to validate
+ *   without resolving — the panel only needs `invalid`.
+ */
+export function sanitizeBackgroundHtml(raw: string, imageSrc = ''): SanitizeResult {
   const template = document.createElement('template')
   template.innerHTML = raw
   const invalid = new Set<string>()
@@ -47,20 +63,20 @@ export function sanitizeBackgroundHtml(raw: string): SanitizeResult {
     // markup can hold text (a <p> with a line in it); loose text outside any element cannot, and
     // rendering it paints the paste across the page. Flag it so the panel refuses instead.
     if (child.nodeType === Node.TEXT_NODE && (child.nodeValue ?? '').trim()) invalid.add('text')
-    out.append(...clean(child, invalid))
+    out.append(...clean(child, invalid, imageSrc))
   }
   return { nodes: out, invalid: [...invalid] }
 }
 
 /** A source node → the safe nodes it becomes. A kept element returns itself rebuilt; a disallowed one
  *  returns its cleaned children (unwrapped); a text node returns a copy; anything else, nothing. */
-function clean(node: Node, invalid: Set<string>): Node[] {
+function clean(node: Node, invalid: Set<string>, imageSrc: string): Node[] {
   if (node.nodeType === Node.TEXT_NODE) return [document.createTextNode(node.nodeValue ?? '')]
   if (node.nodeType !== Node.ELEMENT_NODE) return [] // comments, etc.
 
   const el = node as Element
   const tag = el.tagName.toLowerCase()
-  const children = Array.from(el.childNodes).flatMap((c) => clean(c, invalid))
+  const children = Array.from(el.childNodes).flatMap((c) => clean(c, invalid, imageSrc))
 
   if (!allowedTags.has(tag)) {
     invalid.add(`<${tag}>`)
@@ -71,7 +87,12 @@ function clean(node: Node, invalid: Set<string>): Node[] {
 
   const safe = document.createElement(tag)
   for (const attr of Array.from(el.attributes)) {
-    if (allowedAttrs.has(attr.name)) safe.setAttribute(attr.name, attr.value)
+    if (attr.name === 'src' && isBackgroundImageRef(attr.value)) {
+      // The slot's own image. Left as written when there is none, so the panel's validation pass
+      // (which has no image to hand) neither resolves nor rejects it.
+      if (imageSrc) safe.setAttribute('src', imageSrc)
+      else safe.setAttribute('src', attr.value)
+    } else if (allowedAttrs.has(attr.name)) safe.setAttribute(attr.name, attr.value)
     else invalid.add(attr.name)
   }
   safe.append(...children)

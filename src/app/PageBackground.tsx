@@ -188,9 +188,11 @@ function BackgroundLayer({ spec, leaving }: { spec: LayerSpec; leaving: boolean 
     // Reject-the-whole-thing, same rule the panel applies on Apply: a stored value with anything off
     // the allowlist renders nothing. Rendering the stripped remainder is worse than rendering none —
     // it's a half-built layout, and for a raw-text tag it was the stylesheet source shown as text.
-    const { nodes, invalid } = sanitizeBackgroundHtml(spec.html)
+    // spec.src is handed in so `<img src="image.jpg">` resolves to this slot's own image — the
+    // uploaded one is a data URL in IndexedDB and has no address the user could type.
+    const { nodes, invalid } = sanitizeBackgroundHtml(spec.html, spec.src)
     el.replaceChildren(...(invalid.length ? [] : [nodes]))
-  }, [spec.html])
+  }, [spec.html, spec.src])
 
   useEffect(() => {
     // One <style> element per layer, contents replaced — the same shape useApplyPalette uses for
