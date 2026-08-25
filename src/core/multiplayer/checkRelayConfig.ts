@@ -39,7 +39,7 @@ assert.equal(relayHost({ kind: 'centrifugo', url: 'nonsense' }), '')
 
 // --- the invite link round trip -------------------------------------------
 
-const origin = 'https://dev.nessuvia.world'
+const origin = 'https://xenia.nessuvia.com'
 
 // A Supabase session's link is the bare path it has always been: no parameter, nothing to parse.
 assert.equal(inviteLink(origin, 'abc123', emptyRelayConfig), `${origin}/join/abc123`)

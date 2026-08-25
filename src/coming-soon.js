@@ -12,7 +12,7 @@ const html = `<!doctype html>
 <meta property="og:title" content="Xenia Nessuvia">
 <meta property="og:description" content="The home for Xenia Nessuvia.">
 <meta property="og:url" content="https://nessuvia.world/">
-<meta property="og:image" content="https://dev.nessuvia.world/android-chrome-512x512.png">
+<meta property="og:image" content="https://xenia.nessuvia.com/android-chrome-512x512.png">
 <meta name="theme-color" content="#6c6cff">
 <style>
   html, body { height: 100%; margin: 0; }
@@ -27,7 +27,7 @@ const html = `<!doctype html>
 </head>
 <body>
   <h1>Coming soon…</h1>
-  <a href="https://dev.nessuvia.world">(dev build)</a>
+  <a href="https://xenia.nessuvia.com">(dev build)</a>
 </body>
 </html>
 `;
