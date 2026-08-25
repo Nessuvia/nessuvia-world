@@ -14,6 +14,15 @@ Chat homepage:
 - Chat groups / Character tagging (ie. "Konosuba", "Video Games", "Goonslop my beloved", etc.)
 - Import integration with https://aicharactercards.com/
 
+General/Unsorted:
+Ctrl-I and Ctrl-B for automatically adding asterisks or double asterisks around a word. Selecting a word and hitting Ctrl-I will "un-asterisk" the word. Should be able to work like this:
+```
+*word* <- highlight only "word" literally, still removes asterisks
+
+*word* <- highlight "*word*" literally, still only removes asterisks
+```
+Same for bold, double-asterisk text.
+
 Just ideas right now:
 - PHONE TEXTING UI
 - VISUAL NOVEL MODE

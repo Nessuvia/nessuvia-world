@@ -403,10 +403,10 @@ export default function Sidebar() {
               made by nessuvia •{' '}
               <a
                 className="sidebarCreditLink"
-                href="https://github.com/Nessuvia/nessuvia-world"
+                href="https://github.com/Nessuvia/nessuvia-world/wiki"
                 target="_blank"
                 rel="noreferrer"
-                title="Source on GitHub"
+                title="Wiki on GitHub"
               >
                 <RiGithubFill size={13} />
               </a>{' '} • {' '}
