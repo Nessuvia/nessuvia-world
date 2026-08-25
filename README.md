@@ -9,7 +9,7 @@ Xenia Nessuvia is character chat app inspired by SillyTavern. It runs entirely i
 
 There's no backend and no accounts by design. You could download the source code and run it fully locally if you wish.
 
-On [nessuvia.world](https://nessuvia.world/), the site can install as a PWA and run in fullscreen.
+On [xenia.nessuvia.com](https://xenia.nessuvia.com/), the site can install as a PWA and run in fullscreen.
 
 ## Why?
 I made this for myself after a long time of using SillyTavern. I'll say straight up I have nothing but appreciation for everyone who's contributed to the codebase in any way. It's an amazing application. With that said, I made Xenia Nessuvia because I wanted a statically served frontend I could access from any device with internet access, and I wanted my saves to be easily portable. The portability is the main reason behind most of the weird limitations, like how the Character Gallery only accepts links and not uploading your own pictures. Keeping links is just way, way smaller in size (I'm not against some image uploads, like Persona or Character avatars).
