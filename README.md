@@ -1,15 +1,19 @@
 # Nessu's Tavern
 
-A character chat app inspired by SillyTavern. It runs entirely in the browser. Chats, characters,
-and settings live in IndexedDB. Model requests go from your browser to an OpenAI-compatible
-endpoint using the key you provide.
+A character chat app inspired by SillyTavern. It runs entirely in the browser. Chats, characters, and settings live in IndexedDB. Model requests go from your browser to an OpenAI-compatible endpoint using the key you provide.
 
-There is no backend and there are no accounts. Text Completion is coming soon.
+There's no backend and no accounts by design. You could download the source code and run it fully locally if you wish.
 
-It installs as a PWA and runs from the home screen on mobile.
+On [Nessuvia's World](https://nessuvia.world/), the site can install as a PWA and run in fullscreen.
 
 ## Why?
-I made this for myself after a long time of using SillyTavern. I'll say straight up I have nothing but appreciation for everyone who's contributed to the codebase in any way — it's an amazing application. With that said, I made Nessu's Tavern/nessuvia.world because I wanted a statically served frontend I could access from any device with internet access, and I wanted my saves to be easily portable. The portability is the main reason behind most of the weird limitations, like how the Character Gallery only accepts links and not uploading your own pictures. Keeping links is just way, way smaller in size (I'm not against some image uploads, like Persona or Character avatars).
+I made this for myself after a long time of using SillyTavern. I'll say straight up I have nothing but appreciation for everyone who's contributed to the codebase in any way. It's an amazing application. With that said, I made Nessu's Tavern/nessuvia.world because I wanted a statically served frontend I could access from any device with internet access, and I wanted my saves to be easily portable. The portability is the main reason behind most of the weird limitations, like how the Character Gallery only accepts links and not uploading your own pictures. Keeping links is just way, way smaller in size (I'm not against some image uploads, like Persona or Character avatars).
+
+**Multiplayer**
+
+This is the one I haven't seen anywhere else, at least not built-in* in any frontend I've used. The host starts a session and shares a link; guests open it, make a persona, and join the same chat without installing anything or making an account. Everyone sees the same messages as they stream in. There's a turn order you can rearrange, and a Narrator role that fills the DM seat when nobody's character should be the one to answer. Only the host has an API key, and only the host talks to the model. The relay carries messages and presence between browsers and nothing else, so keys never leave the host's tab and nothing is stored on the way through. If you'd rather not use my relay, you can run your own; see [Where data goes](#where-data-goes).
+
+*[STMP](https://github.com/RossAscends/STMP) exists as an extension, though the only time I used it was on the initial release version. It still lit a spark in me that echoed all the way down to this feature.
 
 **Mobile**
 
@@ -25,25 +29,21 @@ The Chat is the most "standard" feature I have. It's got support for (I think) e
 
 **Write**
 
-The Write feature is probably most reminiscent of NovelAI's writing mode (though I only used it for a week in 2022). The biggest concept to understand is the Narrator role: a DM/GM that reads your directive, sees the descriptions of characters you've added, and responds. You and the LLM both write on a single sheet or "Story," which you can split into Chapters for context management, or any other reason.
+The Write feature is probably most reminiscent of NovelAI's writing mode (though I only used it for a week in 2022). The biggest concept to understand is the Narrator role: a DM/GM that reads your directive, sees the descriptions of characters you've added, and responds. You and the LLM both write on a single sheet or "Story," which you can split into Chapters for context management, or any other reason. The characters of the story are directly shared with your characters in chat mode, and the possibility of story-only, "temp" characters on a per-story basis is on the horizon.
 
 **Prompts**
 
-The prompt handling is another feature inspired by SillyTavern. I wanted prompt "blocks" that were reusable, easily rearranged, and supported XML-style tagging (which I use heavily in my prompts, and see used in other community prompts). The scroll-type block was something I especially loved; I use it for changing how many words I want on the fly. In a chat, having the prompt live in a place outside of it at first felt awkward. But with the toggleable blocks and the scroll, it felt more polished to me. Yes, I know that's not quantifiable. No, I will not elaborate (I would absolutely elaborate if anyone asked).
+The prompt handling is another feature inspired by SillyTavern. I wanted prompt "blocks" that were reusable, easily rearranged, and supported XML-style tagging (which I use heavily in my prompts, and see used in other community prompts). The scroll-type block was something I especially loved; I use it for changing how many words I want on the fly. In a chat, having the prompt live in a place outside of it at first felt awkward. But with the toggleable blocks and the scroll, it felt more polished to me. Yes, I know that's not quantifiable. No, I will not elaborate. ~~(I would absolutely elaborate if anyone asked)~~
 
 **Ask**
 
 The Ask mode is small and single-use, which is why it lives as a single icon at the bottom of the navbar. Basically, it's a no-frills way to just send a message to your LLM backend. It exists because I had a Narrator card in SillyTavern that I only used for asking questions, so I made it a feature. You may notice you can load a character to "be" the Assistant. If you remember Stella from the c.ai days, you're essentially putting your character in her role.
 
-The service and software are provided on an 'AS IS' and 'AS AVAILABLE' basis, without warranties of any kind, either operational or functional.
-
-Real documention coming soon™.
-
 ## Where data goes
 
 Everything stays in your browser, with one exception. On the live site, multiplayer messages pass through a relay server run by the me (Supabase Realtime). They are not stored there, and they are carried in plaintext. API keys are never sent to the relay.
 
-A host can point a session at a Centrifugo relay on their own machine instead, set up in Settings under Multiplayer. See `src/resources/self-hosted-relay.md`.
+A host can point a session at a Centrifugo relay on their own machine instead, set up in Settings under Multiplayer. [Click here for more information.](src/resources/self-hosted-relay.md)
 
 ## Stack
 
@@ -64,6 +64,26 @@ pnpm build
 
 Agentic LLM coding assistants were used on this codebase, and wrote a majority of it. The creative ideas like the feature set, the interaction design, what this app is and isn't are mine. I just wanted to be upfront with that.
 
+More on this in the [foreword](FOREWORD.md).
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+GNU GPL v3. See [LICENSE](LICENSE).
+
+```
+Copyright (C) 2026 nessuvia
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <https://www.gnu.org/licenses/>.
+```
+
+Real documention coming soon™.
