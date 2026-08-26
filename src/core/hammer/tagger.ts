@@ -55,7 +55,7 @@ export function tagsToPos(tags: string[]): PosTag[] {
  * `pre`/`post`. Punctuation tokens (no POS slot and non-word text) are dropped — patterns match
  * words, and repair re-attaches the surrounding punctuation.
  *
- * ponytail: `indexOf` from a moving cursor is O(n·m) worst case on degenerate input; fine for
+ * `indexOf` from a moving cursor is O(n·m) worst case on degenerate input; fine for
  * message-scale text. Re-tag per strip pass is the heavier cost, capped in strip.ts.
  */
 export class CompromiseTagger implements Tagger {

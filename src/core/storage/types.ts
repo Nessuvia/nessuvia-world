@@ -22,7 +22,7 @@ export interface Character {
   tags: string[]
   /** Card `system_prompt`. Reaches the model through a `characterSystemPrompt` block; empty falls
    *  back to that block's own content. Character-level, so it applies to every chat with them.
-   *  ponytail: per-chat override belongs on Chat as an optional field, when one chat needs to
+   *  per-chat override belongs on Chat as an optional field, when one chat needs to
    *  differ from the rest. */
   systemPrompt: string
   /** Card `post_history_instructions` — the "ujb/jailbreak". Same rules as `systemPrompt`. */

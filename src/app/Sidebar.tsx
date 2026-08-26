@@ -54,7 +54,7 @@ export default function Sidebar() {
   const phone = useMediaQuery('(max-width: 700px)')
   const sidebarWidth = phone ? 0 : palette.sidebarWidth
   const rail = useRef<HTMLElement>(null)
-  // ponytail: narrow screens start collapsed, once, until the user picks a side. Read at mount
+  // narrow screens start collapsed, once, until the user picks a side. Read at mount
   // only — rotating the phone won't re-collapse it.
   const [collapsedPref, setCollapsed] = useState(() => {
     const saved = localStorage.getItem('nessuTavern.sidebarCollapsed')

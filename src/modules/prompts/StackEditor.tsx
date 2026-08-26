@@ -61,7 +61,7 @@ export default function StackEditor() {
   const [draft, setDraft] = useState<PromptStack | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   // sessionStorage, not a stored setting: survives navigation, clears on tab close.
-  // ponytail: global for the tab, not per stack — key by stack id if that matters.
+  // global for the tab, not per stack — key by stack id if that matters.
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     JSON.parse(sessionStorage.getItem('promptsCollapsed') ?? '{}'),
   )

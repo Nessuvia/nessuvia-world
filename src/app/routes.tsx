@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useSettings } from '../core/stores/settingsStore'
 import { isEnabled, modules } from './moduleRegistry'
 import PageLoader from './PageLoader'
@@ -8,6 +8,14 @@ export default function AppRoutes() {
   const writeEnabled = useSettings((s) => s.writeEnabled)
   const multiplayerEnabled = useSettings((s) => s.multiplayerEnabled)
   const enabledPlugins = useSettings((s) => s.enabledPlugins)
+
+  // set during render rather than in an effect — document.title isn't React state and
+  // nothing reads it back. Per-record titles (chat name, story name) would need the module to
+  // report its own title instead.
+  const { pathname } = useLocation()
+  const current = modules.find((mod) => pathname.startsWith(mod.route))
+  document.title = current ? `Xenia | ${current.label}` : 'Xenia Nessuvia'
+
   return (
     <Routes>
       {modules

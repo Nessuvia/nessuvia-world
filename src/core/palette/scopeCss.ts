@@ -79,7 +79,7 @@ export function scopeBackgroundCss(raw: string, root: string = scopeRootClass): 
 
   // `@scope` only holds style rules and nested conditional groups, so a `@keyframes` written inside
   // it is dropped by the parser and the animation silently never runs. Hoist them back out.
-  // ponytail: names stay as written, so a background can redefine an app animation of the same
+  // names stay as written, so a background can redefine an app animation of the same
   // name — prefix them here if that ever bites.
   const flat = new CSSStyleSheet()
   flat.replaceSync(raw)

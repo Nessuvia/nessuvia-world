@@ -130,7 +130,7 @@ interface WriteState {
    *  the DOM away, so a caret that should survive a commit has to be handed over deliberately. */
   pendingCaret: { blockId: string; offset: number } | null
   /** Whether the editor renders inline markers as bold/italic (markers hidden) or shows the raw
-   *  asterisks. ponytail: global and in-memory — it's a way of looking at prose, not a property of
+   *  asterisks. global and in-memory — it's a way of looking at prose, not a property of
    *  one Story, and it resets on reload. Upgrade path if it should stick: a field on appearance in
    *  settingsStore, which is the persisted display-preference home. */
   styling: boolean
@@ -138,7 +138,7 @@ interface WriteState {
   /** Block ids whose beat is folded shut in the document. In-memory and global, like `styling`:
    *  hiding a beat is something you do while reading, not a property of the beat. Lives here rather
    *  than in the region so the rail's chapter list can show the same open/shut state.
-   *  ponytail: a Block field is the upgrade path if it should survive a reload. */
+   *  a Block field is the upgrade path if it should survive a reload. */
   collapsedBeats: string[]
   setCollapsedBeats(ids: string[]): void
   /** The Story's standing instruction, sent as the final user turn on every generation. Per

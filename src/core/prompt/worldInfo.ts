@@ -9,7 +9,7 @@ export const defaultDepth = 4
 const window = (entry: WorldInfoEntry, book?: WorldBook) =>
   entry.scanDepth ?? book?.scanDepth ?? defaultDepth
 
-// ponytail: substring, not word boundary — a key of "BA" fires inside "abandon". Upgrade to a
+// substring, not word boundary — a key of "BA" fires inside "abandon". Upgrade to a
 // \b-anchored regex per key if that bites in practice.
 const mentions = (haystack: string, keys: string[]) =>
   keys.some((key) => haystack.includes(key.toLowerCase()))
@@ -54,7 +54,7 @@ export function worldInfoText(
   const budget = book?.tokenBudget
   if (budget === undefined || budget <= 0) return matched.map((e) => e.content).join('\n')
 
-  // ponytail: drops whole entries from the tail of the card's own order once the budget is spent.
+  // drops whole entries from the tail of the card's own order once the budget is spent.
   // No priority, probability or group weighting — those stay in `raw` until someone wants them.
   const kept: string[] = []
   let used = 0

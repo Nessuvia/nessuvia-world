@@ -71,7 +71,7 @@ export function applyReplaceRules(
     if (rule.target !== 'both' && role && rule.target !== role) continue
     const pattern = rule.regex ? rule.find : rule.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     try {
-      // ponytail: compiles per render; memoize if a long rule list lags.
+      // compiles per render; memoize if a long rule list lags.
       out = out.replace(new RegExp(pattern, rule.flags), rule.replace)
     } catch {
       // Invalid pattern or flags — skip, leaving the text untouched.
@@ -181,7 +181,7 @@ function renderInline(text: string, order: MarkerKind[], bestRank = -1): ReactNo
       const rank = rankOf(kindOf[marker.className], order)
       const wins = rank > bestRank
       // `wrap` adds a nested emphasis <em>; the content sits inside both, so it competes against
-      // whichever of the two ranks higher. ponytail: if the winning kind's color var is unset the
+      // whichever of the two ranks higher. if the winning kind's color var is unset the
       // run just inherits text color; skip unset ranks here if that ever surprises.
       const emRank = marker.wrap ? rankOf('emphasis', order) : rank
       const innerBest = Math.max(bestRank, rank, emRank)

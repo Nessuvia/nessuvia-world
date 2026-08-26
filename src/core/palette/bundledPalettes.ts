@@ -9,6 +9,6 @@ import { parsePalettes } from './importPalettes'
 const files = import.meta.glob<unknown>('./bundled/*.json', { eager: true, import: 'default' })
 
 export function bundledPalettes() {
-  // ponytail: stringify to reuse the import path's coercion rather than a second parser.
+  // stringify to reuse the import path's coercion rather than a second parser.
   return Object.values(files).map((file) => parsePalettes(JSON.stringify(file)))
 }

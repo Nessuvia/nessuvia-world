@@ -213,7 +213,7 @@ export default function ChatSettingsPanel({
         </label>
         <SpeakerColors chat={value} />
 
-        {/* ponytail: writes the global grammarHammer settings, same records the Settings panel
+        {/* writes the global grammarHammer settings, same records the Settings panel
             edits — flipping a rule here affects every chat. Per-chat override: add a
             grammarHammer field to the Chat record and merge it in stripText's callers. */}
         <label className="checkboxRow">

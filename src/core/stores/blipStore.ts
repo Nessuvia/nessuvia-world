@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware'
  * Characters whose reply finished while you were somewhere else. A reminder, not an inbox: there is
  * no count and no per-chat detail, just "this one said something since you looked".
  *
- * ponytail: character ids only. Per-chat blips are the upgrade path if a character with several
+ * character ids only. Per-chat blips are the upgrade path if a character with several
  * running chats ever needs to say *which* one replied.
  */
 /**
@@ -13,7 +13,7 @@ import { persist } from 'zustand/middleware'
  * Notification API's chime comes with a permission prompt and a system toast), and WebAudio is
  * shorter than shipping an audio file.
  *
- * ponytail: fixed notes at a fixed volume, and a mute is the obvious next knob — appearance in
+ * fixed notes at a fixed volume, and a mute is the obvious next knob — appearance in
  * settingsStore is where it would live.
  */
 function playBlip() {

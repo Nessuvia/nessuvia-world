@@ -375,7 +375,7 @@ const contextLabels: Record<BlockContext, string> = {
   none: 'No surrounding prose',
 }
 
-// ponytail: a context rather than threading a callback through StoryDocument → ChapterRegion →
+// a context rather than threading a callback through StoryDocument → ChapterRegion →
 // BlockRegion → BlockHead, none of which have anything else to say about tabs.
 const JumpToPlot = createContext<(chapterId: number, beatId: string) => void>(() => {})
 
@@ -684,12 +684,12 @@ function BlockRegion({
   const decorated = useRef('')
   // Own undo/redo: decorateProse rebuilds the DOM, which throws away the browser's native undo
   // stack, so Ctrl-Z has nothing to restore. We snapshot each committed state instead.
-  // ponytail: per-Block, capped at 200 states; a Story-wide stack is the upgrade path.
+  // per-Block, capped at 200 states; a Story-wide stack is the upgrade path.
   const history = useRef<{ text: string; caret: number }[]>([])
   const histIndex = useRef(-1)
   const beat = isBeat(block)
   // Preview Word Count: per-beat and deliberately not persisted — it's a ruler you hold up while
-  // setting a target, not a property of the beat. ponytail: a Block field is the upgrade path if
+  // setting a target, not a property of the beat. a Block field is the upgrade path if
   // Authors want it to survive a reload.
   const [preview, setPreview] = useState(false)
   // Display only, not persisted — see writeStore.collapsedBeats. It lives in the store rather than

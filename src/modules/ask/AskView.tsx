@@ -145,7 +145,7 @@ export default function AskView() {
   // Which turn has the regen modal open. Lives here so an empty composer submit could open it.
   const [rewritingId, setRewritingId] = useState<number | null>(null)
   const phone = useMediaQuery('(max-width: 700px)')
-  // ponytail: session-local, not persisted. Move to settingsStore if it should survive reloads.
+  // session-local, not persisted. Move to settingsStore if it should survive reloads.
   // On a phone the panel is a drawer: closed on arrival, swipe from the right edge opens it.
   const [panelOpen, setPanelOpen] = useState(!phone)
   const drawer = useSideDrawer({

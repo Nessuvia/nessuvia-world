@@ -47,7 +47,7 @@ export interface SkinKnob {
   fallback: number
 }
 
-// ponytail: a plain array with static CSS imports. User-uploaded skins would make this a stored
+// a plain array with static CSS imports. User-uploaded skins would make this a stored
 // record with a CSS text field, reusing scopeCss/sanitizeHtml the way backgrounds already do.
 export const skins: Skin[] = [
   { id: 'default', label: 'Default', knobs: [] },

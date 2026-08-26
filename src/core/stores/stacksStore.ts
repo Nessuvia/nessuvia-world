@@ -4,7 +4,7 @@ import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import type { PromptBlock, PromptStack } from '../storage/types'
 import { useSettings } from './settingsStore'
-// ponytail: core reaching into a module, same as charactersStore — the stack file parser and the
+// core reaching into a module, same as charactersStore — the stack file parser and the
 // bundled file both live with the prompts module.
 import { parseStack } from '../../modules/prompts/stackFile'
 import storyStackFile from '../../modules/prompts/defaultStoryStack.json'

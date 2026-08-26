@@ -98,7 +98,7 @@ function hasStory(blocks: PromptBlock[]): boolean {
 /**
  * Keep the newest prose that fits, dropping whole lines from the top. Mirrors trimHistory's
  * end-backward rule for the single Story-context blob.
- * ponytail: line-granular, no mid-line truncation — a single line bigger than the budget drops
+ * line-granular, no mid-line truncation — a single line bigger than the budget drops
  * everything, same as trimHistory. Upgrade to sentence/char granularity if that ever bites.
  */
 export function fitEndBackward(text: string, available: number): string {

@@ -55,7 +55,7 @@ const tagOf: Record<string, [string, string]> = {
  * Prose to inline HTML. Real elements, not the editor's marker spans — the round-trip invariant
  * proseMarkup rests on exists for the contenteditable, and a static page has nothing to read back.
  *
- * ponytail: nesting color goes to the innermost element rather than the palette's
+ * nesting color goes to the innermost element rather than the palette's
  * `storyColorOrder` ranking. If a bold-inside-quotes run needs to paint quote-colored the way the
  * editor does, port `rankOf` and stamp `data-win` here.
  */
@@ -187,7 +187,7 @@ code { font-family: ui-monospace, monospace; font-size: 0.92em; color: var(--acc
 ${body}
 <script>
 // Scrollspy: the last heading whose top has passed under the bar wins.
-// ponytail: recomputed on every scroll event, cheap at this document size.
+// recomputed on every scroll event, cheap at this document size.
 (function () {
   var links = [].slice.call(document.querySelectorAll('nav a'))
   var heads = links.map(function (a) { return document.querySelector(a.getAttribute('href')) })

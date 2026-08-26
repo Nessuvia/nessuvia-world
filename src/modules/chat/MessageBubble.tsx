@@ -369,7 +369,7 @@ export default function MessageBubble({
 }
 
 /** Pick alternates to delete. Numbers toggle selection; the last one clicked shows in the preview.
- *  ponytail: rendered inline in the bubble, not portalled — the backdrop is position:fixed anyway. */
+ *  rendered inline in the bubble, not portalled — the backdrop is position:fixed anyway. */
 function SwipePicker({
   swipes,
   onCancel,

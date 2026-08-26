@@ -101,7 +101,7 @@ async function fetchAiccCard(id: string): Promise<FetchedCard> {
  * Remote image URL → data URL, so the avatar lives in the save instead of hotlinking someone
  * else's CDN. Returns '' on any failure; the caller keeps the URL as the degraded case.
  */
-// ponytail: stores the original bytes, which for a card PNG is around a megabyte. If saves get
+// stores the original bytes, which for a card PNG is around a megabyte. If saves get
 // fat, re-encode through a canvas here — the crop is stored as fractions, so it survives a resize.
 async function inlineAvatar(url: string): Promise<string> {
   try {

@@ -4,7 +4,7 @@ import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import type { Character } from '../storage/types'
 import { emptyColors } from '../storage/types'
-// ponytail: core reaching into a module, because the card parser and the bundled folder both live
+// core reaching into a module, because the card parser and the bundled folder both live
 // there. Move importCard into core if a second core caller ever wants it.
 import { bundledCharacters } from '../../modules/characters/bundledCharacters'
 import { importBook, importCard } from '../../modules/characters/importCard'

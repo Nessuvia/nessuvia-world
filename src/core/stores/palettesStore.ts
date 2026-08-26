@@ -63,7 +63,7 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
   generate: async (ask, palette, connection) => {
     if (get().generating || palette.id === undefined) return
     set({ generating: true, generateError: '', generateAttempt: null })
-    // ponytail: one controller in module scope, since `generating` already forbids a second run.
+    // one controller in module scope, since `generating` already forbids a second run.
     generateAbort = new AbortController()
     try {
       const { palette: next, mode } = await generatePalette(

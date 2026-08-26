@@ -189,7 +189,7 @@ async function avatarPngBytes(avatar: string): Promise<Uint8Array> {
 export async function exportCardPng(c: Character, entries: WorldInfoEntry[] = []) {
   if (!c.avatar) throw new Error('This character has no avatar image.')
   const b64 = toBase64(JSON.stringify(buildCard(c, entries)))
-  // ponytail: exports the uncropped original. Bake the crop in if someone asks.
+  // exports the uncropped original. Bake the crop in if someone asks.
   const png = withTextChunks(await avatarPngBytes(c.avatar), [
     ['chara', b64],
     ['ccv3', b64],

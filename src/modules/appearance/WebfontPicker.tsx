@@ -198,7 +198,7 @@ function WebfontSearch({
   }, [query])
 
   // Load a page. Runs on query change (page reset to 0 by the effect above) and on each page bump.
-  // ponytail: `loading` is deliberately not a dep — it's set inside, so including it cancelled the
+  // `loading` is deliberately not a dep — it's set inside, so including it cancelled the
   // fetch and re-entered on the guard, leaving the list stuck on "Loading…".
   useEffect(() => {
     let cancelled = false

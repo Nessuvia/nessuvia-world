@@ -4,7 +4,7 @@ import { useRef } from 'react'
  * Touch's stand-in for right-click. Returns props to spread on the element; the timer is cancelled
  * if the finger moves or lifts first, so a scroll drag over a card never fires it.
  *
- * ponytail: touch only — mouse users already have onContextMenu, and running this for both means
+ * touch only — mouse users already have onContextMenu, and running this for both means
  * a click-and-hold on the desktop opens a menu nobody asked for.
  */
 export function useLongPress(onLongPress: (x: number, y: number) => void, ms = 500) {

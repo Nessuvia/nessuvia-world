@@ -1,6 +1,6 @@
 // The bundled generic-male body map and its starter action set (Phase 1 default asset).
 //
-// ponytail: the figure is a blocky SVG built from the same rectangles that define the clickable
+// the figure is a blocky SVG built from the same rectangles that define the clickable
 // regions, not an anatomical PNG. One source of truth for geometry, no binary asset to ship, and
 // the polygon resolver runs against it exactly as it would a hand-drawn map. Swap in a real
 // PNG + traced polygons via the authoring tool (Section 7) when art exists; the runtime is

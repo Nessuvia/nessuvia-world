@@ -14,7 +14,7 @@ import {
  * finger in and out from one edge. The navbar, the Story panel, the Write shelf's preview and the
  * multiplayer session panels all run on this.
  *
- * ponytail: touchstart/touchmove/touchend deltas, no gesture library. `dragX` is the live pull in
+ * touchstart/touchmove/touchend deltas, no gesture library. `dragX` is the live pull in
  * pixels while a swipe is in flight and null the rest of the time, which is the cue to go back to
  * the CSS transition and let it ease home.
  *

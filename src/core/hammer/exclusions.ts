@@ -3,7 +3,7 @@
  * Covers fenced code blocks, inline code spans, URLs, and markdown link targets. LaTeX delimiters
  * ride along when present. Link *text* is fair game (only the target in `(...)` is excluded).
  *
- * ponytail: regex-scan, not a full markdown parser. Good enough for the render-time strip; a
+ * regex-scan, not a full markdown parser. Good enough for the render-time strip; a
  * pathological nest (code fence inside a link inside a quote) can mis-bound, but model chat rarely
  * produces that and the worst case is a missed strip, never a wrong rewrite — storage is untouched.
  */
