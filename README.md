@@ -30,11 +30,13 @@ The Palette feature was born from the fun I had making custom CSS in SillyTavern
 
 **Chat**
 
-The Chat is the most "standard" feature I have. It's got support for (I think) everything in the Tavern V2 specification, as well as some quality-of-life features I love, like Alternate Descriptions, a Gallery, per-character text coloring, etc. The lorebooks are very barebones; sorry, I don't use character lorebooks much at all, so it hasn't gotten much love. (Though with a nice UI, I may be tempted to try them out more!)
+The Chat is the most "standard" feature I have. It's got support for everything in the TavernV2 specification, as well as some quality-of-life features I love, like Alternate Descriptions, a Gallery, per-character text coloring, etc. The lorebooks are very barebones; sorry, I don't use character lorebooks much at all, so it hasn't gotten much love. (Though with a nice UI, I may be tempted to try them out more!)
 
 **Write**
 
-The Write feature is probably most reminiscent of NovelAI's writing mode (though I only used it for a week in 2022). The biggest concept to understand is the Narrator role: a DM/GM that reads your directive, sees the descriptions of characters you've added, and responds. You and the LLM both write on a single sheet or "Story," which you can split into Chapters for context management, or any other reason. The characters of the story are directly shared with your characters in chat mode, and the possibility of story-only, "temp" characters on a per-story basis is on the horizon.
+Write is the long-form half of the app, and it's the feature I've torn down and rebuilt the most. Exports come out as HTML, plain text, or JSON.
+
+The part I actually care about is the Plot Layout. A Chapter is a row of beats, each with a word target, so the model gets a plan instead of a shrug and the word "continue." A Premise sits before the first Chapter and an Ending after the last one, so it knows where this started and where it's supposed to land. Every Chapter also has a summary and a switch for what it hands over — summary and beats, beats only, summary only, or nothing at all — which is how old Chapters shrink down to a recap while the one you're in stays whole. There's a Direction box too, for the standing note that isn't a beat and isn't a prompt, the "stop having them sigh" kind of thing.
 
 **Prompts**
 
