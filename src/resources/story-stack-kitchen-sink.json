@@ -67,7 +67,7 @@
       "label": "Shape of the work",
       "source": "text",
       "role": "system",
-      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nThe people in it: {{castNames}}\nStanding notes: {{scratchpad}}",
+      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nThe people in it: {{castNames}}",
       "closeContent": "</the_work>",
       "toggleable": true,
       "info": "Story-level facts. Each line drops out on its own when the field behind it is empty."

@@ -26,9 +26,11 @@ import {
 import AvatarCropDialog from '../characters/AvatarCropDialog'
 import { decorateProse, readProse, restoreCaret, saveCaret } from './proseMarkup'
 import { loremParagraphs } from './loremPreview'
+import { exportStoryHtml, exportStoryJson, exportStoryTxt } from './exportStory'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
 import { reasoningFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
 import { isBeat } from '../../core/prompt/chapterGuide'
+import { beatText, storedBeat } from './beatSlots'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
 import { usePalette } from '../../core/stores/palettesStore'
@@ -36,7 +38,7 @@ import { effectiveFont } from '../../core/palette/palette'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import type { Block, BlockContext, CastEntry, Chapter, Story } from '../../core/storage/types'
-import StorySidebar from './StorySidebar'
+import { StoryBeats } from './StoryRail'
 import PlotLayout from './PlotLayout'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { useSideDrawer } from '../../app/useSideDrawer'
@@ -151,6 +153,8 @@ function stamp(ms: number): string {
 // it has finished leaving, so the slide out isn't cut short by the panel unmounting mid-move.
 function StoryPreview({ story, onClose }: { story: Story; onClose: () => void }) {
   const wordCount = useWrite((s) => s.wordCount)
+  const chaptersOf = useWrite((s) => s.chaptersOf)
+  const palette = usePalette()
   const characters = useCharacters((s) => s.characters)
   const personas = usePersonas((s) => s.personas)
   const loadCharacters = useCharacters((s) => s.load)
@@ -320,6 +324,26 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
         <dd>{stamp(story.updatedAt)}</dd>
       </dl>
 
+      <div className="storyExportRow">
+        {/* Chapters are fetched per click rather than held in state: the shelf never loads them,
+            and an export is rare enough that one read on demand is cheaper than keeping them. */}
+        <button type="button" onClick={() => chaptersOf(story.id!).then((cs) => exportStoryJson(story, cs))}>
+          JSON
+        </button>
+        <button type="button" onClick={() => chaptersOf(story.id!).then((cs) => exportStoryTxt(story, cs))}>
+          Text
+        </button>
+        <button
+          type="button"
+          onClick={() => chaptersOf(story.id!).then((cs) => exportStoryHtml(story, cs, palette))}
+        >
+          HTML
+        </button>
+      </div>
+      <p className="hint">
+        Export. JSON keeps beats and reasoning. Text is prose only. HTML is a styled page.
+      </p>
+
       <div className="storyPreviewActions">
         <button type="button" onClick={() => duplicate(story.id!)}>
           Copy Story
@@ -388,6 +412,8 @@ function BlockHead({
   const swipeBlock = useWrite((s) => s.swipeBlock)
   const deleteSwipe = useWrite((s) => s.deleteSwipe)
   const [menu, setMenu] = useState(false)
+  // null while showing the plan line; the beat's text while editing it in place.
+  const [draft, setDraft] = useState<string | null>(null)
   const menuRef = useCloseOnOutside<HTMLDivElement>(menu, () => setMenu(false))
   const jumpToPlot = useContext(JumpToPlot)
 
@@ -410,10 +436,34 @@ function BlockHead({
         title="Mark this beat done. Nothing ticks it for you."
         onChange={(e) => onPatch({ done: e.target.checked })}
       />
-      {/* Wraps rather than truncating — the whole plan line is readable in place. */}
-      <span className="blockLabel" title={label}>
-        {label}
-      </span>
+      {/* Wraps rather than truncating — the whole plan line is readable in place. Clicking it edits
+          the beat here, so a plan change doesn't mean a trip to the Plot Layout tab. */}
+      {draft === null ? (
+        <span className="blockLabel" title={label} onClick={() => setDraft(beatText(block.beat))}>
+          {label}
+        </span>
+      ) : (
+        <textarea
+          className="blockLabel blockLabelEdit"
+          autoFocus
+          rows={1}
+          value={draft}
+          placeholder="What happens"
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            onPatch({ beat: storedBeat(draft) })
+            setDraft(null)
+          }}
+          onKeyDown={(e) => {
+            // Escape unmounts the field, so the blur that would have saved never runs.
+            if (e.key === 'Escape') setDraft(null)
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              e.currentTarget.blur()
+            }
+          }}
+        />
+      )}
         {block.targetWords > 0 && <span className="blockTarget">{block.targetWords}w</span>}
       </div>
 
@@ -804,7 +854,7 @@ function BlockRegion({
           previewText
             ? ''
             : beat
-            ? 'Write this beat, or press the spark to have the Co-Writer do it.'
+            ? 'Write this beat, or press the spark to have the Co-Writer generate it.'
             : first
               ? 'Start writing, or press Direct to have the Co-Writer open the Story.'
               : 'Empty.'
@@ -1040,8 +1090,8 @@ function StoryEditor() {
     return () => closeStory()
   }, [id, openStory, closeStory])
 
-  // Escape cancels wherever you are — the Stop buttons only exist next to the beat and in the
-  // sidebar, and generation can be started from a tab that shows neither.
+  // Escape cancels wherever you are — the Stop buttons only exist next to the beat and on the
+  // rail's beat row, and generation can be started from a tab that shows neither.
   useEffect(() => {
     if (!streaming) return
     const onKey = (e: KeyboardEvent) => {
@@ -1115,7 +1165,7 @@ function StoryEditor() {
             />
           )}
           {/* In-page tabs, not module `tabs`: those deep-link the shelf, and the sidebar swaps to
-              the Story settings panel when a Story is open. */}
+              the Story rail when a Story is open. */}
           <div className="storyTabs" role="tablist">
             {(['Story', 'Plot Layout'] as StoryTab[]).map((t) => (
               <button
@@ -1124,13 +1174,6 @@ function StoryEditor() {
                 role="tab"
                 aria-selected={tab === t}
                 className={tab === t ? 'storyTab current' : 'storyTab'}
-                // Plot Layout hides the Story panel, and Stop lives there.
-                disabled={t === 'Plot Layout' && streaming}
-                title={
-                  t === 'Plot Layout' && streaming
-                    ? 'Available when the Co-Writer stops writing.'
-                    : undefined
-                }
                 onClick={() => setTab(t)}
               >
                 {t}
@@ -1148,6 +1191,12 @@ function StoryEditor() {
             </button>
           )}
         </div>
+        {/* Phone only (see write.css): the rail holds the beats, and the rail is a drawer at this
+            width. This keeps them one tap away without a second drawer. */}
+        <details className="phoneBeats">
+          <summary>Beats</summary>
+          <StoryBeats />
+        </details>
         {tab === 'Story' ? (
           <JumpToPlot.Provider value={onJumpToPlot}>
             <ProgressRail />
@@ -1157,7 +1206,6 @@ function StoryEditor() {
           <PlotLayout onWriteBeat={onWriteBeat} onJumpToStory={onJumpToStory} focusBeat={focusBeat} />
         )}
       </div>
-      {tab === 'Story' && <StorySidebar />}
       {error && (
         <div className="writeToast" role="alert">
           {error}

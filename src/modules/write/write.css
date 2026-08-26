@@ -203,7 +203,7 @@ h3.storyPreviewTitle {
   color: var(--text);
 }
 
-/* Editor + sidebar */
+/* The editor: the document column, with the Story rail in the app sidebar beside it. */
 .storyEditor {
   display: flex;
   height: 100%;
@@ -515,6 +515,13 @@ h3.storyPreviewTitle {
   overflow-wrap: anywhere;
 }
 
+.blockLabelEdit {
+  font: inherit;
+  field-sizing: content;
+  resize: none;
+  max-height: 8rem;
+}
+
 .blockTarget {
   flex: none;
   color: var(--textMuted);
@@ -674,80 +681,106 @@ h3.storyPreviewTitle {
   border-color: var(--borderStrong);
 }
 
-.storySidebar {
-  width: var(--sidebarWidth, 320px);
-  flex-shrink: 0;
-  border-left: 1px solid var(--border);
-  padding: 1rem;
-  overflow-y: auto;
+/* The open Story's rail, in the app sidebar under the Go back link. Fill/scroll behavior comes
+   from .screenBody on the element; these rules are what the rail itself needs. */
+.storyRail {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 10px 0;
+  border-top: 1px solid var(--border);
 }
 
-.storySidebarHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+.storyRail summary {
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
 }
 
-.storySidebarHead h3 {
-  margin: 0;
-  font-size: 0.95rem;
+/* The rail's gap only reaches its own children; inside a <details> they're plain block flow. */
+.storyRail details > *:not(summary) {
+  margin-top: 8px;
 }
 
-.directionBox {
+.storyRail label {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Grows with the Direction rather than sitting at a fixed row count, so a long one is read in one
-   go. Capped so it can't push the rest of the panel off the screen. */
-.directionBox textarea {
-  width: 100%;
-  resize: vertical;
-  font: inherit;
-  field-sizing: content;
-  min-height: 6em;
-  max-height: 50vh;
-}
-
-/* Direct/Stop plus Retry, Continue and Undo — wraps rather than overflowing the rail on a narrow
-   panel. */
-.directionButtons {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-/* Direct/Stop is the panel's primary action, so it carries the accent the other three don't. */
-.directBtn {
-  border-color: var(--borderAccent);
-  color: var(--textBright);
-}
-
-.activeChapterName {
-  margin: 0;
-  font-size: 0.8rem;
+  gap: 4px;
+  font-size: 12px;
   color: var(--textMuted);
 }
 
-.accordionSection {
+.storyRail label.checkboxRow {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.storyRail textarea,
+.storyRail input {
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.5rem 0.75rem;
+  padding: 6px 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
 }
 
-.accordionSection > summary {
+.storyRail input[type='checkbox'] {
+  padding: 0;
+}
+
+/* `.hint` and `.placeholder` are scoped per module, and the rail renders outside every module's
+   root element. */
+.storyRail .hint,
+.storyRail .placeholder {
+  margin: 0;
+  color: var(--textDim);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.storyRailPick select {
+  width: 100%;
+}
+
+/* The row that moves between the two tiers: full width, so it reads as a destination rather than
+   one control in a row of them. */
+.storyRail .storyRailTier {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textSoft);
+  font-size: 13px;
   cursor: pointer;
-  font-weight: 600;
 }
 
-.accordionSection > *:not(summary) {
-  margin-top: 0.5rem;
+.storyRail .storyRailTier:hover {
+  color: var(--text);
+  border-color: var(--borderStrong);
+}
+
+/* Chapters as collapsible groups over the whole Story. */
+.beatSpine {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* What the Chapter is doing, in the same three values the Plot tab reads. */
+.beatChapter.writingNow {
+  color: var(--textBright);
+}
+
+.beatChapter.notYetWritten {
+  color: var(--textMuted);
 }
 
 .editStackLink {
@@ -873,9 +906,9 @@ h3.storyPreviewTitle {
   gap: 0.5rem;
 }
 
-/* The Story width row in the rail panel. Same shape as the chat's width row, which lives in
-   chat.css next to the chat-only rules it belongs with. */
-.chatSettings label.storyWidth {
+/* The Story width row in the rail. Same shape as the chat's width row, which lives in chat.css
+   next to the chat-only rules it belongs with. */
+.storyRail label.storyWidth {
   flex-direction: row;
   align-items: center;
   flex-wrap: nowrap;
@@ -883,52 +916,35 @@ h3.storyPreviewTitle {
   white-space: nowrap;
 }
 
-.chatSettings .storyWidth input[type='range'] {
+.storyRail .storyWidth input[type='range'] {
   flex: 1;
   min-width: 0;
   padding: 0;
 }
 
 /* Room for the spin buttons: at 52px the default padding squeezed them out of the box. */
-.chatSettings .storyWidth input[type='number'] {
+.storyRail .storyWidth input[type='number'] {
   width: 64px;
   flex: none;
   padding: 6px 2px 6px 6px;
-}
-
-.noteAdd {
-  align-self: flex-start;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-  color: var(--textSoft);
-}
-
-.scratchSection,
-.stackSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.scratchNote {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.25rem;
-}
-
-.scratchNote textarea {
-  flex: 1;
-  font: inherit;
-  resize: vertical;
 }
 
 .directionInput {
   width: 100%;
   font: inherit;
   resize: vertical;
+}
+
+/* Wide screens have the rail; the document column doesn't need a second copy of the beats. */
+.phoneBeats {
+  display: none;
+}
+
+.phoneBeats > summary {
+  cursor: pointer;
+  color: var(--textMuted);
+  font-size: 0.9em;
+  margin-bottom: 0.5rem;
 }
 
 .writeToast {
@@ -946,32 +962,6 @@ h3.storyPreviewTitle {
   border-radius: var(--radius);
   color: var(--text);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.findReplace {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.findReplace input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.findReplaceButtons {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.findReplaceButtons button {
-  flex: 1;
-}
-
-.findReplaceNote {
-  margin: 0;
-  color: var(--textSoft);
-  font-size: 0.85em;
 }
 
 @media (max-width: 700px) {
@@ -1018,31 +1008,6 @@ h3.storyPreviewTitle {
     gap: 0.75rem;
   }
 
-  /* The panel covers the prose instead of splitting the width with it — at this size a column for
-     each leaves neither usable. There is no rail at this width: it is a drawer on the right edge,
-     and sideDrawer.css says where it sits and how it moves. */
-  .storySidebar {
-    width: 100%;
-    border-left: none;
-  }
-
-  /* Sits directly under .storySidebar and matches it. --surface is the palette's panel color, so
-     a glass panel over it reads as the panel does everywhere else. Fixed, not absolute: the panel
-     over it is fixed too, and an absolute backdrop stops at the editor's own box. */
-  .storyPanelBackdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 27;
-    background: var(--surface);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 220ms ease;
-  }
-
-  .storyPanelBackdrop.shown {
-    opacity: 1;
-  }
-
   /* The shelf's preview is a drawer too: the grid stays put behind it rather than losing a third
      of a phone's width to a column. */
   .storyPreview {
@@ -1050,24 +1015,16 @@ h3.storyPreviewTitle {
     border-left: none;
   }
 
-  /* Both panels carry a `position` of their own at this specificity; sideDrawer.css does not, so
-     say it here where it beats them. */
-  .storySidebar.sideDrawer,
+  /* .storyPreview carries a `position` of its own at this specificity; sideDrawer.css does not,
+     so say it here where it beats it. */
   .storyPreview.sideDrawer {
     position: fixed;
   }
 
-  /* Chevron on the left edge of the header, title beside it. row-reverse packs to the left. */
-  .storySidebarHead {
-    flex-direction: row-reverse;
-    justify-content: flex-end;
+  /* The rail is a drawer at this width, so the beats get a second home in the document column. */
+  .phoneBeats {
+    display: block;
   }
-}
-
-/* Match highlight in the Chapter editor, drawn with the CSS Custom Highlight API. */
-::highlight(proseFind) {
-  background: var(--surfaceSelected);
-  color: var(--textBright);
 }
 
 /* Preview Word Count: placeholder prose standing in for an empty beat's target. Muted and italic
@@ -1114,4 +1071,13 @@ h3.storyPreviewTitle {
   cursor: pointer;
   font-size: 0.9em;
   letter-spacing: 0.04em;
+}
+
+.storyExportRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.storyExportRow button {
+  flex: 1;
 }

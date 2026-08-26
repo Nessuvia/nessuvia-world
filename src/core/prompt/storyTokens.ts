@@ -24,8 +24,6 @@ export interface StoryTokenArgs {
   title: string
   premise: string
   ending: string
-  /** The Story's sticky notes, in order. */
-  scratchpad: string[]
   /** Names of the enabled cast, in cast order. The `cast` bound block sends the full cards; this is
    *  the same people as a list you can write a sentence around. */
   castNames: string[]
@@ -60,7 +58,6 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
     storyTitle: args.title.trim(),
     premise: args.premise.trim(),
     ending: args.ending.trim(),
-    scratchpad: args.scratchpad.filter((s) => s.trim()).join('\n\n'),
     castNames: args.castNames.filter((n) => n.trim()).join(', '),
 
     chapterNumber: at === -1 ? '' : String(at + 1),

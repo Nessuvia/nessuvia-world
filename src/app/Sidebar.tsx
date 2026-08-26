@@ -11,7 +11,7 @@ import { useMediaQuery } from './useMediaQuery'
 import { useSideDrawer } from './useSideDrawer'
 import PersonaSwitcher from './PersonaSwitcher'
 import ChatSettingsPanel from '../modules/chat/ChatSettingsPanel'
-import StorySettingsPanel from '../modules/write/StorySettingsPanel'
+import StoryRail from '../modules/write/StoryRail'
 import BookmarkList from '../modules/chat/BookmarkList'
 import { buildBackup, downloadBackup, parseBackup, restoreBackup } from '../core/storage/backup'
 import './sideDrawer.css'
@@ -305,7 +305,7 @@ export default function Sidebar() {
                 <RiArrowLeftLine size={18} />
                 Go back
               </Link>
-              <StorySettingsPanel key={storyId} />
+              <StoryRail key={storyId} />
             </>
           ) : (
             modules

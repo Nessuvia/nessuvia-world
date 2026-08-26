@@ -157,16 +157,10 @@ function markSpan(mark: string, doc: Document, className: string): HTMLElement {
 
 const blockTags = new Set(['DIV', 'P', 'LI', 'BLOCKQUOTE', 'PRE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'])
 
-/** A text node paired with where its first character lands in readProse(el). */
-export interface ProseSpot {
-  node: Text
-  start: number
-}
-
 /**
- * One walk serving the text read-back, the caret offset and the find-highlight ranges. They have to
- * agree character for character — a caret or a range counted against a slightly different string
- * drifts — so they share a walker rather than three implementations of the same newline rules.
+ * One walk serving both the text read-back and the caret offset. They have to agree character for
+ * character — a caret counted against a slightly different string drifts — so they share a walker
+ * rather than two implementations of the same newline rules.
  *
  * The rules exist because a contenteditable is not a textarea: pressing Enter makes the browser
  * insert a <br> or wrap lines in <div>s, and textContent renders both as nothing, so the newline
@@ -178,7 +172,6 @@ export interface ProseSpot {
 function walkProse(
   el: HTMLElement,
   caret?: Range,
-  spots?: ProseSpot[],
 ): { text: string; at: number | null } {
   let text = ''
   let at: number | null = null
@@ -199,7 +192,6 @@ function walkProse(
           at = text.length + Math.min(caret.endOffset, data.length)
           return
         }
-        spots?.push({ node: child as Text, start: text.length })
         text += data
         continue
       }
@@ -226,34 +218,6 @@ function walkProse(
 /** Read the editor's prose back out, with contenteditable's line breaks turned back into "\n". */
 export function readProse(el: HTMLElement): string {
   return walkProse(el).text
-}
-
-/** The editor's prose plus the text nodes it came from, so an offset into the string can be turned
- *  back into a DOM position. Used by Find and Replace to highlight matches in place. */
-export function proseSpots(el: HTMLElement): { text: string; spots: ProseSpot[] } {
-  const spots: ProseSpot[] = []
-  const { text } = walkProse(el, undefined, spots)
-  return { text, spots }
-}
-
-/**
- * A Range covering [start, end) of the prose string. Returns null when either end falls on a
- * synthesized newline rather than in a text node — a match spanning a line break has no single
- * range to draw, and skipping it only costs a highlight.
- */
-export function proseRange(spots: ProseSpot[], start: number, end: number): Range | null {
-  const find = (offset: number, atEnd: boolean) =>
-    spots.find((s) => {
-      const len = s.node.data.length
-      return atEnd ? offset > s.start && offset <= s.start + len : offset >= s.start && offset < s.start + len
-    })
-  const from = find(start, false)
-  const to = find(end, true)
-  if (!from || !to) return null
-  const range = from.node.ownerDocument.createRange()
-  range.setStart(from.node, start - from.start)
-  range.setEnd(to.node, end - to.start)
-  return range
 }
 
 /**

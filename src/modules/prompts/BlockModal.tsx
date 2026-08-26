@@ -24,7 +24,6 @@ const tokenGuide: Record<StackKind, [string, string][]> = {
     ['{{premise}}', 'The opening situation, from the Plot Layout tab'],
     ['{{ending}}', 'The intended ending, from the Plot Layout tab'],
     ['{{castNames}}', 'Enabled cast members by name, comma separated'],
-    ['{{scratchpad}}', "The Story's notes, one per stanza"],
     ['{{chapterNumber}}', 'Which Chapter is being written into, counting from 1'],
     ['{{chapterCount}}', 'How many Chapters the Story has'],
     ['{{chapterTitle}}', "The active Chapter's title"],

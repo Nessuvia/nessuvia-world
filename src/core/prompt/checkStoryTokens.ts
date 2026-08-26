@@ -7,7 +7,6 @@ const args: StoryTokenArgs = {
   title: '  The Long Way  ',
   premise: 'A courier takes a job she should have refused.',
   ending: 'She refuses the second one.',
-  scratchpad: ['knife is left-handed', '  ', 'rain the whole third act'],
   castNames: ['Mary', '  ', 'John'],
   chapters: [
     { id: 1, title: 'Departure', summary: 'Mary leaves.', blocks: [blk('a', 'She packs', 0, true)] },
@@ -33,8 +32,7 @@ const t = storyTokens(args)
 assert.strictEqual(t.storyTitle, 'The Long Way')
 assert.strictEqual(t.premise, 'A courier takes a job she should have refused.')
 assert.strictEqual(t.ending, 'She refuses the second one.')
-// Blank notes and blank cast names drop out rather than leaving empty lines.
-assert.strictEqual(t.scratchpad, 'knife is left-handed\n\nrain the whole third act')
+// Blank cast names drop out rather than leaving empty lines.
 assert.strictEqual(t.castNames, 'Mary, John')
 
 assert.strictEqual(t.chapterNumber, '2')

@@ -24,7 +24,6 @@ const exampleTokens = storyTokens({
   title: 'Last Call',
   premise: 'A barkeeper closes up and finds someone still sitting in the dark.',
   ending: 'She hands back the key.',
-  scratchpad: ['the glass is chipped'],
   castNames: ['Nessuvia'],
   chapters: [
     { id: 1, title: 'Opening', summary: 'The tavern fills and empties.', blocks: [] },

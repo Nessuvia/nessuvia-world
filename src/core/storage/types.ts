@@ -212,8 +212,6 @@ export interface Story {
   /** The Author's standing instruction for this Story: read on every generation, never cleared,
    *  and sent as the final user turn. The Direction box in the Story panel writes it. */
   direction: string
-  /** Loose notes the Author keeps with the Story — a stack of sticky notes, per Story. */
-  scratchpad?: string[]
   /** Percent of the editor column the prose is displayed at. Per Story, like the Chat record's
    *  `chatWidth` — reading width is a property of the work, not a global default. Absent = 100. */
   storyWidth?: number

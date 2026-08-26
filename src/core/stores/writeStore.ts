@@ -151,11 +151,11 @@ interface WriteState {
   openStory(id: number): Promise<void>
   /** Words across every Chapter of a Story, for the shelf preview. Not stored — counted on read. */
   wordCount(id: number): Promise<number>
+  /** A Story's Chapters in order, without opening it — what the shelf's export reads. */
+  chaptersOf(id: number): Promise<Chapter[]>
   closeStory(): void
   /** Sampling overrides for this Story, over the connection. Per Story. */
   setParamOverrides(next: ParamOverrides): Promise<void>
-  /** Replace the Story's scratchpad notes. Per Story. */
-  setScratchpad(notes: string[]): Promise<void>
   /** How wide the prose is displayed, as a percent of the editor column. Per Story. */
   setStoryWidth(width: number): Promise<void>
   /** The opening situation on the Plot Layout strip. Per Story. Reaches the prompt as {{premise}}. */
@@ -350,6 +350,11 @@ export const useWrite = create<WriteState>()((set, get) => ({
     })
   },
 
+  chaptersOf: async (id) => {
+    const chapters = (await storage.find('chapters', 'storyId', id)) as unknown as Chapter[]
+    return chapters.sort((a, b) => a.order - b.order)
+  },
+
   wordCount: async (id) => {
     const chapters = (await storage.find('chapters', 'storyId', id)) as unknown as Chapter[]
     let words = 0
@@ -365,14 +370,6 @@ export const useWrite = create<WriteState>()((set, get) => ({
     if (!story) return
     // No updatedAt bump: sampler settings aren't an edit to the prose, same rule as storyWidth.
     const next = { ...story, paramOverrides }
-    await storage.put('stories', next as unknown as StoredRecord)
-    set({ story: next })
-  },
-
-  setScratchpad: async (notes) => {
-    const story = get().story
-    if (!story) return
-    const next = { ...story, scratchpad: notes, updatedAt: Date.now() }
     await storage.put('stories', next as unknown as StoredRecord)
     set({ story: next })
   },
@@ -534,7 +531,6 @@ export const useWrite = create<WriteState>()((set, get) => ({
             title: story.title,
             premise: story.premise ?? '',
             ending: story.ending ?? '',
-            scratchpad: story.scratchpad ?? [],
             castNames: resolveCast(story.cast).map((m) => m.name),
             chapters: current,
             chapterId,
