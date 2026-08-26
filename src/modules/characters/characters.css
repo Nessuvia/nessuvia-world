@@ -376,40 +376,6 @@
   gap: 4px;
 }
 
-/* Export sits apart from the avatar image buttons, so it's pushed to the far right. */
-.avatarRow .exportMenu {
-  margin-left: auto;
-  position: relative;
-}
-
-.avatarRow .exportMenu > button {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.exportMenuList {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  background: var(--surfaceRaised);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px;
-  gap: 2px;
-  /* % resolves against .exportMenu, so this is twice the Export button, right edges aligned. */
-  min-width: 200%;
-}
-
-.exportMenuList button {
-  width: 100%;
-  text-align: left;
-  white-space: nowrap;
-}
-
 .editorActions {
   display: flex;
   gap: 8px;
@@ -680,11 +646,6 @@
   .lorebookBook,
   .lorebookRow {
     flex-wrap: wrap;
-  }
-
-  /* Export loses its far-right push once the row wraps. */
-  .avatarRow .exportMenu {
-    margin-left: 0;
   }
 
   .colorsGroup {

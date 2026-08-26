@@ -75,14 +75,18 @@
   font-size: 14px;
 }
 
-/* Two columns: character details on the left, its chats on the right. */
-.characterPanel {
+/* The character edit page — header over the editor, one column. */
+.characterPanel,
+.characterProfile {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.characterPanel > .chatPickerHeader button {
+.characterPanel > .chatPickerHeader button,
+.characterProfile .chatPickerHeader button,
+.characterProfile .profileActions button,
+.exportMenuList button {
   background: var(--surfaceActive);
   border: 1px solid var(--borderStrong);
   border-radius: var(--radius);
@@ -93,51 +97,127 @@
   cursor: pointer;
 }
 
-.characterPanel > .chatPickerHeader button:hover {
+.characterPanel > .chatPickerHeader button:hover,
+.characterProfile .chatPickerHeader button:hover,
+.characterProfile .profileActions button:hover,
+.exportMenuList button:hover:not(:disabled) {
   background: var(--borderStrong);
 }
 
-.characterPanel > .chatPickerHeader button.danger {
+.characterPanel > .chatPickerHeader button.danger,
+.characterProfile button.danger {
   color: var(--danger);
 }
 
-.characterPanel > .chatPickerHeader button.secondary {
+.characterPanel > .chatPickerHeader button.secondary,
+.characterProfile button.secondary {
   background: transparent;
 }
 
-.characterPanelColumns {
-  display: flex;
-  align-items: stretch;
+.exportMenuList button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.exportMenuList hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2px 0;
+  width: 100%;
+}
+
+.characterPanel > .characters {
   flex: 1;
   min-height: 0;
-  gap: 24px;
 }
 
-/* .screenBody supplies flex:1/min-height:0/overflow-y:auto — the editor's own 720px cap would
-   leave the freed space empty when Chats collapses, so each column fills and scrolls on its own. */
-.characterPanelColumn {
-  min-width: 0;
-}
-
-/* A definite height, not min-height: the editor's tabs size their cards as a percentage of it,
-   and a percentage of a content-sized box resolves to auto. */
-.characterPanelColumn > .characters {
-  height: 100%;
-}
-
-.characterPanel .chatPickerHeader h2 {
+.characterPanel .chatPickerHeader h2,
+.characterProfile .chatPickerHeader h2 {
   margin: 0;
 }
 
-.characterPanelColumn.chats {
+/* Back, then the title taking the leftover width, then the overflow menu at the far right. */
+.characterProfile .chatPickerHeader h2 {
+  flex: 1;
+}
+
+.profileMenu {
+  position: relative;
+}
+
+/* The overflow dropdown. */
+.exportMenuList {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  background: var(--surfaceRaised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  gap: 2px;
+  min-width: 160px;
+}
+
+.exportMenuList button {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.profileBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profileIdentity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profileIdentity h3 {
+  margin: 0 0 6px;
+}
+
+.profileAvatar {
+  width: 96px;
+  height: 96px;
+  flex: none;
+}
+
+.profileTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profileActions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.characterPanelColumn.chats .chatPicker {
-  flex: 1;
-  min-width: 0;
+.profileNotes {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--textMuted);
+  font-size: 14px;
+}
+
+.profileGallery {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.profileGallery img {
+  height: 120px;
+  border-radius: var(--radius);
+  cursor: pointer;
 }
 
 /* The title and its chevron sit together on the left of the Chats header. */
@@ -1067,27 +1147,6 @@
 }
 
 @media (max-width: 700px) {
-  /* Character page: details and chats stack instead of splitting a phone's width in two. The
-     editor's height:100% goes with them — stacked columns are sized by their content and the
-     page scrolls. */
-  .characterPanelColumns {
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    /* Stacked, the columns are content-height and each one's own .screenBody scroller has nothing
-       to scroll — so the scrolling moves out here, to the pair of them. */
-    overflow-y: auto;
-  }
-
-  .characterPanelColumn {
-    flex: none;
-    overflow: visible;
-  }
-
-  .characterPanelColumn > .characters {
-    height: auto;
-  }
-
   /* Two cards per row: auto-fill's 180px floor drops to one column on a phone. Matches the story
      shelf. The card is content-height here (see the 768px block), so nothing scrolls inside it. */
   .pickerGrid {
