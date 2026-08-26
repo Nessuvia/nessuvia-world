@@ -139,6 +139,12 @@ export function StoryBeats() {
   const writeBlock = useWrite((s) => s.writeBlock)
   const stop = useWrite((s) => s.stop)
 
+  // The rail shows what the document shows: a Chapter reads as open while any of its beats is
+  // unfolded, and folding it here folds those beats in the document too.
+  const collapsedBeats = useWrite((s) => s.collapsedBeats)
+  const setCollapsedBeats = useWrite((s) => s.setCollapsedBeats)
+  const [mode, setMode] = useState(0)
+
   // Streaming only gates rows while it is THIS Story being written.
   const busy = streaming && streamingStoryId === (story?.id ?? null)
 
@@ -153,13 +159,44 @@ export function StoryBeats() {
 
   if (chapters.length === 0) return <p className="placeholder">No chapters yet.</p>
 
+  const modes = ['Collapse done', 'Collapse all', 'Open all']
+  const allBeats = chapters.flatMap((c) => beatBlocks(c))
+  function cycle() {
+    if (mode === 0) setCollapsedBeats(allBeats.filter((b) => b.done).map((b) => b.id))
+    else if (mode === 1) setCollapsedBeats(allBeats.map((b) => b.id))
+    else setCollapsedBeats([])
+    setMode((mode + 1) % 3)
+  }
+
+  // Folding a Chapter row folds every beat under it; unfolding puts them all back.
+  function setChapterOpen(chapter: (typeof chapters)[number], open: boolean) {
+    const ids = beatBlocks(chapter).map((b) => b.id)
+    setCollapsedBeats(
+      open
+        ? collapsedBeats.filter((b) => !ids.includes(b))
+        : [...new Set([...collapsedBeats, ...ids])],
+    )
+  }
+
   return (
     <div className="beatSpine">
+      <button type="button" className="storyRailTier" onClick={cycle}>
+        {modes[mode]}
+      </button>
       {chapters.map((chapter, ci) => {
         const beats = beatBlocks(chapter)
         const state = chapterState(chapter, activeChapterId)
         return (
-          <details key={chapter.id} open={chapter.id === activeChapterId}>
+          <details
+            key={chapter.id}
+            open={
+              beats.length === 0
+                ? chapter.id === activeChapterId
+                : beats.some((b) => !collapsedBeats.includes(b.id))
+            }
+            // currentTarget is already detached by the time this fires; read the element itself.
+            onToggle={(e) => setChapterOpen(chapter, (e.target as HTMLDetailsElement).open)}
+          >
             <summary className={`beatChapter ${state}`}>
               {chapter.title.trim() || `Chapter ${ci + 1}`}
             </summary>

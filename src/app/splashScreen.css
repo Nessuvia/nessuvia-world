@@ -6,7 +6,7 @@
   z-index: 100;
   background: #000;
   pointer-events: none;
-  animation: splashFade 500ms ease-in 2000ms forwards;
+  animation: splashFade 500ms ease-in 1500ms forwards;
 }
 
 .splashBubble {

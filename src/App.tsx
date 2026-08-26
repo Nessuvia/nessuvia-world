@@ -8,6 +8,7 @@ import SplashScreen from './app/SplashScreen'
 import { usePalettes } from './core/stores/palettesStore'
 import { usePersonas } from './core/stores/personasStore'
 import { useParamDefs } from './core/stores/paramDefsStore'
+import { useStacks } from './core/stores/stacksStore'
 import { useApplyPalette } from './core/palette/useApplyPalette'
 import { useApplyWebfont } from './core/palette/useApplyWebfont'
 
@@ -17,12 +18,16 @@ export default function App() {
   // The sampler library loads on boot rather than on the first visit to Settings: the send path
   // reads it synchronously to shape every request body.
   const loadParamDefs = useParamDefs((s) => s.load)
+  // Seeds the default chat and Story stacks on a fresh install, so they are there before the first
+  // visit to Prompts.
+  const loadStacks = useStacks((s) => s.load)
   useEffect(() => {
     loadPalettes()
     loadParamDefs()
+    loadStacks()
     // A fresh install gets its "User" persona on boot, not on the first visit to Personas.
     ensurePersona()
-  }, [loadPalettes, loadParamDefs, ensurePersona])
+  }, [loadPalettes, loadParamDefs, loadStacks, ensurePersona])
   useApplyPalette()
   useApplyWebfont()
 

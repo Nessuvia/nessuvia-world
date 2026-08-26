@@ -692,9 +692,14 @@ function BlockRegion({
   // setting a target, not a property of the beat. ponytail: a Block field is the upgrade path if
   // Authors want it to survive a reload.
   const [preview, setPreview] = useState(false)
-  // Display only, not persisted: hiding a beat is something you do while reading, not a property
-  // of the beat. ponytail: a Block field is the upgrade path if it should survive a reload.
-  const [collapsed, setCollapsed] = useState(false)
+  // Display only, not persisted — see writeStore.collapsedBeats. It lives in the store rather than
+  // here so the rail's beat list can show the same state and fold them in bulk.
+  const collapsedBeats = useWrite((s) => s.collapsedBeats)
+  const collapsed = collapsedBeats.includes(id)
+  const setCollapsed = (on: boolean) =>
+    useWrite
+      .getState()
+      .setCollapsedBeats(on ? [...collapsedBeats, id] : collapsedBeats.filter((b) => b !== id))
   const empty = !block.content.trim()
   // Reshuffles whenever the target changes, which is what makes typing a new number redraw at the
   // new length. Nothing else in this component re-renders per keystroke, so the text sits still

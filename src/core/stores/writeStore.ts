@@ -135,6 +135,12 @@ interface WriteState {
    *  settingsStore, which is the persisted display-preference home. */
   styling: boolean
   toggleStyling(): void
+  /** Block ids whose beat is folded shut in the document. In-memory and global, like `styling`:
+   *  hiding a beat is something you do while reading, not a property of the beat. Lives here rather
+   *  than in the region so the rail's chapter list can show the same open/shut state.
+   *  ponytail: a Block field is the upgrade path if it should survive a reload. */
+  collapsedBeats: string[]
+  setCollapsedBeats(ids: string[]): void
   /** The Story's standing instruction, sent as the final user turn on every generation. Per
    *  Story. Debounced by the caller — this writes to the database. */
   setDirection(text: string): Promise<void>
@@ -249,8 +255,11 @@ export const useWrite = create<WriteState>()((set, get) => ({
   activeBlockId: null,
   pendingCaret: null,
   styling: true,
+  collapsedBeats: [],
 
   toggleStyling: () => set((s) => ({ styling: !s.styling })),
+
+  setCollapsedBeats: (ids) => set({ collapsedBeats: ids }),
 
   setDirection: async (text) => {
     const story = get().story

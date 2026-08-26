@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { useSettings } from '../core/stores/settingsStore'
 import './splashScreen.css'
 
-const REVEAL = 2000
+const REVEAL = 1500
 const FADE = 500
 const BUBBLES = 26
 

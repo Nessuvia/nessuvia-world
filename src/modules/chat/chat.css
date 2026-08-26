@@ -136,7 +136,12 @@
   margin: 0;
 }
 
-/* Back, then the title taking the leftover width, then the overflow menu at the far right. */
+/* Back and the overflow menu both sit at the far right. */
+.characterProfile .chatPickerHeader {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .characterProfile .chatPickerHeader h2 {
   flex: 1;
 }
@@ -381,7 +386,6 @@
   border-color: var(--border);
   border-radius: calc(var(--radius) + 4px);
   text-align: center;
-  max-height: 18vh;
 }
 
 .pickerCard .avatar {
@@ -1194,12 +1198,6 @@
 }
 
 @media (max-width: 768px) {
-  /* 18vh is a short box on a phone — the name and the meta line fell outside it and the button
-     clipped them. Let the card take the height its content needs, on a smaller avatar. */
-  .chatPicker .pickerCard {
-    max-height: none;
-  }
-
   .pickerCard .avatar {
     width: 56px;
     height: 56px;

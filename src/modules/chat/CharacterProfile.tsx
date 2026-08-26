@@ -56,7 +56,6 @@ export default function CharacterProfile() {
         <button type="button" className="secondary" onClick={() => navigate('/chat')}>
           Back
         </button>
-        <h2>{displayName(character) || 'Unnamed'}</h2>
         <span className="profileMenu" ref={menuRef}>
           <button
             type="button"

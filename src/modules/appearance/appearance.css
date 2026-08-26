@@ -376,10 +376,12 @@
   gap: 6px;
 }
 
+/* Icons only — the title/aria-label names each one. */
 .paletteActions button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  padding: 7px 8px;
+  line-height: 0;
 }
 
 .paletteActions em {
@@ -587,12 +589,6 @@
 
   .paletteList .paletteName {
     flex-wrap: wrap;
-  }
-
-  /* Icons only — the label span is hidden by .btnText in formPage.css. */
-  .paletteActions button {
-    padding: 7px 8px;
-    line-height: 0;
   }
 
   /* One knob per line: a slider and its typed value need the full width to be draggable. */

@@ -4,6 +4,10 @@ import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import type { PromptBlock, PromptStack } from '../storage/types'
 import { useSettings } from './settingsStore'
+// ponytail: core reaching into a module, same as charactersStore — the stack file parser and the
+// bundled file both live with the prompts module.
+import { parseStack } from '../../modules/prompts/stackFile'
+import storyStackFile from '../../modules/prompts/defaultStoryStack.json'
 
 export function newBlock(partial: Partial<PromptBlock> = {}): PromptBlock {
   return {
@@ -85,39 +89,11 @@ export function defaultMultiplayerStack(name = 'Multiplayer'): PromptStack {
   }
 }
 
-/** A Story stack's sensible starting blocks: Cast, the guide, the prose, and the beat. The beat
- *  is a `text` block using {{beat}} — nothing folds it into the Direction, so a stack that drops
- *  this block is a stack that doesn't send the plan. */
+/** The Story stack that ships with the build, kept as an exported stack file rather than code so
+ *  editing it is an export/replace instead of a diff. Same parser as a user import, so it gets
+ *  fresh block ids every time. */
 export function defaultStoryStack(name = 'Story'): PromptStack {
-  return {
-    ownerId: currentOwnerId(),
-    name,
-    kind: 'story',
-    active: [
-      newBlock({
-        label: 'Co-writer system',
-        content: 'You are a co-writer. Continue the story in prose, following the direction given.',
-      }),
-      newBlock({ label: 'Cast', source: 'cast' }),
-      // Ahead of the prose: the guide is the arc the prose is scrolling through.
-      newBlock({ label: 'Chapter guide', source: 'chapterGuide' }),
-      newBlock({ label: 'Story context', source: 'storyContext' }),
-      // After the prose it continues from: this is the text on the far side of the caret, which the
-      // passage has to arrive at. Renders empty (and drops out) whenever there is no caret.
-      newBlock({
-        label: 'What follows',
-        source: 'storyTrailing',
-        content: 'The passage you write must lead into the text below.',
-      }),
-      // Last, next to the Direction: the beat is the instruction for this generation. Both lines
-      // blank out on a free stretch, and the block drops out.
-      newBlock({
-        label: 'Beat',
-        role: 'user',
-        content: 'Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.',
-      }),
-    ],
-  }
+  return { ...parseStack(JSON.stringify(storyStackFile)), name }
 }
 
 const stackKind = (s: PromptStack): 'chat' | 'story' => s.kind ?? 'chat'
@@ -155,6 +131,16 @@ export const useStacks = create<StacksState>()((set, get) => ({
   stacks: [],
 
   load: async () => {
+    // One chat stack and one Story stack, seeded on first run as ordinary rows: editable, and once
+    // deleted they stay gone. The flag is what makes a delete stick. Same contract as the bundled
+    // palettes and samplers.
+    if (!useSettings.getState().seededStacks) {
+      useSettings.getState().markStacksSeeded()
+      const chatId = await storage.put('promptStacks', defaultStack() as unknown as StoredRecord)
+      const storyId = await storage.put('promptStacks', defaultStoryStack() as unknown as StoredRecord)
+      setActiveId('chat', chatId)
+      setActiveId('story', storyId)
+    }
     const rows = (await storage.getAll('promptStacks')) as unknown as PromptStack[]
     // Rows written while the Inactive pool existed still carry one. Its blocks come back as
     // disabled active blocks so nothing parked there disappears. Drop this once such rows are gone.

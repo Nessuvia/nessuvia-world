@@ -166,8 +166,6 @@ export default function PalettesPanel() {
                     </span>
                     <span className="paletteActions">
                       {id === activeId && <em>active</em>}
-                      {/* Icon plus label: the label is hidden at phone width, where the row has
-                          no space for two words of button. */}
                       <button
                         type="button"
                         title="Copy"
@@ -178,7 +176,6 @@ export default function PalettesPanel() {
                         }}
                       >
                         <RiFileCopyLine size={16} />
-                        <span className="btnText">Copy</span>
                       </button>
                       <button
                         type="button"
@@ -194,7 +191,6 @@ export default function PalettesPanel() {
                         }}
                       >
                         <RiDeleteBinLine size={16} />
-                        <span className="btnText">Delete</span>
                       </button>
                     </span>
                   </li>
