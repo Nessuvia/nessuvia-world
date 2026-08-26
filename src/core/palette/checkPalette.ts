@@ -1,5 +1,8 @@
 ﻿// Run: node --experimental-strip-types src/core/palette/checkPalette.ts
 import assert from 'node:assert'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   backgroundSlots,
   changedFields,
@@ -450,5 +453,18 @@ for (const junk of ['', 'red', 'rgb(0,0,0)', '#12345', '101014', '#gggggg']) {
 }
 // The fallback is the :root value in index.css, and the Default palette agrees with it.
 assert.strictEqual(fallbackBg, defaultPalette.bg)
+
+// --- the bundled files ----------------------------------------------------
+// bundledPalettes() can't run here (import.meta.glob is Vite's), but it parses these files exactly
+// the way this does. Seeding and the Bundled picker both read the result, and the picker lists them
+// by name, so a file that doesn't parse takes the whole panel down with it.
+const bundledDir = join(dirname(fileURLToPath(import.meta.url)), 'bundled')
+const bundledFiles = readdirSync(bundledDir).filter((f) => f.endsWith('.json'))
+assert.ok(bundledFiles.length > 0, 'no bundled palettes')
+for (const file of bundledFiles) {
+  const { palettes: rows } = parsePalettes(readFileSync(join(bundledDir, file), 'utf8'))
+  assert.ok(rows.length > 0, `${file} holds no palette`)
+  for (const row of rows) assert.ok(row.name.trim(), `${file} has an unnamed palette`)
+}
 
 console.log('checkPalette ok')

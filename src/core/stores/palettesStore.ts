@@ -116,14 +116,14 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
       useSettings.getState().markPalettesSeeded()
       let first: number | null = null
       let finalFrontierId: number | null = null
-      for (const file of bundledPalettes()) {
-        const map = await useBackgroundImages.getState().importImages(file.images)
-        for (const palette of file.palettes) {
-          const { id: _id, ...fields } = remapImages(palette, map)
-          const id = await storage.put('palettes', { ...fields, ownerId: currentOwnerId() } as unknown as StoredRecord)
-          if (palette.name === 'Final Frontier') finalFrontierId = id
-          first ??= id
-        }
+      for (const { palette, images } of bundledPalettes()) {
+        // Per palette rather than per file: `importImages` reuses a row whose bytes it already
+        // holds, so two palettes out of one file still share the one image row.
+        const map = await useBackgroundImages.getState().importImages(images)
+        const { id: _id, ...fields } = remapImages(palette, map)
+        const id = await storage.put('palettes', { ...fields, ownerId: currentOwnerId() } as unknown as StoredRecord)
+        if (palette.name === 'Final Frontier') finalFrontierId = id
+        first ??= id
       }
       // Use Final Frontier as the default when it was bundled; otherwise fall back to first.
       const defaultId = finalFrontierId ?? first
