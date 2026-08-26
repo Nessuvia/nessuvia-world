@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types src/modules/write/checkBeatSlots.ts
 import assert from 'node:assert'
-import { withBeats } from './beatSlots.ts'
+import { beatText, emptyBeat, storedBeat, withBeats } from './beatSlots.ts'
 import { beatBlocks } from '../../core/prompt/chapterGuide.ts'
 import type { Block } from '../../core/storage/types.ts'
 
@@ -89,6 +89,24 @@ const ids = (blocks: Block[]) => blocks.map((b) => b.id).join(',')
   assert.strictEqual(ids(withBeats(chapter, [])), ids(chapter.blocks))
   const added = beat(' ')
   assert.strictEqual(ids(withBeats(chapter, [added])), `${chapter.blocks[0].id},${added.id}`)
+}
+
+// --- the empty sentinel round-trips, and never reaches the input ------------
+{
+  // A fresh beat opens with an empty field, so the placeholder shows and the caret has nothing to
+  // push along in front of it.
+  assert.strictEqual(beatText(emptyBeat), '')
+  assert.strictEqual(storedBeat(''), emptyBeat)
+  assert.strictEqual(beatText(storedBeat('')), '')
+  // Real text passes through both ways, trailing space and all - it is the Author's.
+  assert.strictEqual(beatText('Mary escapes'), 'Mary escapes')
+  assert.strictEqual(storedBeat('Mary escapes'), 'Mary escapes')
+  assert.strictEqual(beatText('Mary escapes '), 'Mary escapes ')
+  // A pasted newline flattens: a beat is one line in the Chapter guide.
+  assert.strictEqual(storedBeat('Mary escapes\n  the checkpoint'), 'Mary escapes the checkpoint')
+  // Whitespace-only input is still an empty beat, not a Block that quietly became free prose.
+  assert.strictEqual(storedBeat('\n'), emptyBeat)
+  assert.notStrictEqual(storedBeat(''), '')
 }
 
 console.log('checkBeatSlots ok')

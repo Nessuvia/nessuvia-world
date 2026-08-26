@@ -115,8 +115,13 @@ interface WriteState {
    *  tail in the wrong prose. Null when idle. */
   streamingStoryId: number | null
   streamingText: string
+  /** Reasoning as it streams, shown above the tail when Show reasoning is on. */
+  streamingReasoning: string
   /** The Block the stream is landing in, so its region draws the tail and locks itself. */
   streamingBlockId: string | null
+  /** True when the stream will replace what the Block already says (a regen), so the region hides
+   *  the old text instead of leaving it above the tail. */
+  streamingReplaces: boolean
   error: string
   /** The Block the cursor is in. Session state, never persisted. Find and Replace scopes to it, and
    *  the Story panel's beat checklist reads its Chapter through `activeChapterId`. */
@@ -185,7 +190,12 @@ interface WriteState {
    * beat is NOT folded in; it reaches the model through {{beat}}, wherever the stack places it.
    * Pass one to override (that is what "Regen with instructions" does).
    */
-  writeBlock(chapterId: number, blockId: string, direction?: string): Promise<void>
+  writeBlock(
+    chapterId: number,
+    blockId: string,
+    direction?: string,
+    replaces?: boolean,
+  ): Promise<void>
   /** Write the Block again, following an instruction about the version it already holds. */
   regenBlock(chapterId: number, blockId: string, instruction: string): Promise<void>
   /** Select one of a Block's alternates. */
@@ -232,7 +242,9 @@ export const useWrite = create<WriteState>()((set, get) => ({
   streaming: false,
   streamingStoryId: null,
   streamingText: '',
+  streamingReasoning: '',
   streamingBlockId: null,
+  streamingReplaces: false,
   error: '',
   activeBlockId: null,
   pendingCaret: null,
@@ -468,7 +480,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     set({ story: next })
   },
 
-  writeBlock: async (chapterId, blockId, direction) => {
+  writeBlock: async (chapterId, blockId, direction, replaces) => {
     const { story, chapters, streaming } = get()
     if (!story || streaming) return
     const chapter = chapters.find((c) => c.id === chapterId)
@@ -495,10 +507,13 @@ export const useWrite = create<WriteState>()((set, get) => ({
       streamingStoryId: story.id ?? null,
       streamingBlockId: blockId,
       streamingText: '',
+      streamingReasoning: '',
+      streamingReplaces: !!replaces,
       error: '',
     })
 
     let text = ''
+    let reasoning = ''
     let finishReason = ''
     try {
       const stack = await useStacks.getState().ensureActive('story')
@@ -537,17 +552,23 @@ export const useWrite = create<WriteState>()((set, get) => ({
           text += chunk.content
           set({ streamingText: text })
         }
+        if (chunk.reasoning) {
+          reasoning += chunk.reasoning
+          set({ streamingReasoning: reasoning })
+        }
         if (chunk.finishReason) finishReason = chunk.finishReason
       }
     } catch (err) {
       // Write rule: keep whatever streamed (same as Stop) and surface a toast. Nothing rolls back.
       if (!controller.signal.aborted) {
-        await commitSwipe(get, set, chapterId, blockId, text)
+        await commitSwipe(get, set, chapterId, blockId, text, reasoning)
         set({
           streaming: false,
           streamingStoryId: null,
           streamingBlockId: null,
           streamingText: '',
+          streamingReasoning: '',
+          streamingReplaces: false,
           error: (err as Error).message,
         })
         abort = null
@@ -557,12 +578,14 @@ export const useWrite = create<WriteState>()((set, get) => ({
       abort = null
     }
 
-    await commitSwipe(get, set, chapterId, blockId, text)
+    await commitSwipe(get, set, chapterId, blockId, text, reasoning)
     set({
       streaming: false,
       streamingStoryId: null,
       streamingBlockId: null,
       streamingText: '',
+      streamingReasoning: '',
+      streamingReplaces: false,
       // The text is kept either way; this only says why it ended where it did.
       error:
         finishReason === 'length'
@@ -583,6 +606,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
       chapterId,
       blockId,
       block.content.trim() ? rewritePrompt(block.content, instruction) : instruction,
+      true,
     )
   },
 
@@ -685,6 +709,7 @@ async function commitSwipe(
   chapterId: number,
   blockId: string,
   added: string,
+  reasoning?: string,
 ) {
   if (!added.trim()) return
   const chapter =
@@ -692,6 +717,6 @@ async function commitSwipe(
     ((await storage.get('chapters', chapterId)) as unknown as Chapter | undefined)
   const block = chapter?.blocks.find((b) => b.id === blockId)
   if (!block) return
-  const next = regenerated(block, added.trim())
+  const next = regenerated(block, added.trim(), undefined, reasoning)
   if (next) await putBlock(get, set, chapterId, next, true)
 }

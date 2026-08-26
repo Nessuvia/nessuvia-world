@@ -257,6 +257,19 @@ assert.strictEqual(
   assert.strictEqual(out[0].content, 'Write about 150 to 300 words.')
 }
 
+// --- a single-value scroll: both tokens resolve to `value` --------------
+{
+  const out = build(
+    stack([
+      block({
+        content: 'Write about {{blockVal}} to {{blockVal2}} words.',
+        input: { kind: 'range', min: 0, max: 500, step: 10, value: 150 },
+      }),
+    ]),
+  )
+  assert.strictEqual(out[0].content, 'Write about 150 to 150 words.')
+}
+
 // --- order, merging, history in place -----------------------------------
 {
   const out = build(

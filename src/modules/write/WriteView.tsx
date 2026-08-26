@@ -1,13 +1,24 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import {
   RiAddLine,
+  RiArrowDownSLine,
   RiArrowLeftSLine,
   RiArrowRightSLine,
   RiBookLine,
   RiCloseLine,
   RiItalic,
   RiListCheck3,
+  RiMapPinLine,
   RiMoreLine,
   RiSparkling2Line,
   RiStopCircleLine,
@@ -16,7 +27,7 @@ import AvatarCropDialog from '../characters/AvatarCropDialog'
 import { decorateProse, readProse, restoreCaret, saveCaret } from './proseMarkup'
 import { loremParagraphs } from './loremPreview'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
-import { swipeCount, swipeIndex } from '../../core/stores/swipes'
+import { reasoningFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
 import { isBeat } from '../../core/prompt/chapterGuide'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
@@ -340,6 +351,10 @@ const contextLabels: Record<BlockContext, string> = {
   none: 'No surrounding prose',
 }
 
+// ponytail: a context rather than threading a callback through StoryDocument → ChapterRegion →
+// BlockRegion → BlockHead, none of which have anything else to say about tabs.
+const JumpToPlot = createContext<(chapterId: number, beatId: string) => void>(() => {})
+
 // The header above a beat Block: its plan line, and every control that acts on the Block. A free
 // stretch gets none of this — see BlockRegion.
 function BlockHead({
@@ -351,6 +366,8 @@ function BlockHead({
   onRemove,
   preview,
   onPreview,
+  collapsed,
+  onCollapse,
 }: {
   block: Block
   chapterId: number
@@ -360,6 +377,8 @@ function BlockHead({
   onRemove: () => void
   preview: boolean
   onPreview: (on: boolean) => void
+  collapsed: boolean
+  onCollapse: (on: boolean) => void
 }) {
   const streaming = useWrite((s) => s.streaming)
   const streamingHere = useWrite((s) => s.streaming && s.streamingBlockId === block.id)
@@ -370,6 +389,7 @@ function BlockHead({
   const deleteSwipe = useWrite((s) => s.deleteSwipe)
   const [menu, setMenu] = useState(false)
   const menuRef = useCloseOnOutside<HTMLDivElement>(menu, () => setMenu(false))
+  const jumpToPlot = useContext(JumpToPlot)
 
   const total = swipeCount(block)
   const at = swipeIndex(block)
@@ -383,6 +403,7 @@ function BlockHead({
 
   return (
     <div className="blockHead" contentEditable={false}>
+      <div className="blockPlan">
       <input
         type="checkbox"
         checked={block.done}
@@ -393,8 +414,11 @@ function BlockHead({
       <span className="blockLabel" title={label}>
         {label}
       </span>
-      {block.targetWords > 0 && <span className="blockTarget">{block.targetWords}w</span>}
+        {block.targetWords > 0 && <span className="blockTarget">{block.targetWords}w</span>}
+      </div>
 
+      {/* Every control that acts on the Block, on its own row under the plan line. */}
+      <div className="blockTools">
       {total > 1 && (
         <span className="blockSwipes">
           <button
@@ -438,6 +462,29 @@ function BlockHead({
           <RiSparkling2Line size={21} />
         </button>
       )}
+
+      <button
+        type="button"
+        className="blockJump"
+        disabled={streaming}
+        title={
+          streaming
+            ? 'Available when the Co-Writer stops writing.'
+            : 'Jump to Plot Editor: open the Plot Layout tab at this beat.'
+        }
+        onClick={() => jumpToPlot(chapterId, block.id)}
+      >
+        <RiMapPinLine size={21} />
+      </button>
+
+      <button
+        type="button"
+        className="blockCollapse"
+        title={collapsed ? 'Show this beat' : 'Hide this beat'}
+        onClick={() => onCollapse(!collapsed)}
+      >
+        {collapsed ? <RiArrowRightSLine size={21} /> : <RiArrowDownSLine size={21} />}
+      </button>
 
       <div className="blockMenu" ref={menuRef}>
         <button type="button" title="More" onClick={() => setMenu(!menu)}>
@@ -522,6 +569,7 @@ function BlockHead({
           </div>
         )}
       </div>
+      </div>
     </div>
   )
 }
@@ -563,7 +611,13 @@ function BlockRegion({
   const id = block.id
   const rev = useWrite((s) => s.revs[id] ?? 0)
   const streamingText = useWrite((s) => s.streamingText)
+  const streamingReasoning = useWrite((s) => s.streamingReasoning)
+  // One switch for the whole app, shared with chat - there is no per-beat toggle.
+  const showReasoning = useSettings((s) => s.appearance.showReasoning)
   const takingStream = useWrite((s) => streamingHere(s) && s.streamingBlockId === id)
+  // A regen replaces the Block, so the old text goes off screen the moment the stream starts -
+  // leaving it above the tail reads as if the new prose were being appended to it.
+  const replacing = useWrite((s) => s.streamingReplaces)
   const saveBlockText = useWrite((s) => s.saveBlockText)
   const setActiveBlock = useWrite((s) => s.setActiveBlock)
   // Which marker color wins is baked into the DOM at decoration time, so a reorder has to rebuild
@@ -588,6 +642,9 @@ function BlockRegion({
   // setting a target, not a property of the beat. ponytail: a Block field is the upgrade path if
   // Authors want it to survive a reload.
   const [preview, setPreview] = useState(false)
+  // Display only, not persisted: hiding a beat is something you do while reading, not a property
+  // of the beat. ponytail: a Block field is the upgrade path if it should survive a reload.
+  const [collapsed, setCollapsed] = useState(false)
   const empty = !block.content.trim()
   // Reshuffles whenever the target changes, which is what makes typing a new number redraw at the
   // new length. Nothing else in this component re-renders per keystroke, so the text sits still
@@ -697,7 +754,11 @@ function BlockRegion({
   }
 
   return (
-    <div className={`${beat ? 'blockRegion beat' : 'blockRegion free'}${previewText ? ' previewing' : ''}`}>
+    <div
+      className={`${beat ? 'blockRegion beat' : 'blockRegion free'}${previewText ? ' previewing' : ''}${
+        collapsed ? ' collapsed' : ''
+      }`}
+    >
       {beat ? (
         <BlockHead
           block={block}
@@ -708,6 +769,8 @@ function BlockRegion({
           onRemove={onRemove}
           preview={preview}
           onPreview={setPreview}
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
         />
       ) : (
         // A free stretch has to look like nothing, or a Chapter of unplanned writing reads as a
@@ -721,9 +784,15 @@ function BlockRegion({
           </button>
         </div>
       )}
+      {showReasoning && (takingStream ? streamingReasoning : reasoningFor(block)) && (
+        <details className="taggedBlock reasoningBlock" contentEditable={false}>
+          <summary>Reasoning</summary>
+          {takingStream ? streamingReasoning : reasoningFor(block)}
+        </details>
+      )}
       <div
         ref={ref}
-        className="storyProse"
+        className={takingStream && replacing ? 'storyProse replaced' : 'storyProse'}
         data-block={id}
         contentEditable={!takingStream}
         suppressContentEditableWarning
@@ -849,26 +918,22 @@ function StoryDocument() {
   const streamingText = useWrite((s) => s.streamingText)
   const styling = useWrite((s) => s.styling)
   const palette = usePalette()
-  const stuck = useRef(true)
+  const streamingBlockId = useWrite((s) => s.streamingBlockId)
 
-  // The scroller is .storyMain, which owns the whole editor column; track whether the Author is
-  // parked at the bottom so following the stream never yanks them back down mid-read.
-  useEffect(() => {
-    const el = document.querySelector<HTMLElement>('.storyMain')
-    if (!el) return
-    const onScroll = () => {
-      stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60
-    }
-    el.addEventListener('scroll', onScroll)
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // Follow the generated tail as it grows.
+  // Follow the block being written, not the end of the document — a beat generated mid-Story used
+  // to scroll the Author to the bottom. Only nudge when the block's tail has slipped just below the
+  // fold; if it is further off than a screen the Author has scrolled away on purpose, so leave it.
   useEffect(() => {
     if (!streaming) return
     const el = document.querySelector<HTMLElement>('.storyMain')
-    if (el && stuck.current) el.scrollTop = el.scrollHeight
-  }, [streaming, streamingText])
+    // The region, not its prose: a regen hides the prose (`.replaced`), so its rect would be empty.
+    const tail = document
+      .querySelector<HTMLElement>(`.storyProse[data-block="${streamingBlockId}"]`)
+      ?.closest<HTMLElement>('.blockRegion')
+    if (!el || !tail) return
+    const overflow = tail.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom
+    if (overflow > 0 && overflow < el.clientHeight) el.scrollTop += overflow + 24
+  }, [streaming, streamingText, streamingBlockId])
 
   const proseStyle = {
     fontFamily: effectiveFont(palette) || undefined,
@@ -967,6 +1032,8 @@ function StoryEditor() {
   const [titleDraft, setTitleDraft] = useState<string | null>(null)
   // Local, not the hash: reopening a Story always lands on Story.
   const [tab, setTab] = useState<StoryTab>('Story')
+  // Which beat the Plot Layout tab should open on, set by the Story tab's jump button.
+  const [focusBeat, setFocusBeat] = useState<{ chapterId: number; beatId: string } | null>(null)
 
   useEffect(() => {
     openStory(id)
@@ -989,6 +1056,22 @@ function StoryEditor() {
   function onWriteBeat(chapterId: number, blockId: string) {
     setTab('Story')
     requestAnimationFrame(() => writeBlock(chapterId, blockId))
+  }
+
+  function onJumpToPlot(chapterId: number, blockId: string) {
+    setFocusBeat({ chapterId, beatId: blockId })
+    setTab('Plot Layout')
+  }
+
+  // Same handover as onWriteBeat: the tab moves first so the Block's region exists to scroll to.
+  function onJumpToStory(blockId: string) {
+    setFocusBeat(null)
+    setTab('Story')
+    requestAnimationFrame(() =>
+      document
+        .querySelector(`.storyProse[data-block="${blockId}"]`)
+        ?.scrollIntoView({ block: 'center' }),
+    )
   }
 
   if (!story || story.id !== id) return <p className="placeholder">Loading…</p>
@@ -1066,12 +1149,12 @@ function StoryEditor() {
           )}
         </div>
         {tab === 'Story' ? (
-          <>
+          <JumpToPlot.Provider value={onJumpToPlot}>
             <ProgressRail />
             <StoryDocument />
-          </>
+          </JumpToPlot.Provider>
         ) : (
-          <PlotLayout onWriteBeat={onWriteBeat} />
+          <PlotLayout onWriteBeat={onWriteBeat} onJumpToStory={onJumpToStory} focusBeat={focusBeat} />
         )}
       </div>
       {tab === 'Story' && <StorySidebar />}

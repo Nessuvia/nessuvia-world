@@ -439,6 +439,11 @@
   gap: 10px;
 }
 
+.rangeSingle {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
 .rangeTrack {
   position: relative;
   flex: 1;

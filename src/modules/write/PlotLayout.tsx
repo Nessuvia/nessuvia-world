@@ -8,11 +8,14 @@ import {
   RiArrowUpLine,
   RiCloseLine,
   RiDeleteBinLine,
+  RiFileTextLine,
+  RiListCheck,
 } from '@remixicon/react'
 import type { Block, Chapter, GuideSend } from '../../core/storage/types'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
 import { beatBlocks, chapterProse, chapterState, hasProse } from '../../core/prompt/chapterGuide'
-import { withBeats } from './beatSlots'
+import { beatText, emptyBeat, storedBeat, withBeats } from './beatSlots'
+import { parseBulkBeats, type BulkBeat } from './bulkBeats'
 import { useDragReorder } from '../../app/useDragReorder'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { edgeState, type EdgeState } from '../characters/tabScroll'
@@ -73,6 +76,95 @@ function Cap({
   )
 }
 
+// Paste a whole plan in at once. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css.
+// The parse runs on every keystroke: the count and the first line of each beat are the confirmation
+// that the paste was read the way the Author meant it, and waiting for a click to say so is worse.
+function BulkAddBeats({ onAdd, onClose }: { onAdd: (beats: BulkBeat[]) => void; onClose: () => void }) {
+  const [text, setText] = useState('')
+  const { beats, error } = parseBulkBeats(text)
+  // An empty box is not a mistake the Author has made yet, so it says nothing.
+  const shown = text.trim() ? error : ''
+
+  return (
+    <div className="dialogBackdrop" onClick={onClose}>
+      <div className="dialog bulkBeats" onClick={(e) => e.stopPropagation()}>
+        <h3>Bulk add beats</h3>
+        <p className="hint">
+          One beat per pair: the text, then the word count. The count is optional.
+        </p>
+        <code className="bulkBeatsFormat">{'{"the text of the beat",200},{"second beat text"}'}</code>
+        <textarea
+          rows={8}
+          value={text}
+          autoFocus
+          placeholder={'{"the text of the beat",200},{"second beat text",250}'}
+          onChange={(e) => setText(e.target.value)}
+        />
+        {shown ? (
+          <p className="error">{shown}</p>
+        ) : (
+          <p className="hint">
+            {beats.length} beat{beats.length === 1 ? '' : 's'}
+            {beats.length > 0 ? ', added to the end of the Chapter.' : ''}
+          </p>
+        )}
+        <ul className="bulkBeatsPreview">
+          {beats.map((b, i) => (
+            <li key={i}>
+              <span>{b.beat.trim() || 'Empty beat'}</span>
+              <span className="bulkBeatsWords">{b.targetWords > 0 ? `${b.targetWords} words` : '—'}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="dialogActions">
+          <button type="button" className="secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" disabled={!!shown || beats.length === 0} onClick={() => onAdd(beats)}>
+            Add {beats.length || ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// One beat's text field. It holds its own draft and writes on a pause, like Cap: `updateChapter`
+// awaits the Dexie write before it sets state, so a controlled value fed straight from the store
+// lands a render late and React puts the caret back at the end of the line.
+function BeatText({ value, onSave }: { value: string; onSave: (text: string) => void }) {
+  const [draft, setDraft] = useState(value)
+  const timer = useRef<number | undefined>(undefined)
+
+  // Only take an outside change when it isn't what we already have — a reorder or an undo, not the
+  // echo of our own save coming back.
+  useEffect(() => {
+    if (value !== draft) setDraft(value)
+  }, [value]) // draft left out on purpose: it changes on every keystroke.
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  return (
+    <textarea
+      className="plotBeatText"
+      rows={1}
+      value={draft}
+      placeholder="What happens"
+      title="What is meant to happen in this beat. Sent to the model as part of the plan."
+      onChange={(e) => {
+        setDraft(e.target.value)
+        window.clearTimeout(timer.current)
+        timer.current = window.setTimeout(() => onSave(e.target.value), 400)
+      }}
+      onBlur={() => {
+        window.clearTimeout(timer.current)
+        onSave(draft)
+      }}
+      // Enter would otherwise insert a newline this field then strips.
+      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+    />
+  )
+}
+
 // One block on the chain: what the Chapter is planned to do, at a glance. Select-only — clicking it
 // opens it in the editor and nothing else. Beats are truncated to a row each; the summary is a
 // recap and would crowd out the plan, so it stays in the editor.
@@ -129,12 +221,16 @@ function ChapterEditor({
   index,
   count,
   onWriteBeat,
+  onJumpToStory,
+  focusBeatId,
   onSelect,
 }: {
   chapter: Chapter
   index: number
   count: number
   onWriteBeat: (chapterId: number, beatId: string) => void
+  onJumpToStory: (beatId: string) => void
+  focusBeatId: string | null
   onSelect: (id: number) => void
 }) {
   const id = chapter.id!
@@ -143,6 +239,7 @@ function ChapterEditor({
   const moveChapter = useWrite((s) => s.moveChapter)
   const addChapter = useWrite((s) => s.addChapter)
   const streaming = useWrite((s) => s.streaming)
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   const beats = beatBlocks(chapter)
   const setBeats = (next: Block[]) => updateChapter(id, { blocks: withBeats(chapter, next) })
@@ -157,6 +254,14 @@ function ChapterEditor({
   })
 
   const target = targetWords(chapter)
+
+  // Arriving from the Story tab's jump button: bring the row into view once, on mount.
+  useEffect(() => {
+    if (!focusBeatId) return
+    document
+      .querySelector(`.plotBeatList li[data-beat="${focusBeatId}"]`)
+      ?.scrollIntoView({ block: 'center' })
+  }, [focusBeatId])
 
   function onDelete() {
     const name = chapter.title || `Chapter ${index + 1}`
@@ -232,72 +337,98 @@ function ChapterEditor({
 
       <ul className="plotBeatList">
         {beats.map((beat, bi) => (
-          <li key={beat.id} className={drag.over === bi ? 'over' : undefined} {...drag.itemProps(bi)}>
-            <input
-              type="checkbox"
-              checked={beat.done}
-              title="Mark this beat done. Nothing ticks it for you."
-              onChange={(e) => patchBeat(beat.id, { done: e.target.checked })}
-            />
-            <textarea
-              className="plotBeatText"
-              rows={1}
-              value={beat.beat}
-              placeholder="What happens"
-              title="What is meant to happen in this beat. Sent to the model as part of the plan."
-              onChange={(e) =>
-                patchBeat(beat.id, {
-                  // A beat is one line in the Chapter guide, so a pasted newline becomes a space —
-                  // the box wraps to fit the text, it doesn't hold line breaks.
-                  // ' ' rather than '': an empty beat line is what makes a Block free prose, and
-                  // clearing this field is not how the Author asks for that.
-                  beat: e.target.value.replace(/\s*\n\s*/g, ' ') || ' ',
-                })
-              }
-              // Enter would otherwise insert a newline this field then strips.
-              onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
-            />
-            <input
-              className="plotBeatTarget"
-              type="number"
-              min={0}
-              step={50}
-              value={beat.targetWords || ''}
-              placeholder="0"
-              title="Words this beat should run to. 0 leaves it unset."
-              onChange={(e) => patchBeat(beat.id, { targetWords: Math.max(0, Number(e.target.value) || 0) })}
-            />
-            <button
-              type="button"
-              className="plotBeatWrite"
-              disabled={streaming || !beat.beat.trim()}
-              title={
-                streaming
-                  ? 'Available when the Co-Writer stops writing.'
-                  : 'Write this beat into the Story.'
-              }
-              onClick={() => onWriteBeat(id, beat.id)}
-            >
-              Write
-            </button>
-            <button
-              type="button"
-              title="Remove this beat and the prose in it"
-              onClick={() => {
-                // The beat owns its prose now, so removing it removes writing. Ask when there is any.
-                if (beat.content.trim() && !confirm('Delete this beat and the prose in it?')) return
-                setBeats(beats.filter((b) => b.id !== beat.id))
-              }}
-            >
-              <RiCloseLine size={21} />
-            </button>
+          <li
+            key={beat.id}
+            data-beat={beat.id}
+            className={drag.over === bi ? 'over' : undefined}
+            {...drag.itemProps(bi)}
+          >
+            <div className="plotBeatMain">
+              <input
+                type="checkbox"
+                checked={beat.done}
+                title="Mark this beat done. Nothing ticks it for you."
+                onChange={(e) => patchBeat(beat.id, { done: e.target.checked })}
+              />
+              <BeatText
+                value={beatText(beat.beat)}
+                onSave={(text) => patchBeat(beat.id, { beat: storedBeat(text) })}
+              />
+            </div>
+            <div className="plotBeatTools">
+              <input
+                className="plotBeatTarget"
+                type="number"
+                min={0}
+                step={50}
+                value={beat.targetWords || ''}
+                placeholder="0"
+                title="Words this beat should run to. 0 leaves it unset."
+                onChange={(e) => patchBeat(beat.id, { targetWords: Math.max(0, Number(e.target.value) || 0) })}
+              />
+              <button
+                type="button"
+                className="plotBeatWrite"
+                disabled={streaming || !beat.beat.trim()}
+                title={
+                  streaming
+                    ? 'Available when the Co-Writer stops writing.'
+                    : 'Write this beat into the Story.'
+                }
+                onClick={() => onWriteBeat(id, beat.id)}
+              >
+                Write
+              </button>
+              <button
+                type="button"
+                className="plotBeatJump"
+                disabled={streaming}
+                title={
+                  streaming
+                    ? 'Available when the Co-Writer stops writing.'
+                    : 'Jump to Story: open the Story tab at this beat.'
+                }
+                onClick={() => onJumpToStory(beat.id)}
+              >
+                <RiFileTextLine size={18} /> Jump to Story
+              </button>
+              <button
+                type="button"
+                title="Remove this beat and the prose in it"
+                onClick={() => {
+                  // The beat owns its prose now, so removing it removes writing. Ask when there is any.
+                  if (beat.content.trim() && !confirm('Delete this beat and the prose in it?')) return
+                  setBeats(beats.filter((b) => b.id !== beat.id))
+                }}
+              >
+                <RiCloseLine size={21} />
+              </button>
+            </div>
           </li>
         ))}
       </ul>
 
-      <button type="button" className="plotBeatAdd" onClick={() => setBeats([...beats, newBlock(' ')])}>
-        <RiAddLine size={21} /> Add beat
-      </button>
+      <div className="plotBeatAddRow">
+        <button type="button" className="plotBeatAdd" onClick={() => setBeats([...beats, newBlock(emptyBeat)])}>
+          <RiAddLine size={21} /> Add beat
+        </button>
+        <button type="button" className="plotBeatAdd" onClick={() => setBulkOpen(true)}>
+          <RiListCheck size={21} /> Bulk add
+        </button>
+      </div>
+
+      {bulkOpen && (
+        <BulkAddBeats
+          onClose={() => setBulkOpen(false)}
+          onAdd={(added) => {
+            setBeats([
+              ...beats,
+              ...added.map((b) => ({ ...newBlock(b.beat), targetWords: b.targetWords })),
+            ])
+            setBulkOpen(false)
+          }}
+        />
+      )}
 
       <label className="plotField plotSend" title="What this Chapter contributes to the Chapter guide.">
         Send to the model
@@ -329,8 +460,14 @@ function ChapterEditor({
  */
 export default function PlotLayout({
   onWriteBeat,
+  onJumpToStory,
+  focusBeat,
 }: {
   onWriteBeat: (chapterId: number, beatId: string) => void
+  onJumpToStory: (beatId: string) => void
+  /** Set by the Story tab's jump button. This tab remounts on every tab switch, so it is only read
+   *  for the initial selection. */
+  focusBeat: { chapterId: number; beatId: string } | null
 }) {
   const story = useWrite((s) => s.story)
   const chapters = useWrite((s) => s.chapters)
@@ -341,7 +478,7 @@ export default function PlotLayout({
   const phone = useMediaQuery('(max-width: 700px)')
 
   const [selectedId, setSelectedId] = useState<number | null>(
-    () => activeChapterId ?? chapters[0]?.id ?? null,
+    () => focusBeat?.chapterId ?? activeChapterId ?? chapters[0]?.id ?? null,
   )
 
   // The strip scrolls sideways. Same two problems the character editor's tab bar has — .appShell
@@ -403,6 +540,8 @@ export default function PlotLayout({
       index={index}
       count={chapters.length}
       onWriteBeat={onWriteBeat}
+      onJumpToStory={onJumpToStory}
+      focusBeatId={focusBeat && focusBeat.chapterId === chapter.id ? focusBeat.beatId : null}
       onSelect={setSelectedId}
     />
   )

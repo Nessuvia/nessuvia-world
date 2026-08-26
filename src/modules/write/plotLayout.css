@@ -243,20 +243,40 @@
   gap: 0.25rem;
 }
 
+/* Two rows: the beat text on its own so it is readable and editable, the controls under it. */
 .plotBeatList li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.plotBeatMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.plotBeatTools {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  flex-wrap: wrap;
+  padding-left: 1.5rem;
 }
 
 .plotBeatList li.over {
   outline: 1px dashed var(--accent, var(--border));
 }
 
+/* field-sizing grows the box to the text it holds, on open and while typing. Browsers without it
+   fall back to the one row the markup asks for. */
 .plotBeatText {
   flex: 1;
   min-width: 0;
   font: inherit;
+  field-sizing: content;
+  resize: none;
+  max-height: 8rem;
 }
 
 .plotBeatTarget {
@@ -270,12 +290,78 @@
   flex: none;
 }
 
+.plotBeatJump {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.plotBeatAddRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .plotBeatAdd,
 .plotAddChapter {
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+/* Bulk add. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. */
+.bulkBeats {
+  width: min(640px, 100%);
+}
+
+.bulkBeats textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: monospace;
+}
+
+.bulkBeatsFormat {
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: var(--surfaceSunken);
+  color: var(--textDim);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.bulkBeatsPreview {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 12rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bulkBeatsPreview li {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  background: var(--surfaceSunken);
+  font-size: 13px;
+}
+
+.bulkBeatsPreview li span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulkBeatsWords {
+  flex: none;
+  color: var(--textDim);
 }
 
 .plotAddChapter {

@@ -7,6 +7,25 @@ import type { Block, Chapter } from '../../core/storage/types.ts'
 import { isBeat } from '../../core/prompt/chapterGuide.ts'
 
 /**
+ * What an empty beat is stored as. `isBeat` is `beat !== ''`, so a beat the Author has not written
+ * yet still needs *something* in the field or the Block silently becomes free prose — clearing the
+ * text is not how you ask for that. A single space is that something.
+ *
+ * It is storage, not text: `beatText` takes it back out for display, and `storedBeat` puts it back.
+ * Rendering it straight into the input is what made a new beat open with the caret in front of a
+ * space, so the first character typed appeared to push a space along in front of it.
+ */
+export const emptyBeat = ' '
+
+/** A beat's text for an input: the empty sentinel shows as empty, so the placeholder appears. */
+export const beatText = (beat: string): string => (beat === emptyBeat ? '' : beat)
+
+/** The inverse: what an edited beat field is stored as. A beat is one line in the Chapter guide, so
+ *  a pasted newline becomes a space. */
+export const storedBeat = (text: string): string =>
+  text.replace(/\s*\n\s*/g, ' ') || emptyBeat
+
+/**
  * A `blocks` array with its beats replaced by `next`, in the same slots the old beats held. Free
  * stretches keep their positions, so editing the plan on the Plot Layout tab never shuffles prose
  * the Author wrote outside it.

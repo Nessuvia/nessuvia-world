@@ -29,6 +29,7 @@ export default function StorySettingsPanel() {
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
   const activeStoryStackId = useSettings((s) => s.activeStoryStackId)
+  const showReasoning = useSettings((s) => s.appearance.showReasoning)
   const stacks = useStacks((s) => s.stacks)
   const saveStack = useStacks((s) => s.save)
   const loadStacks = useStacks((s) => s.load)
@@ -127,6 +128,19 @@ export default function StorySettingsPanel() {
           %
         </label>
         <p className="hint">Overrides the Story width in the palette.</p>
+        {/* The same global switch as the chat's, shown here so it is reachable without opening a
+            chat. There is no per-beat toggle. */}
+        <label
+          className="checkboxRow"
+          title="Hides the reasoning block on beats. Visual only - the reasoning is still stored."
+        >
+          <input
+            type="checkbox"
+            checked={showReasoning}
+            onChange={(e) => useSettings.getState().setAppearance({ showReasoning: e.target.checked })}
+          />
+          Show reasoning
+        </label>
         {/* Font and size only: the chat's colors don't reach a Story, so showing them here would be
             a control that does nothing. */}
         <AppearancePanel colors={false} font={false} />

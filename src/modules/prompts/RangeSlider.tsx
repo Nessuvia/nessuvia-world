@@ -14,6 +14,26 @@ export default function RangeSlider({
   onChange: (input: BlockInput) => void
 }) {
   const track = useRef<HTMLDivElement>(null)
+
+  // One value, one thumb — the native control already does all of this.
+  if (input.value2 === undefined) {
+    return (
+      <div className="rangeSlider">
+        <input
+          type="range"
+          className="rangeSingle"
+          min={input.min}
+          max={input.max}
+          step={input.step || 1}
+          value={input.value}
+          onChange={(e) => onChange({ ...input, value: Number(e.target.value) })}
+        />
+        <span className="rangeVals">{input.value}</span>
+      </div>
+    )
+  }
+
+  const value2 = input.value2
   const span = Math.max(input.max - input.min, 1)
   const pct = (v: number) => ((v - input.min) / span) * 100
 
@@ -33,7 +53,7 @@ export default function RangeSlider({
       const v = valueAt(ev.clientX)
       onChange(
         end === 'value'
-          ? { ...input, value: Math.min(v, input.value2) }
+          ? { ...input, value: Math.min(v, value2) }
           : { ...input, value2: Math.max(v, input.value) },
       )
     }
@@ -46,15 +66,17 @@ export default function RangeSlider({
     window.addEventListener('pointerup', up)
   }
 
+  const at = (end: 'value' | 'value2') => (end === 'value' ? input.value : value2)
+
   /** Keyboard: arrows nudge by a step, so the control isn't pointer-only. */
   const nudge = (end: 'value' | 'value2', e: React.KeyboardEvent) => {
     const dir = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0
     if (!dir) return
     e.preventDefault()
-    const v = input[end] + dir * (input.step || 1)
+    const v = at(end) + dir * (input.step || 1)
     onChange(
       end === 'value'
-        ? { ...input, value: Math.max(input.min, Math.min(v, input.value2)) }
+        ? { ...input, value: Math.max(input.min, Math.min(v, value2)) }
         : { ...input, value2: Math.min(input.max, Math.max(v, input.value)) },
     )
   }
@@ -63,9 +85,9 @@ export default function RangeSlider({
     <button
       type="button"
       className="rangeThumb"
-      style={{ left: `${pct(input[end])}%` }}
+      style={{ left: `${pct(at(end))}%` }}
       aria-label={end === 'value' ? 'Low end' : 'High end'}
-      aria-valuenow={input[end]}
+      aria-valuenow={at(end)}
       aria-valuemin={input.min}
       aria-valuemax={input.max}
       role="slider"
@@ -79,13 +101,13 @@ export default function RangeSlider({
       <div className="rangeTrack" ref={track}>
         <div
           className="rangeFill"
-          style={{ left: `${pct(input.value)}%`, width: `${pct(input.value2) - pct(input.value)}%` }}
+          style={{ left: `${pct(input.value)}%`, width: `${pct(value2) - pct(input.value)}%` }}
         />
         {thumb('value')}
         {thumb('value2')}
       </div>
       <span className="rangeVals">
-        {input.value}–{input.value2}
+        {input.value}–{value2}
       </span>
     </div>
   )

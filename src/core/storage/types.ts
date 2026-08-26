@@ -268,6 +268,8 @@ export interface Block {
   /** Alternate versions, in the order they were generated. Absent = the one thing it says. */
   swipes?: string[]
   swipeIndex?: number
+  /** The model's reasoning for each swipe, parallel to `swipes` (holes where none/absent). */
+  reasonings?: (string | undefined)[]
   context: BlockContext
 }
 
@@ -346,14 +348,15 @@ export interface PromptBlock {
 
 /** Only the range arm is built today; add a new arm + its modal/chat control per new kind.
  *  A range carries two values — the two ends of a span, dragged separately. `value2` is held at
- *  or above `value`. */
+ *  or above `value`. Omit `value2` for a single-value scroll: one thumb, and {{blockVal2}}
+ *  resolves to `value` too. */
 export type BlockInput = {
   kind: 'range'
   min: number
   max: number
   step: number
   value: number
-  value2: number
+  value2?: number
 }
 
 export interface PromptStack {

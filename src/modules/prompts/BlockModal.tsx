@@ -181,16 +181,34 @@ export default function BlockModal({
 
         {draft.input?.kind === 'range' && (
           <>
+            <label className="checkboxRow">
+              <input
+                type="checkbox"
+                checked={draft.input.value2 === undefined}
+                onChange={(e) =>
+                  set({
+                    input: {
+                      ...draft.input!,
+                      value2: e.target.checked
+                        ? undefined
+                        : Math.max(draft.input!.value, draft.input!.max),
+                    },
+                  })
+                }
+              />
+              Single value
+            </label>
             <label className="rangeDefault">
-              Default range
+              {draft.input.value2 === undefined ? 'Default value' : 'Default range'}
               <RangeSlider
                 input={draft.input}
                 onChange={(input) => set({ input })}
               />
             </label>
             <p className="hint">
-              {'{{blockVal}}'} in the content resolves to the low end, {'{{blockVal2}}'} to the
-              high end. A chat sets its own ends in chat settings.
+              {draft.input.value2 === undefined
+                ? `${'{{blockVal}}'} in the content resolves to the value. A chat sets its own value in chat settings.`
+                : `${'{{blockVal}}'} in the content resolves to the low end, ${'{{blockVal2}}'} to the high end. A chat sets its own ends in chat settings.`}
             </p>
           </>
         )}
@@ -286,7 +304,9 @@ export default function BlockModal({
           </p>
           {draft.input && (
             <p className="hint">
-              This block also has {'{{blockVal}}'} and {'{{blockVal2}}'}, the two ends of its range.
+              {draft.input.value2 === undefined
+                ? `This block also has ${'{{blockVal}}'}, its value.`
+                : `This block also has ${'{{blockVal}}'} and ${'{{blockVal2}}'}, the two ends of its range.`}
             </p>
           )}
         </details>
