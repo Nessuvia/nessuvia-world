@@ -5,8 +5,9 @@ import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
 import type { CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
-import { buildStoryPrompt, castText, type CastMember } from '../prompt/buildStoryPrompt'
-import { renderChapterGuide, storyProseSplit } from '../prompt/chapterGuide'
+import { buildStoryPrompt, castText, fitChapterGuide, type CastMember } from '../prompt/buildStoryPrompt'
+import { storyProseSplit } from '../prompt/chapterGuide'
+import { beatDirection } from '../prompt/beatDirection'
 import { loadTokenizer } from '../prompt/budget'
 import { activeConnection } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
@@ -17,7 +18,17 @@ import { maxTokensOf } from '../params/connectionParams'
 import { spanChapter, validSpan } from './writeSpan'
 
 function newStory(title: string): Story {
-  return { ownerId: currentOwnerId(), title, cover: '', cast: [], authorNote: '', createdAt: 0, updatedAt: 0 }
+  return {
+    ownerId: currentOwnerId(),
+    title,
+    cover: '',
+    cast: [],
+    authorNote: '',
+    premise: '',
+    ending: '',
+    createdAt: 0,
+    updatedAt: 0,
+  }
 }
 
 function newChapter(storyId: number, order: number, title: string): Chapter {
@@ -29,7 +40,9 @@ function newChapter(storyId: number, order: number, title: string): Chapter {
     title,
     summary: '',
     beats: [],
-    sendEnabled: true,
+    // Everything you have: an unwritten Chapter sends beats because it has no summary yet, a
+    // written one sends both, and the guide's trim decides what survives when room runs short.
+    guideSend: 'both',
     text: '',
     createdAt: now,
     updatedAt: now,
@@ -80,8 +93,10 @@ interface GenerateOpts {
   replace?: { start: number; end: number }
 }
 
-/** The fields of a Chapter the Author edits from the modal. Prose is never patched this way. */
-export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'summary' | 'beats' | 'sendEnabled'>>
+/** The fields of a Chapter the Author edits on the Plot Layout tab. Prose is never patched this
+ *  way. Every beat edit — add, retext, retarget, tick, remove, reorder — is a `beats` patch; beats
+ *  get no actions of their own. */
+export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'summary' | 'beats' | 'guideSend'>>
 
 interface WriteState {
   stories: Story[]
@@ -142,6 +157,12 @@ interface WriteState {
   setScratchpad(notes: string[]): Promise<void>
   /** How wide the prose is displayed, as a percent of the editor column. Per Story. */
   setStoryWidth(width: number): Promise<void>
+  /** The opening situation on the Plot Layout strip. Per Story. Stored, not sent (phase 1). */
+  setPremise(text: string): Promise<void>
+  /** The intended ending on the Plot Layout strip. Per Story. Stored, not sent (phase 1). */
+  setEnding(text: string): Promise<void>
+  /** Whether the Premise and Ending caps render as thin markers. Per Story. */
+  setCapsCollapsed(collapsed: boolean): Promise<void>
   /** Append a blank Chapter to the Story and make it active. */
   addChapter(title?: string): Promise<void>
   /** Edit a Chapter's plan (title, summary, beats, send toggle). Never touches prose. */
@@ -161,6 +182,9 @@ interface WriteState {
   /** Stream prose into the active Chapter, following the Direction. Lands at the caret when there
    *  is one, otherwise at the end of the Chapter, and records the span it wrote. */
   generate(direction: string, opts?: GenerateOpts): Promise<void>
+  /** Write one beat: makes its Chapter active, folds the beat into a Direction, and runs the same
+   *  `generate` path a Direct does — so Retry / Continue / Undo work on the result unchanged. */
+  writeBeat(chapterId: number, beatId: string): Promise<void>
   /** Write the last span again, in the same place. Uses the Direction in the box when there is one,
    *  else the one that produced the span. */
   retry(): Promise<void>
@@ -350,6 +374,31 @@ export const useWrite = create<WriteState>()((set, get) => ({
     set({ story: next })
   },
 
+  setPremise: async (text) => {
+    const story = get().story
+    if (!story || (story.premise ?? '') === text) return
+    const next = { ...story, premise: text, updatedAt: Date.now() }
+    await storage.put('stories', next as unknown as StoredRecord)
+    set({ story: next })
+  },
+
+  setEnding: async (text) => {
+    const story = get().story
+    if (!story || (story.ending ?? '') === text) return
+    const next = { ...story, ending: text, updatedAt: Date.now() }
+    await storage.put('stories', next as unknown as StoredRecord)
+    set({ story: next })
+  },
+
+  setCapsCollapsed: async (capsCollapsed) => {
+    const story = get().story
+    if (!story) return
+    // No updatedAt bump: how the caps are drawn isn't an edit to the Story, same rule as storyWidth.
+    const next = { ...story, capsCollapsed }
+    await storage.put('stories', next as unknown as StoredRecord)
+    set({ story: next })
+  },
+
   addChapter: async (title) => {
     const story = get().story
     if (!story) return
@@ -477,21 +526,22 @@ export const useWrite = create<WriteState>()((set, get) => ({
       // Re-read: a Retry splices the old span out above, and the prompt must see that edit.
       const current = get().chapters
       const split = storyProseSplit(current, active.id!, insertAt)
+      const budget = {
+        contextLimit: connection.contextLimit,
+        maxTokens: maxTokensOf(connection),
+        safetyMarginPct: connection.safetyMarginPct,
+      }
       const prompt = buildStoryPrompt(
         {
           stack,
           castText: castText(resolveCast(story.cast)),
           authorNote: story.authorNote,
-          chapterGuide: renderChapterGuide(current, active.id!),
+          chapterGuide: fitChapterGuide(current, active.id!, budget),
           storyText: split.text,
           storyTrailing: split.trailing,
           direction,
         },
-        {
-          contextLimit: connection.contextLimit,
-          maxTokens: maxTokensOf(connection),
-          safetyMarginPct: connection.safetyMarginPct,
-        },
+        budget,
       )
       for await (const chunk of sendMessage(prompt.messages, connection, controller.signal)) {
         if (chunk.content) {
@@ -523,6 +573,20 @@ export const useWrite = create<WriteState>()((set, get) => ({
           ? `Response stopped at the ${maxTokensOf(connection)} token limit. Raise Max tokens in the connection.`
           : '',
     })
+  },
+
+  writeBeat: async (chapterId, beatId) => {
+    const { story, chapters, streaming, directions } = get()
+    if (streaming || !story) return
+    const chapter = chapters.find((c) => c.id === chapterId)
+    const beat = chapter?.beats.find((b) => b.id === beatId)
+    if (!chapter || !beat) return
+    // "Write this beat" is an explicit statement of where to write, so the Chapter takes the cursor.
+    // No caret cleanup: generate only adopts a caret whose chapterId matches, so one left behind in
+    // another Chapter falls through to the end-of-Chapter default, which is what this should do.
+    set({ activeChapterId: chapterId })
+    // The box is read, not cleared — a following Retry then behaves as it does today.
+    await get().generate(beatDirection(beat.text, beat.targetWords, directions[story.id!] ?? ''))
   },
 
   retry: async () => {

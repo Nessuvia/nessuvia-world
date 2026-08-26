@@ -6,6 +6,8 @@ import { activeContent } from '../storage/types.ts'
 import { swapBlockVals } from './swapTokens.ts'
 import type { Budget } from './budget.ts'
 import { countTokens, perMessageOverhead } from './budget.ts'
+import type { GuideChapter } from './chapterGuide.ts'
+import { renderChapterGuide, renderChapterGuideWithin } from './chapterGuide.ts'
 
 /** An enabled cast member, flattened to the card fields the Co-Writer needs. The store resolves
  *  Character/Persona rows into this so the assembly stays pure and check-testable. */
@@ -135,11 +137,39 @@ export function fitStartForward(text: string, available: number): string {
   return lines.slice(0, keepTo).join('\n')
 }
 
+/**
+ * Share of the usable window the Chapter guide may take, as a percent.
+ *
+ * Tight on purpose: every guide token is a prose token `fitEndBackward` can't spend, and the
+ * three-stage ladder in `renderChapterGuideWithin` degrades gently enough that hitting the cap is
+ * not a cliff. Raise it if the guide starts demoting Chapters the Author still needs.
+ */
+export const guideSharePct = 10
+
+/**
+ * The Chapter guide, capped at its share of the budget. Both Story-prompt callers go through this
+ * one function — `generate` and the preview panel must not diverge on what the guide says.
+ *
+ * No budget means no cap, matching how the rest of this file treats a missing budget.
+ */
+export function fitChapterGuide(
+  chapters: GuideChapter[],
+  activeId: number | null,
+  budget?: Budget,
+): string {
+  if (!budget) return renderChapterGuide(chapters, activeId)
+  const margin = (budget.contextLimit * budget.safetyMarginPct) / 100
+  const usable = budget.contextLimit - budget.maxTokens - margin
+  const allowance = Math.floor((usable * guideSharePct) / 100)
+  return renderChapterGuideWithin(chapters, activeId, allowance, countTokens)
+}
+
 export interface BuildStoryArgs {
   stack: PromptStack
   castText: string
   authorNote: string
-  /** The rendered Chapter guide (see chapterGuide.ts). Part of the fixed prefix — never trimmed. */
+  /** The rendered Chapter guide (see chapterGuide.ts). Part of the fixed prefix, already fitted by
+   *  the caller — see `fitChapterGuide`. */
   chapterGuide: string
   storyText: string
   /** Prose after the caret, to the end of the active Chapter. '' when generating at the end, which

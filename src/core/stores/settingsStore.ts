@@ -205,6 +205,9 @@ interface SettingsState {
   customTitle: string
   /** Write shelf: clicking a Story cover opens the editor instead of the preview panel. */
   openStoryDirectly: boolean
+  /** The Story tab's Chapter rail is collapsed. Global rather than per Story: whether the rail
+   *  shows is a working preference, not a property of a Story. Per Story is the upgrade path. */
+  railCollapsed: boolean
   /** Write mode on. Off hides the Write tab and route and the Story side of the stack editor. */
   writeEnabled: boolean
   /** Multiplayer on. Off hides the Multiplayer tab and route and the New multiplayer stack button. */
@@ -231,6 +234,7 @@ interface SettingsState {
   setAppearance(patch: Partial<Appearance>): void
   setDebugMode(on: boolean): void
   setOpenStoryDirectly(on: boolean): void
+  setRailCollapsed(collapsed: boolean): void
   setPersonaTitleOff(on: boolean): void
   setCustomTitle(title: string): void
   setWriteEnabled(on: boolean): void
@@ -277,6 +281,7 @@ export const useSettings = create<SettingsState>()(
       personaTitleOff: false,
       customTitle: '',
       openStoryDirectly: false,
+      railCollapsed: false,
       writeEnabled: true,
       multiplayerEnabled: true,
       enabledPlugins: {},
@@ -295,6 +300,8 @@ export const useSettings = create<SettingsState>()(
       setDebugMode: (debugMode) => set({ debugMode }),
 
       setOpenStoryDirectly: (openStoryDirectly) => set({ openStoryDirectly }),
+
+      setRailCollapsed: (railCollapsed) => set({ railCollapsed }),
 
       setPersonaTitleOff: (personaTitleOff) => set({ personaTitleOff }),
 

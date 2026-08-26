@@ -245,6 +245,33 @@ h3.storyPreviewTitle {
   font-weight: bold;
 }
 
+/* Story / Plot Layout, in the title bar. */
+.storyTabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.storyBar button.storyTab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.3rem 0.7rem;
+  color: var(--textDim);
+  cursor: pointer;
+}
+
+.storyBar button.storyTab.current {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.storyBar button.storyTab:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .storyBar .stylingToggle {
   margin-left: auto;
   display: inline-flex;
@@ -254,6 +281,46 @@ h3.storyPreviewTitle {
 }
 
 .storyBar .stylingToggle.on {
+  color: var(--text);
+}
+
+/* The Chapter rail above the prose: position in the Story, and a way to jump. */
+.progressRail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--textDim);
+  font-size: 0.9em;
+}
+
+.progressRailCount {
+  font-variant-numeric: tabular-nums;
+}
+
+.progressRailBlocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.progressRail button.progressBlock {
+  min-width: 1.75rem;
+  padding: 0.15rem 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textDim);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.progressRail button.progressBlock.current {
+  border-color: var(--accent, var(--border));
   color: var(--text);
 }
 
@@ -561,8 +628,6 @@ h3.storyPreviewTitle {
   padding: 6px 2px 6px 6px;
 }
 
-/* The bookmark strip: one row per Chapter, click to jump and activate. */
-.chapterSection,
 .scratchSection,
 .stackSection {
   display: flex;
@@ -582,143 +647,10 @@ h3.storyPreviewTitle {
   resize: vertical;
 }
 
-.chapterNav {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.chapterNav li {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.chapterNav .active .chapterNavTitle {
-  font-weight: 600;
-  color: var(--text);
-}
-
-.chapterNavRow {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  padding: 0.35rem 0.4rem;
-  background: none;
-  border: none;
-  color: var(--textMuted);
-  text-align: left;
-  cursor: pointer;
-}
-
-.chapterNavNum {
-  color: var(--textDim);
-  font-variant-numeric: tabular-nums;
-}
-
-.chapterNavTitle {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .authorNoteBox {
   width: 100%;
   font: inherit;
   resize: vertical;
-}
-
-/* The Chapter modal: the only place a Chapter is created, renamed, reordered or deleted. */
-.chapterDialog {
-  width: min(40rem, 90vw);
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.chapterDialogHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.chapterEditList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.chapterEdit {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.5rem;
-}
-
-.chapterEditRow {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.chapterTitleInput {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-}
-
-.chapterEditToggle {
-  background: none;
-  border: none;
-  color: var(--textDim);
-  cursor: pointer;
-  padding: 0.25rem 0;
-}
-
-.chapterPlan {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.chapterPlan label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.chapterPlan textarea {
-  width: 100%;
-  font: inherit;
-  resize: vertical;
-}
-
-.chapterPlanLabel {
-  color: var(--textDim);
-}
-
-.beatList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.beatList li {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.beatList input {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
 }
 
 .writeToast {

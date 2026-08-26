@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { buildRequestBody, redact } from '../../core/connectors/buildRequestBody'
-import { buildStoryPrompt, castText } from '../../core/prompt/buildStoryPrompt'
-import { renderChapterGuide, storyProseSplit } from '../../core/prompt/chapterGuide'
+import { buildStoryPrompt, castText, fitChapterGuide } from '../../core/prompt/buildStoryPrompt'
+import { storyProseSplit } from '../../core/prompt/chapterGuide'
 import { loadTokenizer } from '../../core/prompt/budget'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
@@ -78,7 +78,7 @@ export default function StoryPromptPanel() {
       stack,
       castText: castText(resolveCast(story.cast)),
       authorNote: story.authorNote,
-      chapterGuide: renderChapterGuide(chapters, active?.id ?? null),
+      chapterGuide: fitChapterGuide(chapters, active?.id ?? null, budget),
       storyText: split.text,
       storyTrailing: split.trailing,
       direction: typed,

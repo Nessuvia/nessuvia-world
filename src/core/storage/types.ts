@@ -220,6 +220,12 @@ export interface Story {
   /** Sampling overrides for this Story, over the connection's own values. The cast contributes
    *  nothing: with several characters attached there is no non-arbitrary winner. */
   paramOverrides?: ParamOverrides
+  /** The opening situation, edited on the Plot Layout tab before Chapter 1. Stored, not sent. */
+  premise?: string
+  /** The intended ending, edited on the Plot Layout tab after the last Chapter. Stored, not sent. */
+  ending?: string
+  /** Premise and Ending render as thin markers on the Plot Layout strip when true. */
+  capsCollapsed?: boolean
   createdAt: number
   updatedAt: number
 }
@@ -230,20 +236,37 @@ export interface CastEntry {
   enabled: boolean
 }
 
+/** One planned step inside a Chapter: a line of intent, a word target, and a checkbox the Author
+ *  ticks. Beats have no table of their own, so they carry their own key. */
+export interface Beat {
+  id: string // crypto.randomUUID()
+  text: string
+  /** Words this beat is meant to run to. 0 means unset. */
+  targetWords: number
+  /** Ticked by hand. Nothing auto-checks it. */
+  done: boolean
+}
+
+/** What a Chapter contributes to the Chapter guide. 'both' is the default and the useful one: an
+ *  unwritten Chapter has no summary yet, so it sends beats; a written Chapter has both, and the
+ *  trim demotes it to summary alone when the guide runs out of room. */
+export type GuideSend = 'off' | 'beats' | 'summary' | 'both'
+
 /** An ordered unit of a Story: a title, a plan, and (eventually) prose. A Story is a list of these,
- *  starting at one. A Chapter carries its plan whether or not it has prose yet — that's what lets
- *  the same field read as recap for written Chapters and as intent for unwritten ones. */
+ *  starting at one. The plan is the beats; the summary is the recap. */
 export interface Chapter {
   id?: number
   ownerId: string
   storyId: number
   order: number // position within the Story
   title: string
-  /** One field, both jobs. The Chapter guide decides how it's labelled from the Chapter's state. */
+  /** Recap only: what the Chapter turned out to contain. Intent lives in the beats. */
   summary: string
-  beats: string[] // ordered; only the active Chapter's render in full
-  /** Off keeps the Chapter out of the Chapter guide. Its prose still scrolls in as Story context. */
-  sendEnabled: boolean
+  /** The plan for the Chapter: what is meant to happen, in order. */
+  beats: Beat[]
+  /** What this Chapter contributes to the Chapter guide. Its prose still scrolls in as Story
+   *  context whatever this says. */
+  guideSend: GuideSend
   text: string // raw prose, stored as-is
   /** The span the last generation wrote into `text`, and the Direction that produced it. What makes
    *  Retry / Continue / Undo possible across a reload. `text` is stored alongside the offsets so the

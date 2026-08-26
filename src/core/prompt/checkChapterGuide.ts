@@ -8,10 +8,16 @@ import {
   storyProseSplit,
   type GuideChapter,
 } from './chapterGuide.ts'
+import type { Beat } from '../storage/types.ts'
 
 let n = 0
 function ch(c: Partial<GuideChapter>): GuideChapter {
-  return { id: ++n, title: `Chapter ${n}`, summary: '', beats: [], sendEnabled: true, text: '', ...c }
+  return { id: ++n, title: `Chapter ${n}`, summary: '', beats: [], guideSend: 'both', text: '', ...c }
+}
+
+let b = 0
+function beat(text: string, done = false, targetWords = 0): Beat {
+  return { id: `b${++b}`, text, done, targetWords }
 }
 
 // --- has prose is any non-whitespace text ------------------------------------
@@ -30,49 +36,65 @@ assert.strictEqual(hasProse({ text: 'a' }), true)
   assert.strictEqual(chapterState(planned, 2), 'writingNow')
 }
 
-// --- the shape of a full guide ------------------------------------------------
+// --- the shape of a full guide: summary, then beats, under every Chapter ------
 {
   const out = renderChapterGuide(
     [
-      ch({ id: 1, title: "John's Morning", summary: 'John wakes to a missed call.', text: 'prose' }),
+      ch({ id: 1, title: 'Arrival', summary: 'They meet on the platform.', text: 'prose' }),
       ch({
         id: 2,
-        title: 'The Revelation',
-        summary: 'Mark confronts him about the letter.',
-        beats: ['the letter surfaces', 'Mark denies writing it'],
+        title: 'Ruin',
+        summary: 'He gets her as far as the house.',
+        beats: [beat('John invites Mary over', true), beat('Mary discovers the truth')],
       }),
-      ch({ id: 3, title: 'Cold Water', summary: 'John tracks down the person who did.' }),
+      ch({ id: 3, title: 'Escape', beats: [beat('Mary tries to escape')] }),
     ],
     2,
   )
   assert.strictEqual(
     out,
     [
-      "Chapter 1 — John's Morning [written]",
-      '  John wakes to a missed call.',
-      'Chapter 2 — The Revelation [writing now]',
-      '  Mark confronts him about the letter.',
-      '  Beats:',
-      '    · the letter surfaces',
-      '    · Mark denies writing it',
-      'Chapter 3 — Cold Water [not yet written]',
-      '  John tracks down the person who did.',
+      'Chapter 1 — Arrival [written]',
+      '  They meet on the platform.',
+      'Chapter 2 — Ruin [writing now]',
+      '  He gets her as far as the house.',
+      '  · John invites Mary over [done]',
+      '  · Mary discovers the truth',
+      'Chapter 3 — Escape [not yet written]',
+      '  · Mary tries to escape',
     ].join('\n'),
   )
+  // No `Beats:` header any more — the bullets carry it, on every Chapter.
+  assert.ok(!out.includes('Beats:'))
 }
 
-// --- beats render only for the active Chapter --------------------------------
+// --- beats render for non-active Chapters too --------------------------------
 {
-  const chapters = [ch({ id: 1, beats: ['a beat'] }), ch({ id: 2, beats: ['another'] })]
+  const chapters = [ch({ id: 1, beats: [beat('a beat')] }), ch({ id: 2, beats: [beat('another')] })]
   const out = renderChapterGuide(chapters, 2)
-  assert.ok(!out.includes('a beat'))
+  assert.ok(out.includes('a beat'))
   assert.ok(out.includes('another'))
 }
 
-// --- send toggles drop rows without renumbering the rest ---------------------
+// --- each guideSend value emits its own half ---------------------------------
+{
+  const parts = { summary: 'a recap', beats: [beat('a plan')] }
+  const both = renderChapterGuide([ch({ id: 1, title: 'A', ...parts })], null)
+  assert.strictEqual(both, 'Chapter 1 — A [not yet written]\n  a recap\n  · a plan')
+
+  const beatsOnly = renderChapterGuide([ch({ id: 1, title: 'A', guideSend: 'beats', ...parts })], null)
+  assert.strictEqual(beatsOnly, 'Chapter 1 — A [not yet written]\n  · a plan')
+
+  const summaryOnly = renderChapterGuide([ch({ id: 1, title: 'A', guideSend: 'summary', ...parts })], null)
+  assert.strictEqual(summaryOnly, 'Chapter 1 — A [not yet written]\n  a recap')
+
+  assert.strictEqual(renderChapterGuide([ch({ id: 1, guideSend: 'off', ...parts })], null), '')
+}
+
+// --- 'off' drops rows without renumbering the rest ---------------------------
 {
   const out = renderChapterGuide(
-    [ch({ id: 1, title: 'One' }), ch({ id: 2, title: 'Two', sendEnabled: false }), ch({ id: 3, title: 'Three' })],
+    [ch({ id: 1, title: 'One' }), ch({ id: 2, title: 'Two', guideSend: 'off' }), ch({ id: 3, title: 'Three' })],
     null,
   )
   assert.ok(out.includes('Chapter 1 — One'))
@@ -84,11 +106,13 @@ assert.strictEqual(hasProse({ text: 'a' }), true)
 // --- empty pieces drop out ----------------------------------------------------
 {
   assert.strictEqual(renderChapterGuide([], null), '')
-  assert.strictEqual(renderChapterGuide([ch({ id: 1, sendEnabled: false })], null), '')
   // No title, no summary, no beats: still one row, so the model sees the Chapter exists.
   assert.strictEqual(renderChapterGuide([ch({ id: 1, title: '' })], null), 'Chapter 1 [not yet written]')
-  // Blank beats don't produce an empty Beats: header.
-  assert.strictEqual(renderChapterGuide([ch({ id: 1, title: 'A', beats: ['  '] })], 1), 'Chapter 1 — A [writing now]')
+  // A blank beat contributes no bullet.
+  assert.strictEqual(
+    renderChapterGuide([ch({ id: 1, title: 'A', beats: [beat('  ')] })], 1),
+    'Chapter 1 — A [writing now]',
+  )
 }
 
 // --- a multi-line summary keeps its indent ------------------------------------

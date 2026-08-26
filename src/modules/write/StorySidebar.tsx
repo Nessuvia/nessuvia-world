@@ -12,7 +12,6 @@ import { useMediaQuery } from '../../app/useMediaQuery'
 import { useSideDrawer } from '../../app/useSideDrawer'
 import '../../app/sideDrawer.css'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
-import ChapterModal from './ChapterModal'
 
 // Attach any character/persona; each attached entry has an on/off toggle. Only enabled cast is sent.
 function CastSection() {
@@ -105,51 +104,6 @@ function CastSection() {
             Add Character +
           </button>
         ))}
-    </div>
-  )
-}
-
-// The bookmark strip: one row per Chapter, click to jump and activate. Everything else about a
-// Chapter — its title, plan and order — is edited in the modal.
-function ChapterSection() {
-  const chapters = useWrite((s) => s.chapters)
-  const activeChapterId = useWrite((s) => s.activeChapterId)
-  const setActiveChapter = useWrite((s) => s.setActiveChapter)
-  const updateChapter = useWrite((s) => s.updateChapter)
-  const [editing, setEditing] = useState(false)
-
-  // One action, not two: the row jumps the document and takes the cursor with it.
-  function jump(id: number) {
-    setActiveChapter(id)
-    const el = document.querySelector<HTMLElement>(`.storyProse[data-chapter="${id}"]`)
-    if (!el) return
-    el.scrollIntoView({ block: 'center' })
-    el.focus()
-  }
-
-  return (
-    <div className="chapterSection">
-      <ul className="chapterNav">
-        {chapters.map((chapter, i) => (
-          <li key={chapter.id} className={chapter.id === activeChapterId ? 'active' : undefined}>
-            <button type="button" className="chapterNavRow" onClick={() => jump(chapter.id!)}>
-              <span className="chapterNavNum">{i + 1}</span>
-              <span className="chapterNavTitle">{chapter.title || `Chapter ${i + 1}`}</span>
-            </button>
-            <label className="chapterNavSend" title="Include in the Chapter guide">
-              <input
-                type="checkbox"
-                checked={chapter.sendEnabled}
-                onChange={(e) => updateChapter(chapter.id!, { sendEnabled: e.target.checked })}
-              />
-            </label>
-          </li>
-        ))}
-      </ul>
-      <button type="button" className="chapterOpenModal" onClick={() => setEditing(true)}>
-        Edit Chapters
-      </button>
-      {editing && <ChapterModal onClose={() => setEditing(false)} />}
     </div>
   )
 }
@@ -265,6 +219,7 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
   const retry = useWrite((s) => s.retry)
   const continueStory = useWrite((s) => s.continueStory)
   const undoGeneration = useWrite((s) => s.undoGeneration)
+  const writeBeat = useWrite((s) => s.writeBeat)
   // The same rule the store's actions use, so a button is live exactly when its action would act.
   const span = useWrite((s) => validSpan(spanChapter(s.chapters, s.activeChapterId)))
   // The collapsed rail is a wide-screen state only; on a phone the panel is a drawer.
@@ -284,6 +239,9 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
   const active = chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
   const activeIndex = chapters.findIndex((c) => c.id === active?.id)
   const hasProse = (active?.text ?? '').trim() !== ''
+  // The active Chapter's first unwritten beat. It never falls through to another Chapter: "next
+  // beat" means next in what is being written, not next in the Story.
+  const nextBeat = active?.beats.find((b) => !b.done && b.text.trim())
 
   function direct() {
     const text = direction.trim()
@@ -357,6 +315,18 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
               Direct
             </button>
           )}
+          <button
+            type="button"
+            disabled={streaming || !nextBeat}
+            title={
+              nextBeat
+                ? 'Write the first unchecked beat of this Chapter.'
+                : 'No unwritten beats in this chapter.'
+            }
+            onClick={() => nextBeat && writeBeat(active!.id!, nextBeat.id)}
+          >
+            Write next beat
+          </button>
           <button type="button" disabled={!span || streaming} onClick={() => retry()}>
             Retry
           </button>
@@ -389,11 +359,6 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
       <details className="panel accordionSection" open>
         <summary>Characters</summary>
         <CastSection />
-      </details>
-
-      <details className="panel accordionSection" open>
-        <summary>Chapters</summary>
-        <ChapterSection />
       </details>
 
       <details className="panel accordionSection">

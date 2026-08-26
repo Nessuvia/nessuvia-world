@@ -1,0 +1,325 @@
+/* Plot Layout: the chain of Chapter blocks between the Premise and Ending caps, and the full-width
+   editor for the selected Chapter beneath it. */
+
+.plotLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.plotStripWrap {
+  position: relative;
+  min-width: 0;
+}
+
+.plotStrip {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+}
+
+.plotStripItem {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+/* The last arrow points at the Ending cap, so every item can carry one. */
+.plotArrow {
+  display: flex;
+  align-items: center;
+  color: var(--textDim);
+  flex: none;
+}
+
+.plotBlock {
+  flex: none;
+  width: 13rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+/* State comes from chapterState(): written solid, active highlighted, unwritten ghosted. */
+.plotBlock.written {
+  color: var(--text);
+}
+
+.plotBlock.notYetWritten {
+  opacity: 0.7;
+}
+
+.plotBlock.writingNow {
+  border-color: var(--accent, var(--border));
+  color: var(--text);
+}
+
+.plotBlock.selected {
+  outline: 1px solid var(--accent, var(--border));
+}
+
+/* A Chapter that sends nothing. What it sends is not a state of the Chapter, so the other three
+   modes look the same. */
+.plotBlock.muted {
+  opacity: 0.45;
+}
+
+.plotBlockNum {
+  color: var(--textDim);
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+}
+
+.plotBlockTitle {
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plotBlockBeats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.85em;
+}
+
+.plotBlockBeats li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plotBlockBeats li.done {
+  text-decoration: line-through;
+  color: var(--textDim);
+}
+
+.plotBlockEmpty,
+.plotBlockWords {
+  color: var(--textDim);
+  font-size: 0.85em;
+}
+
+.plotCap {
+  flex: none;
+  width: 13rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.plotCapLabel {
+  color: var(--textDim);
+  font-size: 0.85em;
+}
+
+.plotCap textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+}
+
+.plotCapMarker {
+  flex: none;
+  align-self: center;
+  padding: 0.35rem 0.5rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--textDim);
+  font-size: 0.85em;
+  writing-mode: vertical-rl;
+}
+
+.plotCapsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.plotCapsRow .hint {
+  margin: 0;
+}
+
+.plotCapsToggle {
+  background: none;
+  border: none;
+  color: var(--textDim);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* The chapter editor */
+.plotEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.plotEditorHead {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.plotEditorHead h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plotField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--textDim);
+}
+
+.plotField input,
+.plotField textarea,
+.plotField select {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--text);
+}
+
+.plotField textarea {
+  resize: vertical;
+}
+
+.plotSend {
+  max-width: 20rem;
+}
+
+.plotEditor .hint {
+  margin: 0;
+}
+
+.plotBeatsHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--textDim);
+}
+
+.plotBeatsWords {
+  font-variant-numeric: tabular-nums;
+}
+
+.plotBeatList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.plotBeatList li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.plotBeatList li.over {
+  outline: 1px dashed var(--accent, var(--border));
+}
+
+.plotBeatText {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+}
+
+.plotBeatTarget {
+  width: 5rem;
+  flex: none;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.plotBeatWrite {
+  flex: none;
+}
+
+.plotBeatAdd,
+.plotAddChapter {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.plotAddChapter {
+  align-self: flex-end;
+}
+
+/* Phone: the chain rotates to a vertical stack and the editor opens inline under the tapped
+   block. Same component, mounted somewhere else. */
+.plotStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plotStackItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Same arrow element, turned to point down the stack. */
+.plotStack .plotArrow {
+  align-self: center;
+  transform: rotate(90deg);
+}
+
+@media (max-width: 700px) {
+  .plotBlock,
+  .plotCap {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .plotCapMarker {
+    align-self: stretch;
+    writing-mode: horizontal-tb;
+    text-align: center;
+  }
+
+  .plotBlockBeats li {
+    white-space: normal;
+  }
+
+  .plotAddChapter {
+    align-self: flex-start;
+  }
+}

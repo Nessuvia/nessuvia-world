@@ -11,8 +11,10 @@ import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import type { CastEntry, Chapter, Story } from '../../core/storage/types'
 import StorySidebar from './StorySidebar'
+import PlotLayout from './PlotLayout'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { useSideDrawer } from '../../app/useSideDrawer'
+import { CollapseButton } from '../../app/CollapseButton'
 import '../../app/sideDrawer.css'
 
 // Landing screen: the grid of Story cover cards, plus the preview panel for the picked Story.
@@ -557,6 +559,63 @@ function StoryDocument() {
   )
 }
 
+// The Chapter rail above the prose: where in the Story the cursor is, and a way to jump. Compact —
+// no beats; the plan is the Plot Layout tab's job. One slot, one job.
+//
+// The collapsed state is global rather than per Story: whether the rail shows is a working
+// preference, not a property of a Story. Per Story would be the upgrade path.
+function ProgressRail() {
+  const chapters = useWrite((s) => s.chapters)
+  const activeChapterId = useWrite((s) => s.activeChapterId)
+  const setActiveChapter = useWrite((s) => s.setActiveChapter)
+  const collapsed = useSettings((s) => s.railCollapsed)
+  const setRailCollapsed = useSettings((s) => s.setRailCollapsed)
+
+  if (chapters.length === 0) return null
+  const activeIndex = chapters.findIndex((c) => c.id === activeChapterId)
+  const shown = activeIndex === -1 ? chapters.length : activeIndex + 1
+
+  // One action, not two: the block jumps the document and takes the cursor with it.
+  function jump(id: number) {
+    setActiveChapter(id)
+    const el = document.querySelector<HTMLElement>(`.storyProse[data-chapter="${id}"]`)
+    if (!el) return
+    el.scrollIntoView({ block: 'center' })
+    el.focus()
+  }
+
+  return (
+    <div className={`progressRail${collapsed ? ' shut' : ''}`}>
+      <span className="progressRailCount">
+        Ch {shown} of {chapters.length}
+      </span>
+      {!collapsed && (
+        <ul className="progressRailBlocks">
+          {chapters.map((chapter, i) => (
+            <li key={chapter.id}>
+              <button
+                type="button"
+                className={chapter.id === activeChapterId ? 'progressBlock current' : 'progressBlock'}
+                title={chapter.title.trim() || `Chapter ${i + 1}`}
+                onClick={() => jump(chapter.id!)}
+              >
+                {i + 1}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <CollapseButton
+        label="Chapter rail"
+        collapsed={collapsed}
+        onToggle={() => setRailCollapsed(!collapsed)}
+      />
+    </div>
+  )
+}
+
+type StoryTab = 'Story' | 'Plot Layout'
+
 function StoryEditor() {
   const { storyId } = useParams()
   const id = Number(storyId)
@@ -570,9 +629,13 @@ function StoryEditor() {
   const styling = useWrite((s) => s.styling)
   const toggleStyling = useWrite((s) => s.toggleStyling)
   const rename = useWrite((s) => s.rename)
+  const writeBeat = useWrite((s) => s.writeBeat)
+  const streaming = useWrite((s) => s.streaming)
   const palette = usePalette()
   // null while showing the title; a string while editing it.
   const [titleDraft, setTitleDraft] = useState<string | null>(null)
+  // Local, not the hash: reopening a Story always lands on Story.
+  const [tab, setTab] = useState<StoryTab>('Story')
 
   useEffect(() => {
     openStory(id)
@@ -586,6 +649,13 @@ function StoryEditor() {
       await saveChapterText(Number(el.dataset.chapter), readProse(el))
     }
     await generate(direction)
+  }
+
+  // The tab moves first, so ChapterRegion is mounted before the stream starts and the caret
+  // handover lands in a live DOM.
+  function onWriteBeat(chapterId: number, beatId: string) {
+    setTab('Story')
+    requestAnimationFrame(() => writeBeat(chapterId, beatId))
   }
 
   if (!story || story.id !== id) return <p className="placeholder">Loading…</p>
@@ -628,18 +698,50 @@ function StoryEditor() {
               }}
             />
           )}
-          <button
-            type="button"
-            className={`stylingToggle${styling ? ' on' : ''}`}
-            aria-pressed={styling}
-            onClick={toggleStyling}
-          >
-            <RiItalic size={14} /> Toggle Styling
-          </button>
+          {/* In-page tabs, not module `tabs`: those deep-link the shelf, and the sidebar swaps to
+              the Story settings panel when a Story is open. */}
+          <div className="storyTabs" role="tablist">
+            {(['Story', 'Plot Layout'] as StoryTab[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                className={tab === t ? 'storyTab current' : 'storyTab'}
+                // Plot Layout hides the Story panel, and Stop lives there.
+                disabled={t === 'Plot Layout' && streaming}
+                title={
+                  t === 'Plot Layout' && streaming
+                    ? 'Available when the Co-Writer stops writing.'
+                    : undefined
+                }
+                onClick={() => setTab(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {tab === 'Story' && (
+            <button
+              type="button"
+              className={`stylingToggle${styling ? ' on' : ''}`}
+              aria-pressed={styling}
+              onClick={toggleStyling}
+            >
+              <RiItalic size={14} /> Toggle Styling
+            </button>
+          )}
         </div>
-        <StoryDocument />
+        {tab === 'Story' ? (
+          <>
+            <ProgressRail />
+            <StoryDocument />
+          </>
+        ) : (
+          <PlotLayout onWriteBeat={onWriteBeat} />
+        )}
       </div>
-      <StorySidebar onDirect={onDirect} />
+      {tab === 'Story' && <StorySidebar onDirect={onDirect} />}
       {error && (
         <div className="writeToast" role="alert">
           {error}

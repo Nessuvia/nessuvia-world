@@ -7,7 +7,7 @@
 import type { Chapter } from '../storage/types.ts'
 
 /** The fields the guide needs off a Chapter row. */
-export type GuideChapter = Pick<Chapter, 'id' | 'title' | 'summary' | 'beats' | 'sendEnabled' | 'text'>
+export type GuideChapter = Pick<Chapter, 'id' | 'title' | 'summary' | 'beats' | 'guideSend' | 'text'>
 
 /** The line marking a Chapter boundary inside the Story prose, so the model can see where the
  *  boundaries fall as the prose scrolls past them. Prompt wording; keep it here with the rest. */
@@ -32,29 +32,129 @@ export function chapterState(chapter: GuideChapter, activeId: number | null): Ch
   return hasProse(chapter) ? 'written' : 'notYetWritten'
 }
 
+/** Stamped on a beat the Author has ticked off. Prompt wording, same as `stateLabels`. */
+export const beatDone = '[done]'
+
+/** The line that stands in for whatever the trim took out, so the model knows there was more. */
+export const earlierChaptersMarker = '(Earlier chapters not shown in full)'
+
+/** How much of a Chapter the guide is currently showing. `full` is what `renderChapterGuide`
+ *  always emits; the rest are rungs the trim steps down, gentlest first. */
+type Detail = 'full' | 'summaryOnly' | 'titleOnly' | 'dropped'
+
 /**
- * Every send-enabled Chapter, in order, stamped with its state. Numbering counts position in the
- * Story, not position in the guide, so a Chapter toggled off doesn't renumber the rest.
+ * One Chapter's lines: its title row, then its summary (recap), then its beats (intent). Summary
+ * before beats — what happened, then what is meant to happen.
  *
- * Beats render in full only for the active Chapter — they're working instructions for the passage
- * being written now, not arc-level context. Every other Chapter contributes title and summary.
+ * `guideSend` decides which halves exist at all; `detail` decides how many of them survive the
+ * trim. The two are independent: the trim reads the mode, it never rewrites it, so a Chapter set
+ * to `beats` has nothing to demote to and drops straight to its title row.
+ */
+function renderOne(
+  chapter: GuideChapter,
+  index: number,
+  activeId: number | null,
+  detail: Detail,
+): string[] {
+  if (detail === 'dropped' || chapter.guideSend === 'off') return []
+  const title = chapter.title.trim()
+  const lines = [`Chapter ${index + 1}${title ? ` — ${title}` : ''} ${stateLabels[chapterState(chapter, activeId)]}`]
+  if (detail === 'titleOnly') return lines
+
+  const wantsSummary = chapter.guideSend === 'summary' || chapter.guideSend === 'both'
+  const summary = chapter.summary.trim()
+  if (wantsSummary && summary) for (const line of summary.split('\n')) lines.push(`  ${line}`)
+  if (detail === 'summaryOnly') return lines
+
+  const wantsBeats = chapter.guideSend === 'beats' || chapter.guideSend === 'both'
+  if (!wantsBeats) return lines
+  // Done beats stay in and are marked: what's covered against what's still ahead is the pacing
+  // signal, and dropping the covered half would leave the model reading the plan as all-remaining.
+  for (const beat of chapter.beats) {
+    const text = beat.text.trim()
+    if (!text) continue
+    lines.push(`  · ${text}${beat.done ? ` ${beatDone}` : ''}`)
+  }
+  return lines
+}
+
+/**
+ * Every sending Chapter, in order, stamped with its state. Numbering counts position in the Story,
+ * not position in the guide, so a Chapter set to `off` doesn't renumber the rest.
+ *
+ * Every Chapter contributes what its `guideSend` says it does — beats are not the active Chapter's
+ * privilege, because what's planned three Chapters out is exactly the pacing context the guide is
+ * for.
  */
 export function renderChapterGuide(chapters: GuideChapter[], activeId: number | null): string {
   const lines: string[] = []
-  chapters.forEach((chapter, i) => {
-    if (!chapter.sendEnabled) return
-    const state = chapterState(chapter, activeId)
-    const title = chapter.title.trim()
-    lines.push(`Chapter ${i + 1}${title ? ` — ${title}` : ''} ${stateLabels[state]}`)
-    const summary = chapter.summary.trim()
-    if (summary) for (const line of summary.split('\n')) lines.push(`  ${line}`)
-    if (state !== 'writingNow') return
-    const beats = chapter.beats.filter((b) => b.trim())
-    if (beats.length === 0) return
-    lines.push('  Beats:')
-    for (const beat of beats) lines.push(`    · ${beat.trim()}`)
-  })
+  chapters.forEach((chapter, i) => lines.push(...renderOne(chapter, i, activeId, 'full')))
   return lines.join('\n')
+}
+
+/**
+ * The same guide, capped at `allowance` tokens. `count` is injected so this file stays free of
+ * gpt-tokenizer and the check scripts can run it under `--experimental-strip-types`.
+ *
+ * Three stages, gentlest first, and never touching the active Chapter or any Chapter after it:
+ *
+ * 1. Demote the earliest Chapters to summary alone, one at a time. A written Chapter whose prose
+ *    has scrolled out of the window keeps its recap and loses only its beats, which are the least
+ *    useful thing about a Chapter already written.
+ * 2. Still over: reduce those to title rows, earliest first.
+ * 3. Still over: drop them, earliest first.
+ *
+ * If even the active Chapter and its successors exceed the allowance, that is what comes back —
+ * the guide never drops the Chapter being written. With no active Chapter the last rendered one
+ * stands in as the floor, matching the "no cursor means the last Chapter" fallback the callers
+ * already share.
+ */
+export function renderChapterGuideWithin(
+  chapters: GuideChapter[],
+  activeId: number | null,
+  allowance: number,
+  count: (s: string) => number,
+): string {
+  // Filtered first, so "earliest" means earliest among the Chapters that actually render.
+  const sending = chapters
+    .map((chapter, index) => ({ chapter, index }))
+    .filter((x) => x.chapter.guideSend !== 'off')
+  if (sending.length === 0) return ''
+
+  const activeAt = sending.findIndex((x) => x.chapter.id != null && x.chapter.id === activeId)
+  const floor = activeAt === -1 ? sending.length - 1 : activeAt
+
+  const details: Detail[] = sending.map(() => 'full')
+
+  const build = (): string => {
+    const lines: string[] = []
+    let removed = false
+    sending.forEach((x, k) => {
+      const shown = renderOne(x.chapter, x.index, activeId, details[k])
+      // Compared against what the Chapter would have said in full, so a Chapter whose mode already
+      // held nothing back doesn't earn the marker by being "demoted" to the same text.
+      if (details[k] !== 'full' && shown.join('\n') !== renderOne(x.chapter, x.index, activeId, 'full').join('\n')) {
+        removed = true
+      }
+      lines.push(...shown)
+    })
+    // The marker is inside the string being measured: the fit can't be blown by the line that says
+    // it was fitted.
+    return (removed ? [earlierChaptersMarker, ...lines] : lines).join('\n')
+  }
+
+  let out = build()
+  if (count(out) <= allowance) return out
+
+  for (const rung of ['summaryOnly', 'titleOnly', 'dropped'] as const) {
+    for (let k = 0; k < floor; k++) {
+      if (details[k] === rung) continue
+      details[k] = rung
+      out = build()
+      if (count(out) <= allowance) return out
+    }
+  }
+  return out
 }
 
 /**
