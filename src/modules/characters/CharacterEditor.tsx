@@ -8,24 +8,29 @@ import ParamEditor from './ParamEditor'
 import AvatarCropDialog from './AvatarCropDialog'
 import GalleryLightbox from './GalleryLightbox'
 import { Avatar } from '../../app/Avatar'
-import {
-  RiArrowLeftSLine,
-  RiArrowRightSLine,
-  RiDeleteBinLine,
-  RiImageCircleLine,
-  RiUploadLine,
-} from '@remixicon/react'
-import { edgeState, type EdgeState } from './tabScroll'
-import { exportCardJson, exportCardPng } from './exportCard'
+import { CollapseButton } from '../../app/CollapseButton'
+import { RiDeleteBinLine, RiImageCircleLine } from '@remixicon/react'
 import LorebookTab from './LorebookTab'
 import TagChips from './TagChips'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
-import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import { useStacks } from '../../core/stores/stacksStore'
 import { hasSource } from '../prompts/stackKinds'
 
-const tabs = ['General', 'Description', 'Openings', 'Gallery', 'Lorebook', 'Details', 'Parameters'] as const
-type Tab = (typeof tabs)[number] | string
+const sectionIds = ['Main', 'Openings', 'Media', 'Lorebook', 'Prompt', 'About'] as const
+type SectionId = (typeof sectionIds)[number]
+
+// Not persisted — which sections are open is a glance-level choice, not a setting. Main and About
+// are the two that read as the character, so they start open.
+const initialOpen: Record<SectionId, boolean> = {
+  Main: true,
+  Openings: false,
+  Media: false,
+  Lorebook: false,
+  Prompt: false,
+  About: true,
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /**
  * `characterId` null means a brand new character — it's written on the first autosave, and
@@ -35,13 +40,9 @@ type Tab = (typeof tabs)[number] | string
 export default function CharacterEditor({
   characterId,
   onCreated,
-  extraTab,
 }: {
   characterId: number | null
   onCreated?: (id: number) => void
-  /** One caller-supplied tab, shown next to General. The chat page uses it to fold its chat
-      list into the tab bar on narrow screens. */
-  extraTab?: { label: string; content: ReactNode }
 }) {
   const { characters, load, save } = useCharacters()
   const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
@@ -51,22 +52,24 @@ export default function CharacterEditor({
   const loadStacks = useStacks((s) => s.load)
   const activeStackId = useSettings((s) => s.activeStackId)
   const activeStack = stacks.find((s) => s.id === activeStackId)
+  // Entries so the shut Lorebook header can count them. LorebookTab loads the same list when it
+  // mounts; loadFor is by character id, so the second call is the same read.
+  const bookEntries = useWorldInfo((s) => s.entries)
+  const loadBook = useWorldInfo((s) => s.loadFor)
   const [draft, setDraft] = useState<Character | null>(
     characterId === null ? newCharacter() : null,
   )
   const [saved, setSaved] = useState(true)
-  const [tab, setTab] = useState<Tab>('General')
+  const [open, setOpen] = useState<Record<SectionId, boolean>>(initialOpen)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [galleryUrl, setGalleryUrl] = useState('')
   // Uncommitted text in the Avatar URL field; null means the field shows `draft.avatar`.
   const [urlDraft, setUrlDraft] = useState<string | null>(null)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [exportError, setExportError] = useState('')
-  const exportRef = useCloseOnOutside<HTMLSpanElement>(exportOpen, () => setExportOpen(false))
   // Which URLs failed to load. Keyed by URL, not index, so removing an entry doesn't shift the
   // broken marks onto its neighbours.
   const [brokenUrls, setBrokenUrls] = useState<string[]>([])
+  const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({})
 
   useEffect(() => {
     if (characters.length === 0) load()
@@ -75,6 +78,10 @@ export default function CharacterEditor({
   useEffect(() => {
     if (stacks.length === 0) loadStacks()
   }, [stacks.length, loadStacks])
+
+  useEffect(() => {
+    if (characterId) loadBook(characterId)
+  }, [characterId, loadBook])
 
   // Fills once, when the characters land. Switching character remounts this component
   // (the parent keys it on the id), so the draft never needs resetting in place.
@@ -103,63 +110,7 @@ export default function CharacterEditor({
     return () => clearTimeout(timer)
   }, [saved, draft, save, onCreated])
 
-  // The tab bar scrolls sideways on a phone. Two things are in the way: .appShell sets
-  // `touch-action: pan-y pinch-zoom` so the browser never pans this on its own, and the navbar's
-  // swipe (useSideDrawer) listens on document and would open the drawer instead. `data-noSwipe`
-  // handles the second; driving scrollLeft from the touch deltas handles the first.
-  //
-  // Above the `if (!draft)` return below, because hooks have to run every render.
-  const tabsRef = useRef<HTMLDivElement>(null)
-  const [edges, setEdges] = useState<EdgeState>({ atStart: true, atEnd: true, scrollable: false })
-
-  useEffect(() => {
-    const el = tabsRef.current
-    if (!el) return
-    const sync = () => setEdges(edgeState(el.scrollLeft, el.scrollWidth, el.clientWidth))
-    sync()
-
-    let x0 = 0
-    let left0 = 0
-    let live = false
-    const start = (e: TouchEvent) => {
-      live = e.touches.length === 1
-      if (!live) return
-      x0 = e.touches[0].clientX
-      left0 = el.scrollLeft
-    }
-    const move = (e: TouchEvent) => {
-      if (live) el.scrollLeft = left0 - (e.touches[0].clientX - x0)
-    }
-    const end = () => {
-      live = false
-    }
-
-    // Passive throughout: nothing here calls preventDefault, and the drawer already stood down.
-    el.addEventListener('scroll', sync, { passive: true })
-    el.addEventListener('touchstart', start, { passive: true })
-    el.addEventListener('touchmove', move, { passive: true })
-    el.addEventListener('touchend', end, { passive: true })
-    el.addEventListener('touchcancel', end, { passive: true })
-    // Rotating the phone or crossing the breakpoint changes whether it overflows at all.
-    const ro = new ResizeObserver(sync)
-    ro.observe(el)
-    return () => {
-      el.removeEventListener('scroll', sync)
-      el.removeEventListener('touchstart', start)
-      el.removeEventListener('touchmove', move)
-      el.removeEventListener('touchend', end)
-      el.removeEventListener('touchcancel', end)
-      ro.disconnect()
-    }
-    // The bar only exists once the draft loads, and the extra tab comes and goes with the viewport.
-  }, [draft !== null, extraTab?.label])
-
   if (!draft) return <p className="placeholder">Loading…</p>
-
-  // Read at export time rather than held in state: nothing else on this tab needs them, and the
-  // Lorebook tab keeps its own copy in the store.
-  const bookEntries = () =>
-    draft.id ? useWorldInfo.getState().fetchFor(draft.id) : Promise.resolve([])
 
   function change(next: Character) {
     setDraft(next)
@@ -223,13 +174,6 @@ export default function CharacterEditor({
     ...gallery.filter((url) => url !== draft.avatar).map((url) => ({ url, avatar: false })),
   ]
 
-  // The extra tab sits right after General. It can come and go with the viewport, so a selection
-  // that is no longer in the list falls back to General rather than showing an empty body.
-  const tabList: Tab[] = extraTab
-    ? ['General', extraTab.label, ...tabs.slice(1)]
-    : [...tabs]
-  const current = tabList.includes(tab) ? tab : 'General'
-
   function addGalleryImage() {
     const url = galleryUrl.trim()
     if (!url || gallery.includes(url)) return
@@ -237,483 +181,475 @@ export default function CharacterEditor({
     setGalleryUrl('')
   }
 
+  const toggle = (id: SectionId) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }))
+
+  // A rail click always opens; it never shuts what it scrolls to.
+  const jump = (id: SectionId) => {
+    setOpen((prev) => ({ ...prev, [id]: true }))
+    sectionRefs.current[id]?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
+
+  const summaries: Partial<Record<SectionId, string>> = {
+    Openings: plural(greetings.length + (draft.firstMessage.trim() ? 1 : 0), 'greeting'),
+    Media: plural(galleryTiles.length, 'image'),
+    Lorebook: `${bookEntries.length} ${bookEntries.length === 1 ? 'entry' : 'entries'}`,
+  }
+
+  const section = (id: SectionId, children: ReactNode) => (
+    <section
+      key={id}
+      className={open[id] ? 'editorSection' : 'editorSection shut'}
+      ref={(el) => {
+        sectionRefs.current[id] = el
+      }}
+    >
+      <div className="editorSectionHeader" onClick={() => toggle(id)}>
+        <h3>{id}</h3>
+        {!open[id] && summaries[id] && <span className="hint">{summaries[id]}</span>}
+        <span onClick={(e) => e.stopPropagation()}>
+          <CollapseButton label={id} collapsed={!open[id]} onToggle={() => toggle(id)} />
+        </span>
+      </div>
+      {open[id] && <div className="editorSectionBody">{children}</div>}
+    </section>
+  )
+
   return (
     <div className="characters characterEditor screenFrame">
       <div className="charactersHeader">
-        <div className="editorTabsWrap">
-          <div className="editorTabs" role="tablist" ref={tabsRef} data-noSwipe>
-            {tabList.map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                aria-selected={current === t}
-                className={current === t ? 'editorTab current' : 'editorTab'}
-                onClick={() => setTab(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          {/* Decoration over a scroller the user drags; the carets aren't buttons. */}
-          {edges.scrollable && !edges.atStart && <RiArrowLeftSLine className="tabsCaret start" size={20} />}
-          {edges.scrollable && !edges.atEnd && <RiArrowRightSLine className="tabsCaret end" size={20} />}
-        </div>
         <span className="saveState">
           {draft.name.trim() ? (saved ? 'Saved' : 'Saving…') : 'Name required'}
         </span>
       </div>
 
-      <div className="screenBody">
-      {extraTab && current === extraTab.label && extraTab.content}
-      {current === 'General' && (
-        <>
-          <label>
-            Name
-            <input value={draft.name} onChange={(e) => set('name', e.target.value)} />
-          </label>
+      <div className="editorLayout">
+        {/* Hidden below the breakpoint by CSS — the shut section headers are the table of
+            contents on a phone. */}
+        <nav className="editorRail">
+          {sectionIds.map((id) => (
+            <button key={id} type="button" onClick={() => jump(id)}>
+              {id}
+            </button>
+          ))}
+        </nav>
 
-          <label>
-            Display name
-            <input
-              value={draft.displayName ?? ''}
-              placeholder={draft.name}
-              onChange={(e) => set('displayName', e.target.value)}
-            />
-          </label>
-          <p className="hint">Shown in lists, the character page, and chats. Empty uses the name. {'{{char}}'} and requests always use the name.</p>
+        <div className="screenBody editorSections">
+          {section(
+            'Main',
+            <>
+              <label>
+                Name
+                <input value={draft.name} onChange={(e) => set('name', e.target.value)} />
+              </label>
 
-          <label>
-            Avatar
-            <span className="avatarRow">
-              <Avatar of={draft} />
-              <label className="fileButton">
-                Replace
+              <label>
+                Display name
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) readAvatar(file)
-                    e.target.value = '' // let the same file re-open the dialog
-                  }}
+                  value={draft.displayName ?? ''}
+                  placeholder={draft.name}
+                  onChange={(e) => set('displayName', e.target.value)}
                 />
               </label>
-              {draft.avatar && (
-                <>
-                  {/* Cropping re-bakes the pixels, which only works on the uploaded base64 original —
-                      a URL avatar has no local copy to crop. */}
-                  {draft.avatar.startsWith('data:') && (
-                    <button type="button" onClick={() => setCropSrc(draft.avatar)}>
-                      Crop
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setAvatar('')}
-                  >
-                    Remove
-                  </button>
-                </>
-              )}
-              <span className="exportMenu" ref={exportRef}>
-                <button type="button" onClick={() => setExportOpen(!exportOpen)}>
-                  <RiUploadLine size={16} /> Export
-                </button>
-                {exportOpen && (
-                  <span className="exportMenuList">
-                    <button
-                      type="button"
-                      disabled={!draft.avatar}
-                      onClick={async () => {
-                        setExportOpen(false)
-                        try {
-                          await exportCardPng(draft, await bookEntries())
-                        } catch (e) {
-                          setExportError(e instanceof Error ? e.message : 'Export failed.')
-                        }
-                      }}
-                    >
-                      PNG card
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExportOpen(false)
-                        bookEntries().then((entries) => exportCardJson(draft, entries))
-                      }}
-                    >
-                      JSON card
-                    </button>
-                  </span>
-                )}
-              </span>
-            </span>
-          </label>
-          {exportError && <p className="hint">{exportError}</p>}
-          <label>
-            Avatar URL
-            <input
-              type="url"
-              placeholder="https://"
-              value={urlDraft ?? (draft.avatar.startsWith('data:') ? '' : draft.avatar)}
-              onChange={(e) => setUrlDraft(e.target.value)}
-              onBlur={commitAvatarUrl}
-              onKeyDown={(e) => e.key === 'Enter' && commitAvatarUrl()}
-            />
-          </label>
-          {draft.avatar && !draft.avatar.startsWith('data:') && (
-            <p className="hint">
-              This avatar loads from a URL. If the link breaks, the image is lost. Download it and
-              upload it to keep a local copy.
-            </p>
-          )}
+              <p className="hint">Shown in lists, the character page, and chats. Empty uses the name. {'{{char}}'} and requests always use the name.</p>
 
-          <fieldset className="colorsGroup">
-            <legend>Colors</legend>
-            <p className="hint">Overrides the global colors for this character. Empty uses the global.</p>
-            <label>
-              Text
-              <ColorInput
-                value={draft.colors.textColor}
-                onChange={(v) => set('colors', { ...draft.colors, textColor: v })}
-              />
-            </label>
-            <label>
-              Emphasis
-              <ColorInput
-                value={draft.colors.emphasisColor}
-                onChange={(v) => set('colors', { ...draft.colors, emphasisColor: v })}
-              />
-            </label>
-            <label>
-              Bold
-              <ColorInput
-                value={draft.colors.boldColor}
-                onChange={(v) => set('colors', { ...draft.colors, boldColor: v })}
-              />
-            </label>
-            <label>
-              Quote
-              <ColorInput
-                value={draft.colors.quoteColor}
-                onChange={(v) => set('colors', { ...draft.colors, quoteColor: v })}
-              />
-            </label>
-          </fieldset>
-        </>
-      )}
-
-      {current === 'Description' && (
-        <div className="altTab">
-          <div className="variantRow defaultRow">
-            <input
-              type="radio"
-              name="activeDescription"
-              checked={draft.activeDescriptionIndex === -1}
-              onChange={() => set('activeDescriptionIndex', -1)}
-            />
-            <div className="variantFields">
-              <span>Default Description</span>
-              <textarea
-                rows={12}
-                value={draft.description}
-                onChange={(e) => set('description', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="variantList">
-          {variants.map((v, i) => (
-            <div key={i} className="variantRow">
-              <input
-                type="radio"
-                name="activeDescription"
-                checked={draft.activeDescriptionIndex === i}
-                onChange={() => set('activeDescriptionIndex', i)}
-              />
-              <div className="variantFields">
+              <div className="variantRow defaultRow">
                 <input
-                  value={v.title}
-                  placeholder="Title"
-                  onChange={(e) =>
-                    setVariants(
-                      variants.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)),
-                    )
-                  }
+                  type="radio"
+                  name="activeDescription"
+                  checked={draft.activeDescriptionIndex === -1}
+                  onChange={() => set('activeDescriptionIndex', -1)}
                 />
-                <textarea
-                  rows={6}
-                  value={v.content}
-                  onChange={(e) =>
-                    setVariants(
-                      variants.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)),
-                    )
-                  }
-                />
+                <div className="variantFields">
+                  <span>Default Description</span>
+                  <textarea
+                    rows={12}
+                    value={draft.description}
+                    onChange={(e) => set('description', e.target.value)}
+                  />
+                </div>
               </div>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => {
-                  const next = variants.filter((_, j) => j !== i)
-                  // Removing the active one (or anything before it) must not shift the selection
-                  // onto a different variant.
-                  const active =
-                    draft.activeDescriptionIndex === i
-                      ? -1
-                      : draft.activeDescriptionIndex > i
-                        ? draft.activeDescriptionIndex - 1
-                        : draft.activeDescriptionIndex
-                  setVariants(next, active)
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-          </div>
 
-          <button
-            type="button"
-            onClick={() => setVariants([...variants, { title: '', content: '' }])}
-          >
-            Add variant
-          </button>
-        </div>
-      )}
-
-      {current === 'Openings' && (
-        <div className="altTab">
-          <label>
-            First message
-            <textarea
-              rows={8}
-              value={draft.firstMessage}
-              onChange={(e) => set('firstMessage', e.target.value)}
-            />
-          </label>
-
-          <fieldset className="variants grow">
-            <legend>Alternate greetings</legend>
-            <div className="variantList">
-            {greetings.map((g, i) => (
-              <div key={i} className="variantRow">
-                <textarea
-                  rows={4}
-                  value={g}
-                  onChange={(e) =>
-                    set(
-                      'alternateGreetings',
-                      greetings.map((x, j) => (j === i ? e.target.value : x)),
-                    )
-                  }
-                />
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={() =>
-                    set(
-                      'alternateGreetings',
-                      greetings.filter((_, j) => j !== i),
-                    )
-                  }
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-            </div>
-            <button type="button" onClick={() => set('alternateGreetings', [...greetings, ''])}>
-              Add greeting
-            </button>
-          </fieldset>
-        </div>
-      )}
-
-      {current === 'Gallery' && (
-        <div className="galleryTab">
-          <label>
-            Image URL
-            <span className="galleryAdd">
-              <input
-                type="url"
-                value={galleryUrl}
-                placeholder="https://"
-                onChange={(e) => setGalleryUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addGalleryImage()
-                  }
-                }}
-              />
-              <button type="button" onClick={addGalleryImage}>
-                Add
-              </button>
-            </span>
-          </label>
-          <p className="hint">Images are loaded from their URL. Nothing is stored to your device, but any link could break in the future. Image upload handling coming soon.</p>
-
-          {galleryTiles.length === 0 ? (
-            <p className="placeholder">No images.</p>
-          ) : (
-            <div className="galleryGrid screenBody">
-              {galleryTiles.map(({ url, avatar }) => (
-                <figure key={url}>
-                  {brokenUrls.includes(url) ? (
-                    <div className="galleryBroken">
-                      <span>Image did not load</span>
-                      {/* A data URL is the whole image; printing it would fill the tile. */}
-                      {!url.startsWith('data:') && <span className="galleryBrokenUrl">{url}</span>}
-                    </div>
-                  ) : (
-                    <img
-                      src={url}
-                      alt=""
-                      onClick={() => setLightbox(url)}
-                      onError={() =>
-                        setBrokenUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))
+              {variants.map((v, i) => (
+                <div key={i} className="variantRow">
+                  <input
+                    type="radio"
+                    name="activeDescription"
+                    checked={draft.activeDescriptionIndex === i}
+                    onChange={() => set('activeDescriptionIndex', i)}
+                  />
+                  <div className="variantFields">
+                    <input
+                      value={v.title}
+                      placeholder="Title"
+                      onChange={(e) =>
+                        setVariants(
+                          variants.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)),
+                        )
                       }
                     />
-                  )}
-                  {avatar ? (
-                    <span className="galleryTileNote">Avatar</span>
-                  ) : (
-                    <span className="galleryTileActions">
-                      {/* A gallery data URL carries its own bytes; a gallery URL becomes a URL avatar
-                          (crop is dropped — it framed a different image). */}
-                      <button
-                        type="button"
-                        onClick={() => setAvatar(url)}
-                      >
-                        <RiImageCircleLine size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => set('gallery', gallery.filter((g) => g !== url))}
-                      >
-                        <RiDeleteBinLine size={14} />
-                      </button>
-                    </span>
-                  )}
-                </figure>
+                    <textarea
+                      rows={6}
+                      value={v.content}
+                      onChange={(e) =>
+                        setVariants(
+                          variants.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)),
+                        )
+                      }
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="danger"
+                    onClick={() => {
+                      const next = variants.filter((_, j) => j !== i)
+                      // Removing the active one (or anything before it) must not shift the
+                      // selection onto a different variant.
+                      const active =
+                        draft.activeDescriptionIndex === i
+                          ? -1
+                          : draft.activeDescriptionIndex > i
+                            ? draft.activeDescriptionIndex - 1
+                            : draft.activeDescriptionIndex
+                      setVariants(next, active)
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
-            </div>
+
+              <button
+                type="button"
+                onClick={() => setVariants([...variants, { title: '', content: '' }])}
+              >
+                Add variant
+              </button>
+
+              <label>
+                Personality
+                <textarea
+                  rows={4}
+                  value={draft.personality}
+                  onChange={(e) => set('personality', e.target.value)}
+                />
+              </label>
+
+              <label>
+                Scenario
+                <textarea
+                  rows={4}
+                  value={draft.scenario}
+                  onChange={(e) => set('scenario', e.target.value)}
+                />
+              </label>
+
+              <label>
+                Example dialogue
+                <textarea
+                  rows={8}
+                  value={draft.exampleDialogue}
+                  onChange={(e) => set('exampleDialogue', e.target.value)}
+                />
+              </label>
+            </>,
+          )}
+
+          {section(
+            'Openings',
+            <>
+              <label>
+                First message
+                <textarea
+                  rows={8}
+                  value={draft.firstMessage}
+                  onChange={(e) => set('firstMessage', e.target.value)}
+                />
+              </label>
+
+              <fieldset className="variants">
+                <legend>Alternate greetings</legend>
+                {greetings.map((g, i) => (
+                  <div key={i} className="variantRow">
+                    <textarea
+                      rows={4}
+                      value={g}
+                      onChange={(e) =>
+                        set(
+                          'alternateGreetings',
+                          greetings.map((x, j) => (j === i ? e.target.value : x)),
+                        )
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() =>
+                        set(
+                          'alternateGreetings',
+                          greetings.filter((_, j) => j !== i),
+                        )
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => set('alternateGreetings', [...greetings, ''])}>
+                  Add greeting
+                </button>
+              </fieldset>
+            </>,
+          )}
+
+          {section(
+            'Media',
+            <>
+              <label>
+                Avatar
+                <span className="avatarRow">
+                  <Avatar of={draft} />
+                  <label className="fileButton">
+                    Replace
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) readAvatar(file)
+                        e.target.value = '' // let the same file re-open the dialog
+                      }}
+                    />
+                  </label>
+                  {draft.avatar && (
+                    <>
+                      {/* Cropping re-bakes the pixels, which only works on the uploaded base64
+                          original — a URL avatar has no local copy to crop. */}
+                      {draft.avatar.startsWith('data:') && (
+                        <button type="button" onClick={() => setCropSrc(draft.avatar)}>
+                          Crop
+                        </button>
+                      )}
+                      <button type="button" onClick={() => setAvatar('')}>
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </span>
+              </label>
+
+              <label>
+                Avatar URL
+                <input
+                  type="url"
+                  placeholder="https://"
+                  value={urlDraft ?? (draft.avatar.startsWith('data:') ? '' : draft.avatar)}
+                  onChange={(e) => setUrlDraft(e.target.value)}
+                  onBlur={commitAvatarUrl}
+                  onKeyDown={(e) => e.key === 'Enter' && commitAvatarUrl()}
+                />
+              </label>
+              {draft.avatar && !draft.avatar.startsWith('data:') && (
+                <p className="hint">
+                  This avatar loads from a URL. If the link breaks, the image is lost. Download it
+                  and upload it to keep a local copy.
+                </p>
+              )}
+
+              <label>
+                Image URL
+                <span className="galleryAdd">
+                  <input
+                    type="url"
+                    value={galleryUrl}
+                    placeholder="https://"
+                    onChange={(e) => setGalleryUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addGalleryImage()
+                      }
+                    }}
+                  />
+                  <button type="button" onClick={addGalleryImage}>
+                    Add
+                  </button>
+                </span>
+              </label>
+              <p className="hint">Images are loaded from their URL. Nothing is stored to your device, but any link could break in the future. Image upload handling coming soon.</p>
+
+              {galleryTiles.length === 0 ? (
+                <p className="placeholder">No images.</p>
+              ) : (
+                <div className="galleryGrid">
+                  {galleryTiles.map(({ url, avatar }) => (
+                    <figure key={url}>
+                      {brokenUrls.includes(url) ? (
+                        <div className="galleryBroken">
+                          <span>Image did not load</span>
+                          {/* A data URL is the whole image; printing it would fill the tile. */}
+                          {!url.startsWith('data:') && (
+                            <span className="galleryBrokenUrl">{url}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <img
+                          src={url}
+                          alt=""
+                          onClick={() => setLightbox(url)}
+                          onError={() =>
+                            setBrokenUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))
+                          }
+                        />
+                      )}
+                      {avatar ? (
+                        <span className="galleryTileNote">Avatar</span>
+                      ) : (
+                        <span className="galleryTileActions">
+                          {/* A gallery data URL carries its own bytes; a gallery URL becomes a URL
+                              avatar (crop is dropped — it framed a different image). */}
+                          <button type="button" onClick={() => setAvatar(url)}>
+                            <RiImageCircleLine size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={() => set('gallery', gallery.filter((g) => g !== url))}
+                          >
+                            <RiDeleteBinLine size={14} />
+                          </button>
+                        </span>
+                      )}
+                    </figure>
+                  ))}
+                </div>
+              )}
+
+              <fieldset className="colorsGroup">
+                <legend>Colors</legend>
+                <p className="hint">Overrides the global colors for this character. Empty uses the global.</p>
+                <label>
+                  Text
+                  <ColorInput
+                    value={draft.colors.textColor}
+                    onChange={(v) => set('colors', { ...draft.colors, textColor: v })}
+                  />
+                </label>
+                <label>
+                  Emphasis
+                  <ColorInput
+                    value={draft.colors.emphasisColor}
+                    onChange={(v) => set('colors', { ...draft.colors, emphasisColor: v })}
+                  />
+                </label>
+                <label>
+                  Bold
+                  <ColorInput
+                    value={draft.colors.boldColor}
+                    onChange={(v) => set('colors', { ...draft.colors, boldColor: v })}
+                  />
+                </label>
+                <label>
+                  Quote
+                  <ColorInput
+                    value={draft.colors.quoteColor}
+                    onChange={(v) => set('colors', { ...draft.colors, quoteColor: v })}
+                  />
+                </label>
+              </fieldset>
+            </>,
+          )}
+
+          {section(
+            'Lorebook',
+            <LorebookTab
+              character={draft}
+              onChangeBook={(patch) =>
+                change({
+                  ...draft,
+                  worldBook: { name: '', description: '', ...draft.worldBook, ...patch },
+                })
+              }
+            />,
+          )}
+
+          {section(
+            'Prompt',
+            <>
+              <label>
+                System prompt
+                <textarea
+                  rows={4}
+                  value={draft.systemPrompt ?? ''}
+                  onChange={(e) => set('systemPrompt', e.target.value)}
+                />
+              </label>
+              <p className="hint">
+                Used by a Character system prompt block. Empty uses the block's own text.{' '}
+                {'{{original}}'} inserts that text.
+              </p>
+              {missingBlock('characterSystemPrompt', draft.systemPrompt)}
+
+              <label>
+                Post-history instructions
+                <textarea
+                  rows={4}
+                  value={draft.postHistoryInstructions ?? ''}
+                  onChange={(e) => set('postHistoryInstructions', e.target.value)}
+                />
+              </label>
+              {missingBlock('characterPostHistory', draft.postHistoryInstructions)}
+
+              {connection ? (
+                <>
+                  <p className="hint">
+                    Parameters are used for every chat with this character. An empty field uses the
+                    connection's value.
+                  </p>
+                  <ParamEditor
+                    overrides={draft.paramOverrides ?? {}}
+                    connection={connection}
+                    onChange={(paramOverrides) => set('paramOverrides', paramOverrides)}
+                  />
+                </>
+              ) : (
+                <p className="hint">Pick an active connection in Settings to set parameters.</p>
+              )}
+            </>,
+          )}
+
+          {section(
+            'About',
+            <>
+              <label>
+                Tags
+                <TagChips tags={draft.tags ?? []} onChange={(tags) => set('tags', tags)} />
+              </label>
+
+              <label>
+                Creator
+                <input value={draft.creator ?? ''} onChange={(e) => set('creator', e.target.value)} />
+              </label>
+
+              <label>
+                Character version
+                <input
+                  value={draft.characterVersion ?? ''}
+                  onChange={(e) => set('characterVersion', e.target.value)}
+                />
+              </label>
+
+              <label>
+                Creator notes
+                <textarea
+                  rows={4}
+                  value={draft.creatorNotes ?? ''}
+                  onChange={(e) => set('creatorNotes', e.target.value)}
+                />
+              </label>
+              <p className="hint">Shown on the character page. Not sent to the model.</p>
+            </>,
           )}
         </div>
-      )}
-
-      {current === 'Lorebook' && (
-        <LorebookTab
-          character={draft}
-          onChangeBook={(patch) =>
-            change({ ...draft, worldBook: { name: '', description: '', ...draft.worldBook, ...patch } })
-          }
-        />
-      )}
-
-      {current === 'Details' && (
-        <>
-          <label>
-            Tags
-            <TagChips tags={draft.tags ?? []} onChange={(tags) => set('tags', tags)} />
-          </label>
-
-          <label>
-            Personality
-            <textarea
-              rows={4}
-              value={draft.personality}
-              onChange={(e) => set('personality', e.target.value)}
-            />
-          </label>
-
-          <label>
-            Scenario
-            <textarea
-              rows={4}
-              value={draft.scenario}
-              onChange={(e) => set('scenario', e.target.value)}
-            />
-          </label>
-
-          <label>
-            Example dialogue
-            <textarea
-              rows={8}
-              value={draft.exampleDialogue}
-              onChange={(e) => set('exampleDialogue', e.target.value)}
-            />
-          </label>
-
-          {/* ponytail: these five sit here until the editor is rebuilt as sections — they belong
-              in Prompt and About. Placed, not designed. */}
-          <label>
-            System prompt
-            <textarea
-              rows={4}
-              value={draft.systemPrompt ?? ''}
-              onChange={(e) => set('systemPrompt', e.target.value)}
-            />
-          </label>
-          <p className="hint">
-            Used by a Character system prompt block. Empty uses the block's own text.{' '}
-            {'{{original}}'} inserts that text.
-          </p>
-          {missingBlock('characterSystemPrompt', draft.systemPrompt)}
-
-          <label>
-            Post-history instructions
-            <textarea
-              rows={4}
-              value={draft.postHistoryInstructions ?? ''}
-              onChange={(e) => set('postHistoryInstructions', e.target.value)}
-            />
-          </label>
-          {missingBlock('characterPostHistory', draft.postHistoryInstructions)}
-
-          <label>
-            Creator
-            <input value={draft.creator ?? ''} onChange={(e) => set('creator', e.target.value)} />
-          </label>
-
-          <label>
-            Character version
-            <input
-              value={draft.characterVersion ?? ''}
-              onChange={(e) => set('characterVersion', e.target.value)}
-            />
-          </label>
-
-          <label>
-            Creator notes
-            <textarea
-              rows={4}
-              value={draft.creatorNotes ?? ''}
-              onChange={(e) => set('creatorNotes', e.target.value)}
-            />
-          </label>
-          <p className="hint">Shown on the character page. Not sent to the model.</p>
-        </>
-      )}
-
-      {current === 'Parameters' &&
-        (connection ? (
-          <>
-            <p className="hint">
-              Used for every chat with this character. An empty field uses the connection's value.
-            </p>
-            <ParamEditor
-              overrides={draft.paramOverrides ?? {}}
-              connection={connection}
-              onChange={(paramOverrides) => set('paramOverrides', paramOverrides)}
-            />
-          </>
-        ) : (
-          <p className="hint">Pick an active connection in Settings to set parameters.</p>
-        ))}
       </div>
 
       {lightbox && <GalleryLightbox src={lightbox} onClose={() => setLightbox(null)} />}

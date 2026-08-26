@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import CharacterEditor from '../characters/CharacterEditor'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
-import { useMediaQuery } from '../../app/useMediaQuery'
 import ChatList from './ChatList'
 
 /** One character — `/chat/c/:characterId`, or `/chat/c/new`: details left, chats right. */
@@ -21,10 +20,6 @@ export default function CharacterPanel() {
 
   // not persisted — a collapsed column is a glance-level choice, not a setting.
   const [collapsed, setCollapsed] = useState(false)
-
-  // Narrow screens have no room for a second column, so the chat list becomes a tab in the
-  // editor's tab bar instead of stacking below it.
-  const narrow = useMediaQuery('(max-width: 768px)')
 
   return (
     <div className="characterPanel screenFrame">
@@ -59,21 +54,9 @@ export default function CharacterPanel() {
             key={character?.id ?? 'new'}
             characterId={character?.id ?? null}
             onCreated={(newId) => navigate(`/chat/c/${newId}`, { replace: true })}
-            extraTab={
-              narrow
-                ? {
-                    label: 'Chats',
-                    content: character ? (
-                      <ChatList character={character} />
-                    ) : (
-                      <p className="placeholder">Name the character to start a chat.</p>
-                    ),
-                  }
-                : undefined
-            }
           />
         </div>
-        {narrow ? null : collapsed ? (
+        {collapsed ? (
           <CollapseRail label="Chats" onToggle={() => setCollapsed(false)} />
         ) : (
           <div className="characterPanelColumn chats screenBody">

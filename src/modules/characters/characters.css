@@ -97,52 +97,82 @@
   background: transparent;
 }
 
-/* Tab bar across the top of the character editor. */
-.editorTabsWrap {
-  position: relative;
-  min-width: 0;
-}
-
-.editorTabs {
+/* The editor is one scrolling page of collapsible sections, with a rail of jump links beside it. */
+.editorLayout {
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
 }
 
-/* Carets sit over the ends of the scroller; the component mounts one only when there is more that
-   way. Not interactive — the bar is dragged, and a tap target here would swallow the drag. */
-.tabsCaret {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  opacity: 0.5;
-  color: var(--text);
+.editorRail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
 }
 
-.tabsCaret.start {
-  left: -2px;
-}
-
-.tabsCaret.end {
-  right: -2px;
-}
-
-.characters button.editorTab {
+.characters .editorRail button {
   background: transparent;
   border-color: transparent;
-  border-bottom: 2px solid transparent;
-  border-radius: var(--radius) var(--radius) 0 0;
   color: var(--textMuted);
+  text-align: left;
+  align-self: stretch;
 }
 
-.characters button.editorTab:hover {
+.characters .editorRail button:hover {
   background: var(--surfaceActive);
+  color: var(--text);
 }
 
-.characters button.editorTab.current {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+.editorSections {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editorSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  /* scrollIntoView lands the header under the scroller's top edge, not flush against it. */
+  scroll-margin-top: 8px;
+}
+
+.editorSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.editorSectionHeader h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+/* The summary takes the leftover width so the chevron sits at the far right. */
+.editorSectionHeader .hint {
+  margin: 0;
+  flex: 1;
+}
+
+.editorSectionHeader > span:last-child {
+  margin-left: auto;
+  display: inline-flex;
+}
+
+.editorSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* The one field that eats the leftover height instead of scrolling the panel. */
@@ -661,27 +691,9 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* Eight tabs wrapped into three rows here. One scrolling row instead, on its own line below
-     saveState so it gets the full width. */
-  .editorTabsWrap {
-    order: 2;
-    width: 100%;
-  }
-
-  .editorTabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    /* The carets overlap the ends, so the first and last tab need room to clear them. */
-    padding: 0 14px;
-  }
-
-  .editorTabs::-webkit-scrollbar {
+  /* No room for the rail. The shut section headers are the table of contents here. */
+  .editorRail {
     display: none;
-  }
-
-  .characters button.editorTab {
-    flex: 0 0 auto;
   }
 
   .galleryGrid img,
