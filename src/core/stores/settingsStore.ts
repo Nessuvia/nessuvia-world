@@ -203,6 +203,8 @@ interface SettingsState {
    *  or "Nessu's Tavern". Global: there is one title. */
   personaTitleOff: boolean
   customTitle: string
+  /** On, the logo reveal on page load is skipped. Global: there is one splash. */
+  splashOff: boolean
   /** Write shelf: clicking a Story cover opens the editor instead of the preview panel. */
   openStoryDirectly: boolean
   /** The Story tab's Chapter rail is collapsed. Global rather than per Story: whether the rail
@@ -237,6 +239,7 @@ interface SettingsState {
   setRailCollapsed(collapsed: boolean): void
   setPersonaTitleOff(on: boolean): void
   setCustomTitle(title: string): void
+  setSplashOff(on: boolean): void
   setWriteEnabled(on: boolean): void
   setMultiplayerEnabled(on: boolean): void
   setPluginEnabled(id: string, on: boolean): void
@@ -280,6 +283,7 @@ export const useSettings = create<SettingsState>()(
       debugMode: false,
       personaTitleOff: false,
       customTitle: '',
+      splashOff: false,
       openStoryDirectly: false,
       railCollapsed: false,
       writeEnabled: true,
@@ -304,6 +308,7 @@ export const useSettings = create<SettingsState>()(
       setRailCollapsed: (railCollapsed) => set({ railCollapsed }),
 
       setPersonaTitleOff: (personaTitleOff) => set({ personaTitleOff }),
+      setSplashOff: (splashOff) => set({ splashOff }),
 
       setCustomTitle: (customTitle) => set({ customTitle }),
 

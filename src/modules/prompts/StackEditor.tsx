@@ -478,6 +478,7 @@ export default function StackEditor() {
       {editing && (
         <BlockModal
           block={editing}
+          kind={kind}
           nested={!!parentOf(editing.id)}
           onChange={(b) => replaceBlock(b, false)}
           onDelete={() => deleteBlock(editing.id)}

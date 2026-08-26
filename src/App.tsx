@@ -4,6 +4,7 @@ import Sidebar from './app/Sidebar'
 import AppRoutes from './app/routes'
 import JoinView from './modules/join/JoinView'
 import PageBackground from './app/PageBackground'
+import SplashScreen from './app/SplashScreen'
 import { usePalettes } from './core/stores/palettesStore'
 import { usePersonas } from './core/stores/personasStore'
 import { useParamDefs } from './core/stores/paramDefsStore'
@@ -44,6 +45,7 @@ export default function App() {
 function AppShell() {
   return (
     <div className="appShell">
+      <SplashScreen />
       <PageBackground />
       <Sidebar />
       <main className="appContent">

@@ -4,6 +4,7 @@ import type { ChatMessage } from '../connectors/connectorInterface'
 import type { PromptBlock, PromptStack } from '../storage/types'
 import { activeContent } from '../storage/types.ts'
 import { swapBlockVals } from './swapTokens.ts'
+import { swapStoryTokens } from './storyTokens.ts'
 import type { Budget } from './budget.ts'
 import { countTokens, perMessageOverhead } from './budget.ts'
 import type { GuideChapter } from './chapterGuide.ts'
@@ -31,18 +32,29 @@ export function castText(members: CastMember[]): string {
     .join('\n\n')
 }
 
-/** A bound block wrapped in its own open/close text (e.g. `<cast>…</cast>`). */
-function wrap(block: PromptBlock, inner: string): string {
-  return [block.content, inner, block.closeContent].filter((t) => t && t.trim()).join('\n')
-}
-
-/** The text a bound source stands for. `story` varies between the two render passes. */
+/** The text a bound source stands for. `story` varies between the two render passes. `tokens` is
+ *  the Story token table — see storyTokens.ts. */
 interface Bound {
   cast: string
-  authorNote: string
   chapterGuide: string
   story: string
   storyTrailing: string
+  tokens: Record<string, string>
+}
+
+/**
+ * A block's own text, token-swapped. Story tokens reach a block's `content` and `closeContent` and
+ * nothing else: the prose a bound source pastes in is the manuscript, and a {{token}} the Author
+ * typed into their manuscript is manuscript.
+ */
+const ownText = (text: string | undefined, bound: Bound) =>
+  swapStoryTokens(text ?? '', bound.tokens)
+
+/** A bound block wrapped in its own open/close text (e.g. `<cast>…</cast>`). */
+function wrap(block: PromptBlock, inner: string, bound: Bound): string {
+  return [ownText(block.content, bound), inner, ownText(block.closeContent, bound)]
+    .filter((t) => t && t.trim())
+    .join('\n')
 }
 
 /**
@@ -54,24 +66,22 @@ function blockText(block: PromptBlock, bound: Bound): string {
   if (block.disabled) return ''
   switch (block.source) {
     case 'cast':
-      return wrap(block, bound.cast)
-    case 'authorNote':
-      return wrap(block, bound.authorNote)
+      return wrap(block, bound.cast, bound)
     case 'chapterGuide':
-      return wrap(block, bound.chapterGuide)
+      return wrap(block, bound.chapterGuide, bound)
     case 'storyContext':
-      return wrap(block, bound.story)
+      return wrap(block, bound.story, bound)
     case 'storyTrailing':
       // Guarded rather than left to `wrap`: this block carries instruction text of its own ("must
       // lead into the text below"), and with no caret there is no text below for it to point at.
-      return bound.storyTrailing.trim() ? wrap(block, bound.storyTrailing) : ''
+      return bound.storyTrailing.trim() ? wrap(block, bound.storyTrailing, bound) : ''
     default: {
-      let own = block.source === 'text' ? activeContent(block) : ''
+      let own = block.source === 'text' ? ownText(activeContent(block), bound) : ''
       if (block.input) own = swapBlockVals(own, block.input)
       const parts = [
         own,
         ...(block.children ?? []).map((c) => blockText(c, bound)),
-        block.closeContent ?? '',
+        ownText(block.closeContent, bound),
       ]
       return parts.filter((t) => t.trim()).join('\n')
     }
@@ -167,7 +177,8 @@ export function fitChapterGuide(
 export interface BuildStoryArgs {
   stack: PromptStack
   castText: string
-  authorNote: string
+  /** The Story token table (`storyTokens`), substituted into every block's own text. */
+  tokens: Record<string, string>
   /** The rendered Chapter guide (see chapterGuide.ts). Part of the fixed prefix, already fitted by
    *  the caller — see `fitChapterGuide`. */
   chapterGuide: string
@@ -190,12 +201,15 @@ export interface BuiltStoryPrompt {
 
 /**
  * Assembles a Write-mode request. The active Story stack places the fixed prefix (Cast, Chapter
- * guide, Author's note, freeform blocks); Story context expands to as much prose as the budget holds, end-backward;
+ * guide, freeform blocks); Story context expands to as much prose as the budget holds, end-backward;
  * the Direction rides last as a separate user turn, never merged into the prose. See the master's
  * Context assembly. Budget = the active connection's contextLimit.
+ *
+ * The beat is not in the Direction. It reaches the model through {{beat}} / {{beatTargetWords}},
+ * placed by the stack, so a Story stack decides where the plan sits and how it is worded.
  */
 export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltStoryPrompt {
-  const { stack, castText: cast, authorNote, chapterGuide, storyText, direction } = args
+  const { stack, castText: cast, tokens, chapterGuide, storyText, direction } = args
 
   // Priced in the fixed pass below, before fitEndBackward spends what's left on the Story prose:
   // losing the text the model is writing towards would defeat the point of a caret insert.
@@ -207,7 +221,7 @@ export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltSt
   const render = (story: string) => {
     const turns: ChatMessage[] = []
     for (const block of stack.active) {
-      const content = blockText(block, { cast, authorNote, chapterGuide, story, storyTrailing })
+      const content = blockText(block, { cast, chapterGuide, story, storyTrailing, tokens })
       if (content.trim()) turns.push({ role: block.role, content })
     }
     return turns

@@ -70,7 +70,7 @@ db.version(5).stores({
 
 // Duplicate version(5): this is the block Dexie actually keeps. See the comment above.
 // Write v2: Macros are global (not scoped to a Story), so they get their own table. Chapters gain
-// title/summary/beats/sendEnabled and Stories an authorNote — fields, not indexes.
+// title/summary/beats/sendEnabled and Stories a direction — fields, not indexes.
 db.version(5).stores({
   characters: '++id, ownerId',
   personas: '++id, ownerId',

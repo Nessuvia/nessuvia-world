@@ -39,6 +39,16 @@ function mirrors(m: Message) {
   mirrors(third)
 }
 
+// --- an empty record: the first real text is swipe 1, not swipe 2 ---------
+{
+  const first = regenerated(reply(1, ''), 'first')!
+  assert.deepStrictEqual(first.swipes, ['first'])
+  assert.strictEqual(first.swipeIndex, 0)
+  assert.strictEqual(swipeCount(first), 1)
+  mirrors(first)
+  assert.deepStrictEqual(regenerated(first, 'second')!.swipes, ['first', 'second'])
+}
+
 // --- selectSwipe mirrors content, and clamps instead of throwing ----------
 {
   const three = regenerated(regenerated(reply(1, 'a'), 'b')!, 'c')!

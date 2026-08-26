@@ -6,12 +6,12 @@ import { proseRange, proseSpots, readProse } from './proseMarkup'
 // uncontrolled and saves on an 800ms debounce, so the store's copy lags whatever is on screen.
 // Every read here goes through readProse/proseSpots, the same walk the editor saves with.
 //
-// It works on the active Chapter's region, not the whole document. The regions are separate
+// It works on the Block the cursor is in, not the whole document. The regions are separate
 // contenteditables holding separate rows, so a document-wide replace would be several writes with
 // no shared undo — narrower is the honest scope. ponytail: whole-Story replace is the upgrade path.
-function proseEl(chapterId: number | null): HTMLElement | null {
-  if (chapterId == null) return null
-  return document.querySelector<HTMLElement>(`.storyProse[data-chapter="${chapterId}"]`)
+function proseEl(blockId: string | null): HTMLElement | null {
+  if (blockId == null) return null
+  return document.querySelector<HTMLElement>(`.storyProse[data-block="${blockId}"]`)
 }
 
 /** Offsets of every occurrence of `find` in `text`. Literal, case-sensitive — what the Author
@@ -38,10 +38,10 @@ interface HighlightApi {
 const highlightCtor = (window as unknown as { Highlight?: new (...ranges: Range[]) => object }).Highlight
 const highlights = (CSS as unknown as HighlightApi).highlights
 
-function paintHighlights(find: string, chapterId: number | null) {
+function paintHighlights(find: string, blockId: string | null) {
   if (!highlightCtor || !highlights) return
   highlights.delete('proseFind')
-  const el = proseEl(chapterId)
+  const el = proseEl(blockId)
   if (!el || !find) return
   const { text, spots } = proseSpots(el)
   const ranges: Range[] = []
@@ -52,29 +52,30 @@ function paintHighlights(find: string, chapterId: number | null) {
   if (ranges.length) highlights.set('proseFind', new highlightCtor(...ranges))
 }
 
-/** Find and Replace over the active Chapter's prose, in the Story's rail panel. */
+/** Find and Replace over the Block the cursor is in, in the Story's rail panel. */
 export default function FindReplace() {
   const chapterId = useWrite((s) => s.activeChapterId)
-  const chapterRev = useWrite((s) => (chapterId == null ? 0 : (s.revs[chapterId] ?? 0)))
-  const setChapterText = useWrite((s) => s.setChapterText)
+  const blockId = useWrite((s) => s.activeBlockId)
+  const blockRev = useWrite((s) => (blockId == null ? 0 : (s.revs[blockId] ?? 0)))
+  const setBlockText = useWrite((s) => s.setBlockText)
   const [find, setFind] = useState('')
   const [replace, setReplace] = useState('')
   const [prose, setProse] = useState('')
 
-  // Track the editor's live text: on open/generate (chapterRev) and on every keystroke, so the
+  // Track the editor's live text: on open/generate (blockRev) and on every keystroke, so the
   // match count and the buttons describe what is actually on screen.
   useEffect(() => {
-    const el = proseEl(chapterId)
+    const el = proseEl(blockId)
     if (!el) return
     const sync = () => setProse(readProse(el))
     sync()
     el.addEventListener('input', sync)
     return () => el.removeEventListener('input', sync)
-  }, [chapterRev, chapterId])
+  }, [blockRev, blockId])
 
   useEffect(() => {
-    paintHighlights(find, chapterId)
-  }, [find, prose, chapterRev, chapterId])
+    paintHighlights(find, blockId)
+  }, [find, prose, blockRev, blockId])
 
   // Leaving the panel (or the Story) shouldn't leave the prose lit up.
   useEffect(() => () => highlights?.delete('proseFind'), [])
@@ -82,8 +83,8 @@ export default function FindReplace() {
   const count = matchOffsets(prose, find).length
 
   async function apply(all: boolean) {
-    const el = proseEl(chapterId)
-    if (!el || chapterId == null) return
+    const el = proseEl(blockId)
+    if (!el || blockId == null || chapterId == null) return
     // Read again at click time: the debounce may not have fired since the last keystroke.
     const text = readProse(el)
     const at = text.indexOf(find)
@@ -91,7 +92,7 @@ export default function FindReplace() {
     const next = all
       ? text.split(find).join(replace)
       : text.slice(0, at) + replace + text.slice(at + find.length)
-    await setChapterText(chapterId, next)
+    await setBlockText(chapterId, blockId, next)
     setProse(next)
   }
 

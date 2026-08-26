@@ -5,29 +5,46 @@ import {
   hasProse,
   renderChapterGuide,
   storyProse,
-  storyProseSplit,
   type GuideChapter,
 } from './chapterGuide.ts'
-import type { Beat } from '../storage/types.ts'
-
-let n = 0
-function ch(c: Partial<GuideChapter>): GuideChapter {
-  return { id: ++n, title: `Chapter ${n}`, summary: '', beats: [], guideSend: 'both', text: '', ...c }
-}
+import type { Block } from '../storage/types.ts'
 
 let b = 0
-function beat(text: string, done = false, targetWords = 0): Beat {
-  return { id: `b${++b}`, text, done, targetWords }
+/** A beat Block: a plan line, and no prose unless one is given. */
+function beat(text: string, done = false, content = ''): Block {
+  return { id: `b${++b}`, beat: text, done, targetWords: 0, content, context: 'both' }
+}
+/** A free Block: prose with no plan line. */
+function free(content: string): Block {
+  return { id: `f${++b}`, beat: '', done: false, targetWords: 0, content, context: 'both' }
 }
 
-// --- has prose is any non-whitespace text ------------------------------------
-assert.strictEqual(hasProse({ text: '' }), false)
-assert.strictEqual(hasProse({ text: '  \n ' }), false)
-assert.strictEqual(hasProse({ text: 'a' }), true)
+let n = 0
+/** `prose` is shorthand for a trailing free Block — most cases here only care that the Chapter has
+ *  some prose, not which Block holds it. */
+function ch(c: Partial<GuideChapter> & { prose?: string; beats?: Block[] }): GuideChapter {
+  const { prose, beats, blocks, ...rest } = c
+  return {
+    id: ++n,
+    title: `Chapter ${n}`,
+    summary: '',
+    blocks: blocks ?? [...(beats ?? []), ...(prose === undefined ? [] : [free(prose)])],
+    guideSend: 'both',
+    ...rest,
+  }
+}
+
+// --- has prose is any Block holding non-whitespace text ----------------------
+assert.strictEqual(hasProse({ blocks: [] }), false)
+assert.strictEqual(hasProse({ blocks: [free(''), beat('a plan')] }), false)
+assert.strictEqual(hasProse({ blocks: [free('  \n ')] }), false)
+assert.strictEqual(hasProse({ blocks: [free(''), free('a')] }), true)
+// A beat carries prose the same way a free stretch does.
+assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
 
 // --- state comes from two facts: prose, and being active ---------------------
 {
-  const written = ch({ id: 1, text: 'prose' })
+  const written = ch({ id: 1, prose: 'prose' })
   const planned = ch({ id: 2 })
   assert.strictEqual(chapterState(written, null), 'written')
   assert.strictEqual(chapterState(planned, null), 'notYetWritten')
@@ -40,7 +57,7 @@ assert.strictEqual(hasProse({ text: 'a' }), true)
 {
   const out = renderChapterGuide(
     [
-      ch({ id: 1, title: 'Arrival', summary: 'They meet on the platform.', text: 'prose' }),
+      ch({ id: 1, title: 'Arrival', summary: 'They meet on the platform.', prose: 'prose' }),
       ch({
         id: 2,
         title: 'Ruin',
@@ -124,9 +141,9 @@ assert.strictEqual(hasProse({ text: 'a' }), true)
 // --- prose stops at the active Chapter, with dividers between ----------------
 {
   const chapters = [
-    ch({ id: 1, title: 'One', text: 'first prose' }),
-    ch({ id: 2, title: 'Two', text: 'second prose' }),
-    ch({ id: 3, title: 'Three', text: 'third prose' }),
+    ch({ id: 1, title: 'One', prose: 'first prose' }),
+    ch({ id: 2, title: 'Two', prose: 'second prose' }),
+    ch({ id: 3, title: 'Three', prose: 'third prose' }),
   ]
   assert.strictEqual(
     storyProse(chapters, 2),
@@ -137,56 +154,15 @@ assert.strictEqual(hasProse({ text: 'a' }), true)
   // No active Chapter (a Story opened but never clicked into) falls back to the last one.
   assert.ok(storyProse(chapters, null).includes('third prose'))
   // One Chapter reads as plain prose — no divider.
-  assert.strictEqual(storyProse([ch({ id: 1, title: 'One', text: 'prose' })], 1), 'prose')
+  assert.strictEqual(storyProse([ch({ id: 1, title: 'One', prose: 'prose' })], 1), 'prose')
 }
 
 // --- an empty Chapter contributes its divider but no blank gap ---------------
 {
-  const chapters = [ch({ id: 1, title: 'One', text: 'prose' }), ch({ id: 2, title: 'Two' })]
+  const chapters = [ch({ id: 1, title: 'One', prose: 'prose' }), ch({ id: 2, title: 'Two' })]
   assert.strictEqual(storyProse(chapters, 2), 'prose\n\n— Chapter 2: Two —')
   // A cold-start Story has nothing to send.
   assert.strictEqual(storyProse([ch({ id: 1 })], 1), '')
 }
 
-// --- the caret split -------------------------------------------------------
-{
-  const chapters = [
-    ch({ id: 1, title: 'One', text: 'first prose' }),
-    ch({ id: 2, title: 'Two', text: 'second prose' }),
-    ch({ id: 3, title: 'Three', text: 'third prose' }),
-  ]
-
-  // The active Chapter is cut at the caret; everything before it is context as usual.
-  const split = storyProseSplit(chapters, 2, 'second'.length)
-  assert.strictEqual(split.text, 'first prose\n\n— Chapter 2: Two —\n\nsecond')
-  assert.strictEqual(split.trailing, ' prose')
-
-  // The trailing text stops at the end of the active Chapter — later Chapters stay out of both
-  // halves, which is the whole point of the split being Chapter-bounded.
-  assert.ok(!split.trailing.includes('third prose'))
-  assert.ok(!split.text.includes('third prose'))
-
-  // No caret is the old behaviour, character for character, on both sides.
-  assert.strictEqual(storyProseSplit(chapters, 2).text, storyProse(chapters, 2))
-  assert.strictEqual(storyProseSplit(chapters, 2).trailing, '')
-
-  // A caret at the very end leaves nothing trailing, so a Direct with the caret parked at the end
-  // of the prose sends exactly what it always did.
-  const atEnd = storyProseSplit(chapters, 2, 'second prose'.length)
-  assert.strictEqual(atEnd.text, storyProse(chapters, 2))
-  assert.strictEqual(atEnd.trailing, '')
-
-  // A caret at the start hands the whole active Chapter over as trailing text.
-  const atStart = storyProseSplit(chapters, 2, 0)
-  assert.strictEqual(atStart.trailing, 'second prose')
-  assert.strictEqual(atStart.text, 'first prose\n\n— Chapter 2: Two —')
-
-  // Out-of-range offsets clamp rather than producing a silent empty split.
-  assert.strictEqual(storyProseSplit(chapters, 2, -5).trailing, 'second prose')
-  assert.strictEqual(storyProseSplit(chapters, 2, 9999).trailing, '')
-
-  // The split falls on the *active* Chapter, not the last one.
-  assert.strictEqual(storyProseSplit(chapters, 1, 'first'.length).trailing, ' prose')
-}
-
-console.log('ok')
+console.log('checkChapterGuide ok')

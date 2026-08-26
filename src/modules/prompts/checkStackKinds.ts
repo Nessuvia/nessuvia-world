@@ -22,9 +22,9 @@ assert.deepStrictEqual(kindSources('story'), [
   'storyContext',
   'storyTrailing',
   'chapterGuide',
-  'authorNote',
 ])
 assert.ok(!kindSources('story').includes('chatHistory')) // story has no chat history
+assert.ok(!kindSources('story').includes('authorNote')) // nor an author's note
 assert.ok(kindSources('chat').includes('chatHistory'))
 assert.ok(!boundSources.story.includes('chatHistory'))
 
@@ -39,7 +39,9 @@ assert.match(validateStack(stack('chat', [b('chatHistory', true)])), /Chat Histo
 
 // --- story validation: exactly one story context, no chat history -------
 assert.strictEqual(validateStack(stack('story', [b('storyContext')])), '')
-assert.strictEqual(validateStack(stack('story', [b('cast'), b('storyContext'), b('authorNote')])), '')
+assert.strictEqual(validateStack(stack('story', [b('cast'), b('storyContext')])), '')
+// The Author's note is a chat-only source now: the Story's standing instruction is the Direction.
+assert.match(validateStack(stack('story', [b('storyContext'), b('authorNote')])), /no Author's note/)
 assert.match(validateStack(stack('story', [])), /Story context/) // needs one
 assert.match(validateStack(stack('story', [b('storyContext'), b('storyContext')])), /Only one Story/)
 assert.match(validateStack(stack('story', [b('storyContext'), b('chatHistory')])), /no Chat History/)
@@ -58,7 +60,7 @@ assert.match(
 )
 
 // author's note capped at one, both kinds
-assert.match(validateStack(stack('story', [b('storyContext'), b('authorNote'), b('authorNote')])), /Author's note/)
+
 
 // --- nested blocks count too --------------------------------------------
 const wrap = (children: PromptBlock[], disabled = false): PromptBlock => ({

@@ -9,9 +9,10 @@ import {
   RiCloseLine,
   RiDeleteBinLine,
 } from '@remixicon/react'
-import type { Beat, Chapter, GuideSend } from '../../core/storage/types'
-import { useWrite } from '../../core/stores/writeStore'
-import { chapterState, hasProse } from '../../core/prompt/chapterGuide'
+import type { Block, Chapter, GuideSend } from '../../core/storage/types'
+import { newBlock, useWrite } from '../../core/stores/writeStore'
+import { beatBlocks, chapterProse, chapterState, hasProse } from '../../core/prompt/chapterGuide'
+import { withBeats } from './beatSlots'
 import { useDragReorder } from '../../app/useDragReorder'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { edgeState, type EdgeState } from '../characters/tabScroll'
@@ -24,11 +25,9 @@ export function countWords(text: string): number {
   return trimmed === '' ? 0 : trimmed.split(/\s+/).length
 }
 
-/** A Chapter's word target: the sum of its beats'. Prose is never attributed to a single beat. */
+/** A Chapter's word target: the sum of its beats'. Free stretches have no target. */
 const targetWords = (chapter: Chapter): number =>
-  chapter.beats.reduce((n, b) => n + (b.targetWords || 0), 0)
-
-const newBeat = (): Beat => ({ id: crypto.randomUUID(), text: '', targetWords: 0, done: false })
+  beatBlocks(chapter).reduce((n, b) => n + (b.targetWords || 0), 0)
 
 const sendLabels: Record<GuideSend, string> = {
   both: 'Summary and beats',
@@ -92,6 +91,7 @@ function PlotBlock({
 }) {
   const state = chapterState(chapter, activeId)
   const target = targetWords(chapter)
+  const beats = beatBlocks(chapter)
   const classes = ['plotBlock', state, selected ? 'selected' : '', chapter.guideSend === 'off' ? 'muted' : '']
   return (
     <button
@@ -108,15 +108,15 @@ function PlotBlock({
       <span className="plotBlockNum">Chapter {index + 1}</span>
       <span className="plotBlockTitle">{chapter.title || 'Untitled'}</span>
       <ul className="plotBlockBeats">
-        {chapter.beats.length === 0 && <li className="plotBlockEmpty">No beats</li>}
-        {chapter.beats.map((beat) => (
+        {beats.length === 0 && <li className="plotBlockEmpty">No beats</li>}
+        {beats.map((beat) => (
           <li key={beat.id} className={beat.done ? 'done' : undefined}>
-            {beat.text.trim() || 'Empty beat'}
+            {beat.beat.trim() || 'Empty beat'}
           </li>
         ))}
       </ul>
       <span className="plotBlockWords">
-        {countWords(chapter.text)} / {target} words
+        {countWords(chapterProse(chapter))} / {target} words
       </span>
     </button>
   )
@@ -144,9 +144,9 @@ function ChapterEditor({
   const addChapter = useWrite((s) => s.addChapter)
   const streaming = useWrite((s) => s.streaming)
 
-  const beats = chapter.beats
-  const setBeats = (next: Beat[]) => updateChapter(id, { beats: next })
-  const patchBeat = (beatId: string, patch: Partial<Beat>) =>
+  const beats = beatBlocks(chapter)
+  const setBeats = (next: Block[]) => updateChapter(id, { blocks: withBeats(chapter, next) })
+  const patchBeat = (beatId: string, patch: Partial<Block>) =>
     setBeats(beats.map((b) => (b.id === beatId ? { ...b, ...patch } : b)))
 
   const drag = useDragReorder((from, to) => {
@@ -183,7 +183,7 @@ function ChapterEditor({
           {chapter.title.trim() ? ` — ${chapter.title.trim()}` : ''}
         </h3>
         <button type="button" title="Move up" disabled={index === 0} onClick={() => moveChapter(id, -1)}>
-          <RiArrowUpLine size={14} />
+          <RiArrowUpLine size={21} />
         </button>
         <button
           type="button"
@@ -191,7 +191,7 @@ function ChapterEditor({
           disabled={index === count - 1}
           onClick={() => moveChapter(id, 1)}
         >
-          <RiArrowDownLine size={14} />
+          <RiArrowDownLine size={21} />
         </button>
         <button
           type="button"
@@ -200,7 +200,7 @@ function ChapterEditor({
           disabled={count <= 1}
           onClick={onDelete}
         >
-          <RiDeleteBinLine size={14} />
+          <RiDeleteBinLine size={21} />
         </button>
       </header>
 
@@ -226,7 +226,7 @@ function ChapterEditor({
       <div className="plotBeatsHead">
         <span>Beats</span>
         <span className="plotBeatsWords">
-          {countWords(chapter.text)} / {target} words
+          {countWords(chapterProse(chapter))} / {target} words
         </span>
       </div>
 
@@ -239,12 +239,23 @@ function ChapterEditor({
               title="Mark this beat done. Nothing ticks it for you."
               onChange={(e) => patchBeat(beat.id, { done: e.target.checked })}
             />
-            <input
+            <textarea
               className="plotBeatText"
-              value={beat.text}
+              rows={1}
+              value={beat.beat}
               placeholder="What happens"
               title="What is meant to happen in this beat. Sent to the model as part of the plan."
-              onChange={(e) => patchBeat(beat.id, { text: e.target.value })}
+              onChange={(e) =>
+                patchBeat(beat.id, {
+                  // A beat is one line in the Chapter guide, so a pasted newline becomes a space —
+                  // the box wraps to fit the text, it doesn't hold line breaks.
+                  // ' ' rather than '': an empty beat line is what makes a Block free prose, and
+                  // clearing this field is not how the Author asks for that.
+                  beat: e.target.value.replace(/\s*\n\s*/g, ' ') || ' ',
+                })
+              }
+              // Enter would otherwise insert a newline this field then strips.
+              onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
             />
             <input
               className="plotBeatTarget"
@@ -259,7 +270,7 @@ function ChapterEditor({
             <button
               type="button"
               className="plotBeatWrite"
-              disabled={streaming || !beat.text.trim()}
+              disabled={streaming || !beat.beat.trim()}
               title={
                 streaming
                   ? 'Available when the Co-Writer stops writing.'
@@ -271,17 +282,21 @@ function ChapterEditor({
             </button>
             <button
               type="button"
-              title="Remove this beat"
-              onClick={() => setBeats(beats.filter((b) => b.id !== beat.id))}
+              title="Remove this beat and the prose in it"
+              onClick={() => {
+                // The beat owns its prose now, so removing it removes writing. Ask when there is any.
+                if (beat.content.trim() && !confirm('Delete this beat and the prose in it?')) return
+                setBeats(beats.filter((b) => b.id !== beat.id))
+              }}
             >
-              <RiCloseLine size={14} />
+              <RiCloseLine size={21} />
             </button>
           </li>
         ))}
       </ul>
 
-      <button type="button" className="plotBeatAdd" onClick={() => setBeats([...beats, newBeat()])}>
-        <RiAddLine size={14} /> Add beat
+      <button type="button" className="plotBeatAdd" onClick={() => setBeats([...beats, newBlock(' ')])}>
+        <RiAddLine size={21} /> Add beat
       </button>
 
       <label className="plotField plotSend" title="What this Chapter contributes to the Chapter guide.">
@@ -298,7 +313,7 @@ function ChapterEditor({
       </label>
 
       <button type="button" className="plotAddChapter" onClick={addAfter}>
-        <RiAddLine size={14} /> Add chapter after
+        <RiAddLine size={21} /> Add chapter after
       </button>
     </section>
   )

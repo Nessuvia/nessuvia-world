@@ -19,4 +19,5 @@ Same for bold, double-asterisk text.
 Just ideas right now:
 - PHONE TEXTING UI
 - VISUAL NOVEL MODE
+- SCENARIOS (ie. NovelAi)
 - Stat tracking on chats? Used in multiplayer X times, Opened X times, X messages sent, etc...

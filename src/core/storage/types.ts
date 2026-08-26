@@ -209,9 +209,9 @@ export interface Story {
   /** Attached characters/personas with their per-entry on/off state. Cast wiring is sub-goal C;
    *  the shape lands now so the Story row doesn't need a schema bump later. */
   cast: CastEntry[]
-  /** The Author's standing instruction for this Story, placed by the `authorNote` bound block.
-   *  Per Story by decision — not global, not per Chapter. */
-  authorNote: string
+  /** The Author's standing instruction for this Story: read on every generation, never cleared,
+   *  and sent as the final user turn. The Direction box in the Story panel writes it. */
+  direction: string
   /** Loose notes the Author keeps with the Story — a stack of sticky notes, per Story. */
   scratchpad?: string[]
   /** Percent of the editor column the prose is displayed at. Per Story, like the Chat record's
@@ -220,9 +220,11 @@ export interface Story {
   /** Sampling overrides for this Story, over the connection's own values. The cast contributes
    *  nothing: with several characters attached there is no non-arbitrary winner. */
   paramOverrides?: ParamOverrides
-  /** The opening situation, edited on the Plot Layout tab before Chapter 1. Stored, not sent. */
+  /** The opening situation, edited on the Plot Layout tab before Chapter 1. Reaches the model only
+   *  through {{premise}}, if the Story stack places it. */
   premise?: string
-  /** The intended ending, edited on the Plot Layout tab after the last Chapter. Stored, not sent. */
+  /** The intended ending, edited on the Plot Layout tab after the last Chapter. Reaches the model
+   *  only through {{ending}}, if the Story stack places it. */
   ending?: string
   /** Premise and Ending render as thin markers on the Plot Layout strip when true. */
   capsCollapsed?: boolean
@@ -238,13 +240,35 @@ export interface CastEntry {
 
 /** One planned step inside a Chapter: a line of intent, a word target, and a checkbox the Author
  *  ticks. Beats have no table of their own, so they carry their own key. */
-export interface Beat {
-  id: string // crypto.randomUUID()
-  text: string
-  /** Words this beat is meant to run to. 0 means unset. */
+/** How much of the surrounding prose a Block's generation sees. `both` is the default; the other
+ *  three are how you write a passage that shouldn't be coloured by what sits around it — a flashback,
+ *  an opening drafted before the scene leading into it exists. */
+export type BlockContext = 'before' | 'after' | 'both' | 'none'
+
+/**
+ * One stretch of a Chapter, and the unit prose is actually stored in. A Chapter is an ordered list
+ * of these.
+ *
+ * `beat` empty means a free stretch: plain prose, drawn with no box and no header. `beat` non-empty
+ * means a planned section, drawn as a labelled dashed box with its own controls. Converting between
+ * the two is writing or clearing that one field — there is no second kind of record, and no
+ * ordering rule between two homes for prose.
+ */
+export interface Block {
+  id: string // crypto.randomUUID(); Blocks have no table, so they need their own key
+  /** The plan line: what is meant to happen here. '' makes this a free stretch. */
+  beat: string
+  /** Words this beat is meant to run to. 0 means unset. Meaningless on a free stretch. */
   targetWords: number
-  /** Ticked by hand. Nothing auto-checks it. */
+  /** Ticked by hand. Nothing auto-checks it — generating a beat does not mark it done. */
   done: boolean
+  /** The prose. Named `content` so `core/stores/swipes.ts` accepts a Block unchanged; it always
+   *  mirrors `swipes[swipeIndex]`, the same denormalisation `Message` uses. */
+  content: string
+  /** Alternate versions, in the order they were generated. Absent = the one thing it says. */
+  swipes?: string[]
+  swipeIndex?: number
+  context: BlockContext
 }
 
 /** What a Chapter contributes to the Chapter guide. 'both' is the default and the useful one: an
@@ -252,8 +276,9 @@ export interface Beat {
  *  trim demotes it to summary alone when the guide runs out of room. */
 export type GuideSend = 'off' | 'beats' | 'summary' | 'both'
 
-/** An ordered unit of a Story: a title, a plan, and (eventually) prose. A Story is a list of these,
- *  starting at one. The plan is the beats; the summary is the recap. */
+/** An ordered unit of a Story: a title, a recap, and its prose as an ordered list of Blocks. A
+ *  Story is a list of these, starting at one. The plan is the beat Blocks; the summary is the
+ *  recap. */
 export interface Chapter {
   id?: number
   ownerId: string
@@ -262,29 +287,25 @@ export interface Chapter {
   title: string
   /** Recap only: what the Chapter turned out to contain. Intent lives in the beats. */
   summary: string
-  /** The plan for the Chapter: what is meant to happen, in order. */
-  beats: Beat[]
+  /** The Chapter's prose and its plan, in one ordered list. Beat Blocks are the plan; free Blocks
+   *  are prose written outside it. Never empty in practice — opening a Chapter with none seeds a
+   *  free Block so there is always somewhere to type. */
+  blocks: Block[]
   /** What this Chapter contributes to the Chapter guide. Its prose still scrolls in as Story
    *  context whatever this says. */
   guideSend: GuideSend
-  text: string // raw prose, stored as-is
-  /** The span the last generation wrote into `text`, and the Direction that produced it. What makes
-   *  Retry / Continue / Undo possible across a reload. `text` is stored alongside the offsets so the
-   *  span is self-validating: if `chapter.text.slice(start, end)` no longer equals it, the Author
-   *  edited over it and the span is gone — see `validSpan` in writeStore. */
-  lastGeneration?: { start: number; end: number; text: string; direction: string }
   createdAt: number
   updatedAt: number
 }
 
 export type BlockSource =
-  | 'text' // freeform, supports {{char}} / {{user}}
+  | 'text' // freeform; chat stacks swap {{char}} / {{user}}, story stacks the Story tokens
   | 'characterDescription' // resolves the active description variant
   | 'characterPersonality'
   | 'characterScenario'
   | 'characterExampleDialogue'
   | 'personaDescription' // the active persona's description
-  | 'authorNote' // the chat's author's note; skipped when empty
+  | 'authorNote' // the chat's author's note; skipped when empty. Chat stacks only.
   | 'worldInfo' // the speaking character's matched lorebook entries; skipped when none match
   | 'chatHistory' // mandatory, exactly one per chat stack
   // Story-stack bound sources (Write mode). Wiring lives in sub-goal C; here they're just sources.

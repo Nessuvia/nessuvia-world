@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { buildRequestBody, redact } from '../../core/connectors/buildRequestBody'
 import { buildStoryPrompt, castText, fitChapterGuide } from '../../core/prompt/buildStoryPrompt'
 import { storyProseSplit } from '../../core/prompt/chapterGuide'
+import { storyTokens } from '../../core/prompt/storyTokens'
 import { loadTokenizer } from '../../core/prompt/budget'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
@@ -14,7 +15,7 @@ import { maxTokensOf } from '../../core/params/connectionParams'
 import { resolveParams } from '../../core/settings/resolveParams'
 
 /**
- * What the next Direct would send, rendered in the Story settings panel. It calls
+ * What the next generation would send, rendered in the Story settings panel. It calls
  * `buildStoryPrompt` and `buildRequestBody` — the same two functions `generate` calls — so what it
  * shows and what goes over the wire can't diverge.
  *
@@ -25,8 +26,8 @@ export default function StoryPromptPanel() {
   const story = useWrite((s) => s.story)
   const chapters = useWrite((s) => s.chapters)
   const activeChapterId = useWrite((s) => s.activeChapterId)
-  const caret = useWrite((s) => s.caret)
-  const direction = useWrite((s) => (story?.id != null ? (s.directions[story.id] ?? '') : ''))
+  const activeBlockId = useWrite((s) => s.activeBlockId)
+  const direction = useWrite((s) => s.story?.direction ?? '')
   const baseConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
   const activeStoryStackId = useSettings((s) => s.activeStoryStackId)
   const stack = useStacks((s) => s.stacks.find((x) => x.id === activeStoryStackId))
@@ -49,7 +50,7 @@ export default function StoryPromptPanel() {
   }, [direction])
 
   if (!story || chapters.length === 0) return null
-  if (!stack) return <p className="hint">No Story stack yet. It is created on the first Direct.</p>
+  if (!stack) return <p className="hint">No Story stack yet. It is created on the first generation.</p>
 
   // Same fallback generate() uses: no cursor yet means the last Chapter.
   const active = chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
@@ -57,12 +58,15 @@ export default function StoryPromptPanel() {
   // The same story > connection resolution generate() does, so the budget shown is the real one.
   const connection = baseConnection && resolveParams(baseConnection, undefined, story)
 
-  // Split at the caret the same way generate() does, so the preview shows the "What follows" block
-  // the next Direct would actually send. The prose here is the saved text, so it trails typing.
+  // Split around the Block the cursor is in, the same way writeBlock() does, so the preview shows
+  // the "What follows" block the next generation would actually send — and honours that Block's own
+  // context setting. The prose here is the saved text, so it trails typing.
+  const activeBlock = active?.blocks.find((b) => b.id === activeBlockId)
   const split = storyProseSplit(
     chapters,
     active?.id ?? null,
-    caret && caret.chapterId === active?.id ? caret.offset : undefined,
+    activeBlock?.id ?? null,
+    activeBlock?.context ?? 'both',
   )
 
   const budget = connection
@@ -77,7 +81,16 @@ export default function StoryPromptPanel() {
     {
       stack,
       castText: castText(resolveCast(story.cast)),
-      authorNote: story.authorNote,
+      tokens: storyTokens({
+        title: story.title,
+        premise: story.premise ?? '',
+        ending: story.ending ?? '',
+        scratchpad: story.scratchpad ?? [],
+        castNames: resolveCast(story.cast).map((m) => m.name),
+        chapters,
+        chapterId: active?.id ?? null,
+        blockId: activeBlock?.id ?? null,
+      }),
       chapterGuide: fitChapterGuide(chapters, active?.id ?? null, budget),
       storyText: split.text,
       storyTrailing: split.trailing,

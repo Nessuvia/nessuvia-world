@@ -31,7 +31,7 @@
 .plotArrow {
   display: flex;
   align-items: center;
-  color: var(--textDim);
+  color: var(--textMuted);
   flex: none;
 }
 
@@ -47,7 +47,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  color: var(--textMuted);
+  color: var(--textSoft);
   cursor: pointer;
 }
 
@@ -76,7 +76,7 @@
 }
 
 .plotBlockNum {
-  color: var(--textDim);
+  color: var(--textMuted);
   font-size: 0.85em;
   font-variant-numeric: tabular-nums;
 }
@@ -108,12 +108,12 @@
 
 .plotBlockBeats li.done {
   text-decoration: line-through;
-  color: var(--textDim);
+  color: var(--textMuted);
 }
 
 .plotBlockEmpty,
 .plotBlockWords {
-  color: var(--textDim);
+  color: var(--textMuted);
   font-size: 0.85em;
 }
 
@@ -130,7 +130,7 @@
 }
 
 .plotCapLabel {
-  color: var(--textDim);
+  color: var(--textMuted);
   font-size: 0.85em;
 }
 
@@ -147,7 +147,7 @@
   padding: 0.35rem 0.5rem;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
-  color: var(--textDim);
+  color: var(--textMuted);
   font-size: 0.85em;
   writing-mode: vertical-rl;
 }
@@ -166,7 +166,7 @@
 .plotCapsToggle {
   background: none;
   border: none;
-  color: var(--textDim);
+  color: var(--textMuted);
   cursor: pointer;
   padding: 0;
 }
@@ -198,7 +198,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  color: var(--textDim);
+  color: var(--textMuted);
 }
 
 .plotField input,
@@ -227,7 +227,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  color: var(--textDim);
+  color: var(--textMuted);
 }
 
 .plotBeatsWords {

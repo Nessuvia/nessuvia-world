@@ -10,15 +10,41 @@ import {
   renderChapterGuideWithin,
   type GuideChapter,
 } from './chapterGuide.ts'
-import type { Beat } from '../storage/types.ts'
+import type { Block } from '../storage/types.ts'
 
 const lines = (s: string) => (s === '' ? 0 : s.split('\n').length)
 
 let b = 0
-const beat = (text: string): Beat => ({ id: `b${++b}`, text, done: false, targetWords: 0 })
+const beat = (text: string): Block => ({
+  id: `b${++b}`,
+  beat: text,
+  done: false,
+  targetWords: 0,
+  content: '',
+  context: 'both',
+})
+const free = (content: string): Block => ({
+  id: `p${++b}`,
+  beat: '',
+  done: false,
+  targetWords: 0,
+  content,
+  context: 'both',
+})
 
-function ch(c: Partial<GuideChapter> & { id: number }): GuideChapter {
-  return { title: `Chapter ${c.id}`, summary: '', beats: [], guideSend: 'both', text: '', ...c }
+/** `beats` and `prose` are shorthands for the Blocks a Chapter is made of — the trim only cares
+ *  that a Chapter has beats, a summary, and whether it has been written. */
+function ch(
+  c: Partial<GuideChapter> & { id: number; beats?: Block[]; prose?: string },
+): GuideChapter {
+  const { beats, prose, blocks, ...rest } = c
+  return {
+    title: `Chapter ${c.id}`,
+    summary: '',
+    blocks: blocks ?? [...(beats ?? []), ...(prose === undefined ? [] : [free(prose)])],
+    guideSend: 'both',
+    ...rest,
+  }
 }
 
 // Chapter 3 is the active one. Full render is 11 lines: 4 + 3 + 2 + 2.

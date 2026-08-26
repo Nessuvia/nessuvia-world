@@ -3,11 +3,13 @@ import { storage } from '../storage/db'
 import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
-import type { CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
+import type { Block, CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
 import { buildStoryPrompt, castText, fitChapterGuide, type CastMember } from '../prompt/buildStoryPrompt'
-import { storyProseSplit } from '../prompt/chapterGuide'
-import { beatDirection } from '../prompt/beatDirection'
+import { chapterProse, storyProseSplit } from '../prompt/chapterGuide'
+import { storyTokens } from '../prompt/storyTokens'
+import { rewritePrompt } from '../prompt/rewrite'
+import { deletedSwipes, regenerated, selectSwipe, swipeIndex } from './swipes'
 import { loadTokenizer } from '../prompt/budget'
 import { activeConnection } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
@@ -15,7 +17,6 @@ import { useStacks } from './stacksStore'
 import { useCharacters } from './charactersStore'
 import { usePersonas } from './personasStore'
 import { maxTokensOf } from '../params/connectionParams'
-import { spanChapter, validSpan } from './writeSpan'
 
 function newStory(title: string): Story {
   return {
@@ -23,12 +24,18 @@ function newStory(title: string): Story {
     title,
     cover: '',
     cast: [],
-    authorNote: '',
+    direction: '',
     premise: '',
     ending: '',
     createdAt: 0,
     updatedAt: 0,
   }
+}
+
+/** A blank Block. A free stretch by default — `beat` is what makes one a planned section, and the
+ *  Author writes that. */
+export function newBlock(beat = ''): Block {
+  return { id: crypto.randomUUID(), beat, targetWords: 0, done: false, content: '', context: 'both' }
 }
 
 function newChapter(storyId: number, order: number, title: string): Chapter {
@@ -39,11 +46,11 @@ function newChapter(storyId: number, order: number, title: string): Chapter {
     order,
     title,
     summary: '',
-    beats: [],
+    // One free Block, so a new Chapter has somewhere to type before it has a plan.
+    blocks: [newBlock()],
     // Everything you have: an unwritten Chapter sends beats because it has no summary yet, a
     // written one sends both, and the guide's trim decides what survives when room runs short.
     guideSend: 'both',
-    text: '',
     createdAt: now,
     updatedAt: now,
   }
@@ -84,19 +91,11 @@ export function resolveCast(cast: CastEntry[]): CastMember[] {
   return out
 }
 
-/** Where a generation writes. Both are internal to the store: Direct uses the caret (or the end of
- *  the Chapter), Retry re-uses the span's own insert point, Continue picks up at the span's end. */
-interface GenerateOpts {
-  /** Character offset in the target Chapter to insert at. Default: the tracked caret, else the end. */
-  insertAt?: number
-  /** A span to splice out before streaming into its place. */
-  replace?: { start: number; end: number }
-}
-
-/** The fields of a Chapter the Author edits on the Plot Layout tab. Prose is never patched this
- *  way. Every beat edit — add, retext, retarget, tick, remove, reorder — is a `beats` patch; beats
- *  get no actions of their own. */
-export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'summary' | 'beats' | 'guideSend'>>
+/** The fields of a Chapter the Author edits. Every structural change to the prose — add a Block,
+ *  remove one, reorder, convert free↔beat, tick done, retarget, change its context mode — is a
+ *  `blocks` patch. Blocks get no structural actions of their own; only the three that stream or
+ *  swipe do. */
+export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'summary' | 'blocks' | 'guideSend'>>
 
 interface WriteState {
   stories: Story[]
@@ -107,34 +106,33 @@ interface WriteState {
   /** The Chapter the cursor is in. Generation appends to it. Session state — never stored; opening
    *  a Story with no cursor yet defaults to the last Chapter. */
   activeChapterId: number | null
-  /** Per Chapter, bumped when that Chapter's text changes from outside the editor (open, generate)
-   *  so its uncontrolled contenteditable re-syncs its DOM. Keyed by Chapter id rather than one
+  /** Per Block, bumped when that Block's content changes from outside the editor (open, generate,
+   *  swipe) so its uncontrolled contenteditable re-syncs its DOM. Keyed by Block id rather than one
    *  counter for the Story: a bump must not clobber typing in a region that didn't change. */
-  revs: Record<number, number>
+  revs: Record<string, number>
   streaming: boolean
   /** Which Story the stream belongs to, so opening a different one mid-generation doesn't show its
    *  tail in the wrong prose. Null when idle. */
   streamingStoryId: number | null
   streamingText: string
+  /** The Block the stream is landing in, so its region draws the tail and locks itself. */
+  streamingBlockId: string | null
   error: string
-  /** Unsent Direction drafts, keyed by Story id. In-memory only (never persisted — the Direction
-   *  is transient), so it survives moving around the app but clears on reload. */
-  directions: Record<number, string>
-  /** Where the Author's caret sits in the prose, as an offset into that Chapter's raw text. Session
-   *  state, never persisted — a caret is where you are right now, not a property of the Story. Null
-   *  means no caret, and generation falls back to the end of the active Chapter. */
-  caret: { chapterId: number; offset: number } | null
+  /** The Block the cursor is in. Session state, never persisted. Find and Replace scopes to it, and
+   *  the Story panel's beat checklist reads its Chapter through `activeChapterId`. */
+  activeBlockId: string | null
   /** A caret position for a region to adopt the next time its rev rebuilds it. A rev bump throws
    *  the DOM away, so a caret that should survive a commit has to be handed over deliberately. */
-  pendingCaret: { chapterId: number; offset: number } | null
-  setCaret(chapterId: number, offset: number | null): void
+  pendingCaret: { blockId: string; offset: number } | null
   /** Whether the editor renders inline markers as bold/italic (markers hidden) or shows the raw
    *  asterisks. ponytail: global and in-memory — it's a way of looking at prose, not a property of
    *  one Story, and it resets on reload. Upgrade path if it should stick: a field on appearance in
    *  settingsStore, which is the persisted display-preference home. */
   styling: boolean
   toggleStyling(): void
-  setDirection(storyId: number, text: string): void
+  /** The Story's standing instruction, sent as the final user turn on every generation. Per
+   *  Story. Debounced by the caller — this writes to the database. */
+  setDirection(text: string): Promise<void>
   load(): Promise<void>
   /** Create a Story plus its first Chapter. Returns the new Story id. */
   create(title: string): Promise<number>
@@ -149,17 +147,15 @@ interface WriteState {
   /** Words across every Chapter of a Story, for the shelf preview. Not stored — counted on read. */
   wordCount(id: number): Promise<number>
   closeStory(): void
-  /** The Story's standing instruction, placed by the `authorNote` block. Per Story. */
-  setAuthorNote(text: string): Promise<void>
   /** Sampling overrides for this Story, over the connection. Per Story. */
   setParamOverrides(next: ParamOverrides): Promise<void>
   /** Replace the Story's scratchpad notes. Per Story. */
   setScratchpad(notes: string[]): Promise<void>
   /** How wide the prose is displayed, as a percent of the editor column. Per Story. */
   setStoryWidth(width: number): Promise<void>
-  /** The opening situation on the Plot Layout strip. Per Story. Stored, not sent (phase 1). */
+  /** The opening situation on the Plot Layout strip. Per Story. Reaches the prompt as {{premise}}. */
   setPremise(text: string): Promise<void>
-  /** The intended ending on the Plot Layout strip. Per Story. Stored, not sent (phase 1). */
+  /** The intended ending on the Plot Layout strip. Per Story. Reaches the prompt as {{ending}}. */
   setEnding(text: string): Promise<void>
   /** Whether the Premise and Ending caps render as thin markers. Per Story. */
   setCapsCollapsed(collapsed: boolean): Promise<void>
@@ -172,26 +168,30 @@ interface WriteState {
   /** Move a Chapter by one position. Its prose moves with it. */
   moveChapter(id: number, delta: number): Promise<void>
   setActiveChapter(id: number): void
-  /** Persist one Chapter's prose. The editor debounces; this is the one write path. */
-  saveChapterText(id: number, text: string): Promise<void>
-  /** Replace a Chapter's prose wholesale (Find and Replace). Same write as saveChapterText, but
-   *  bumps that Chapter's rev so the editor re-syncs its DOM instead of keeping what was typed. */
-  setChapterText(id: number, text: string): Promise<void>
+  setActiveBlock(chapterId: number, blockId: string): void
+  /** Persist one Block's prose. The editor debounces; this is the one write path from typing. The
+   *  edit lands on the selected swipe too, so switching away and back doesn't lose it. */
+  saveBlockText(chapterId: number, blockId: string, content: string): Promise<void>
+  /** Replace a Block's prose wholesale (Find and Replace, undo). Same write as saveBlockText, but
+   *  bumps the Block's rev so the editor re-syncs its DOM instead of keeping what was typed. */
+  setBlockText(chapterId: number, blockId: string, content: string): Promise<void>
   /** Add / toggle / remove a cast member on the open Story. */
   setCast(cast: CastEntry[]): Promise<void>
-  /** Stream prose into the active Chapter, following the Direction. Lands at the caret when there
-   *  is one, otherwise at the end of the Chapter, and records the span it wrote. */
-  generate(direction: string, opts?: GenerateOpts): Promise<void>
-  /** Write one beat: makes its Chapter active, folds the beat into a Direction, and runs the same
-   *  `generate` path a Direct does — so Retry / Continue / Undo work on the result unchanged. */
-  writeBeat(chapterId: number, beatId: string): Promise<void>
-  /** Write the last span again, in the same place. Uses the Direction in the box when there is one,
-   *  else the one that produced the span. */
-  retry(): Promise<void>
-  /** Carry on from the end of the last span (or the end of the Chapter), with no Direction. */
-  continueStory(): Promise<void>
-  /** Take the last span back out, put its Direction back in the box, and drop the span. */
-  undoGeneration(): Promise<void>
+  /**
+   * Stream prose for one Block. The result lands as a new swipe and becomes the selected one, so
+   * every generation is undoable by swiping back — there are no spans to splice or validate.
+   *
+   * `direction` defaults to the Direction box verbatim — the Story's standing instruction. The
+   * beat is NOT folded in; it reaches the model through {{beat}}, wherever the stack places it.
+   * Pass one to override (that is what "Regen with instructions" does).
+   */
+  writeBlock(chapterId: number, blockId: string, direction?: string): Promise<void>
+  /** Write the Block again, following an instruction about the version it already holds. */
+  regenBlock(chapterId: number, blockId: string, instruction: string): Promise<void>
+  /** Select one of a Block's alternates. */
+  swipeBlock(chapterId: number, blockId: string, index: number): Promise<void>
+  /** Drop the selected alternate. The last one left empties the Block rather than deleting it. */
+  deleteSwipe(chapterId: number, blockId: string): Promise<void>
   stop(): void
   dismissError(): void
 }
@@ -232,19 +232,21 @@ export const useWrite = create<WriteState>()((set, get) => ({
   streaming: false,
   streamingStoryId: null,
   streamingText: '',
+  streamingBlockId: null,
   error: '',
-  directions: {},
-  caret: null,
+  activeBlockId: null,
   pendingCaret: null,
   styling: true,
 
   toggleStyling: () => set((s) => ({ styling: !s.styling })),
 
-  setDirection: (storyId, text) =>
-    set((s) => ({ directions: { ...s.directions, [storyId]: text } })),
-
-  setCaret: (chapterId, offset) =>
-    set({ caret: offset === null ? null : { chapterId, offset } }),
+  setDirection: async (text) => {
+    const story = get().story
+    if (!story || story.direction === text) return
+    const next = { ...story, direction: text, updatedAt: Date.now() }
+    await storage.put('stories', next as unknown as StoredRecord)
+    set({ story: next })
+  },
 
   load: async () => {
     set({ loading: true })
@@ -314,8 +316,14 @@ export const useWrite = create<WriteState>()((set, get) => ({
     chapters.sort((a, b) => a.order - b.order)
     // The cast picker and generation both read these from state.
     await Promise.all([useCharacters.getState().load(), usePersonas.getState().load()])
-    const revs: Record<number, number> = {}
-    for (const c of chapters) revs[c.id!] = (get().revs[c.id!] ?? 0) + 1
+    // A Chapter that somehow has no Blocks gets one, so there is always somewhere to type.
+    for (const c of chapters) {
+      if (c.blocks.length) continue
+      c.blocks = [newBlock()]
+      await storage.put('chapters', c as unknown as StoredRecord)
+    }
+    const revs: Record<string, number> = {}
+    for (const c of chapters) for (const b of c.blocks) revs[b.id] = (get().revs[b.id] ?? 0) + 1
     set({
       story: story ?? null,
       chapters,
@@ -323,7 +331,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
       revs,
       error: '',
       // Session state, and this is a different document's prose.
-      caret: null,
+      activeBlockId: null,
       pendingCaret: null,
       // Kept when you come back to a Story that is still generating, so the tail picks up mid-flight.
       streamingText: get().streamingStoryId === id ? get().streamingText : '',
@@ -333,20 +341,12 @@ export const useWrite = create<WriteState>()((set, get) => ({
   wordCount: async (id) => {
     const chapters = (await storage.find('chapters', 'storyId', id)) as unknown as Chapter[]
     let words = 0
-    for (const c of chapters) words += c.text.split(/\s+/).filter(Boolean).length
+    for (const c of chapters) words += chapterProse(c).split(/\s+/).filter(Boolean).length
     return words
   },
 
   closeStory: () =>
-    set({ story: null, chapters: [], activeChapterId: null, caret: null, pendingCaret: null }),
-
-  setAuthorNote: async (text) => {
-    const story = get().story
-    if (!story || story.authorNote === text) return
-    const next = { ...story, authorNote: text, updatedAt: Date.now() }
-    await storage.put('stories', next as unknown as StoredRecord)
-    set({ story: next })
-  },
+    set({ story: null, chapters: [], activeChapterId: null, activeBlockId: null, pendingCaret: null }),
 
   setParamOverrides: async (paramOverrides) => {
     const story = get().story
@@ -407,7 +407,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     const id = await storage.put('chapters', chapter as unknown as StoredRecord)
     await persistOrder([...chapters, { ...chapter, id }], set)
     // A new Chapter is where the Author is about to work, so it takes the cursor.
-    set((s) => ({ activeChapterId: id, revs: { ...s.revs, [id]: (s.revs[id] ?? 0) + 1 } }))
+    set({ activeChapterId: id })
     await touchStory(get, set)
   },
 
@@ -426,7 +426,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     if (chapters.length <= 1) return
     await storage.remove('chapters', id)
     const left = await persistOrder(chapters.filter((c) => c.id !== id), set)
-    if (get().activeChapterId === id) set({ activeChapterId: left.at(-1)?.id ?? null })
+    if (get().activeChapterId === id) set({ activeChapterId: left.at(-1)?.id ?? null, activeBlockId: null })
     await touchStory(get, set)
   },
 
@@ -445,26 +445,19 @@ export const useWrite = create<WriteState>()((set, get) => ({
     if (get().activeChapterId !== id) set({ activeChapterId: id })
   },
 
-  saveChapterText: async (id, text) => {
-    const chapter = get().chapters.find((c) => c.id === id)
-    if (!chapter || chapter.text === text) return
-    const next = { ...chapter, text, updatedAt: Date.now() }
-    await storage.put('chapters', next as unknown as StoredRecord)
-    // No rev bump: this comes from the editor's own DOM, resyncing would clobber the caret.
-    set((s) => ({ chapters: s.chapters.map((c) => (c.id === id ? next : c)) }))
-    await touchStory(get, set)
+  setActiveBlock: (chapterId, blockId) => {
+    const s = get()
+    if (s.activeChapterId !== chapterId || s.activeBlockId !== blockId)
+      set({ activeChapterId: chapterId, activeBlockId: blockId })
   },
 
-  setChapterText: async (id, text) => {
-    const chapter = get().chapters.find((c) => c.id === id)
-    if (!chapter || chapter.text === text) return
-    const next = { ...chapter, text, updatedAt: Date.now() }
-    await storage.put('chapters', next as unknown as StoredRecord)
-    set((s) => ({
-      chapters: s.chapters.map((c) => (c.id === id ? next : c)),
-      revs: { ...s.revs, [id]: (s.revs[id] ?? 0) + 1 },
-    }))
-    await touchStory(get, set)
+  saveBlockText: async (chapterId, blockId, content) => {
+    // No rev bump: this comes from the editor's own DOM, resyncing would clobber the caret.
+    await writeBlockContent(get, set, chapterId, blockId, content, false)
+  },
+
+  setBlockText: async (chapterId, blockId, content) => {
+    await writeBlockContent(get, set, chapterId, blockId, content, true)
   },
 
   setCast: async (cast) => {
@@ -475,45 +468,32 @@ export const useWrite = create<WriteState>()((set, get) => ({
     set({ story: next })
   },
 
-  generate: async (direction, opts) => {
-    const { story, chapters, activeChapterId, caret } = get()
-    let active = chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
-    if (!story || !active || get().streaming) return
+  writeBlock: async (chapterId, blockId, direction) => {
+    const { story, chapters, streaming } = get()
+    if (!story || streaming) return
+    const chapter = chapters.find((c) => c.id === chapterId)
+    const block = chapter?.blocks.find((b) => b.id === blockId)
+    if (!chapter || !block) return
     const base = activeConnection()
     if (!base) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection - pick one in Settings.' })
       return
     }
     // story > connection. The cast contributes nothing: several characters, no non-arbitrary winner.
     const connection = resolveParams(base, undefined, story)
-
-    // Retry: take the old span back out first, so the model sees the prose as it was before that
-    // generation ran and writes into the same gap rather than after its own last attempt.
-    if (opts?.replace) {
-      const { start, end } = opts.replace
-      const cut = active.text.slice(0, start) + active.text.slice(end)
-      active = { ...active, text: cut, lastGeneration: undefined, updatedAt: Date.now() }
-      await storage.put('chapters', active as unknown as StoredRecord)
-      set((s) => ({
-        chapters: s.chapters.map((c) => (c.id === active!.id ? active! : c)),
-        revs: { ...s.revs, [active!.id!]: (s.revs[active!.id!] ?? 0) + 1 },
-      }))
-    }
-
-    // Where this lands. An explicit offset wins (Retry, Continue), then the tracked caret when it
-    // belongs to this Chapter, and the end of the Chapter is the fallback — clicking into the prose
-    // is what opts into a caret insert.
-    const caretHere = caret && caret.chapterId === active.id ? caret.offset : undefined
-    const insertAt = Math.min(
-      Math.max(opts?.insertAt ?? caretHere ?? active.text.length, 0),
-      active.text.length,
-    )
+    // The Direction box is the Story's standing instruction: read on every generation, never
+    // cleared. The beat is not folded in - the stack places it with {{beat}}.
+    const sent = direction ?? story.direction
 
     const controller = new AbortController()
     abort = controller
+    // A Block is where this is going, so it takes the cursor.
     set({
+      activeChapterId: chapterId,
+      activeBlockId: blockId,
       streaming: true,
       streamingStoryId: story.id ?? null,
+      streamingBlockId: blockId,
       streamingText: '',
       error: '',
     })
@@ -523,9 +503,9 @@ export const useWrite = create<WriteState>()((set, get) => ({
     try {
       const stack = await useStacks.getState().ensureActive('story')
       await loadTokenizer()
-      // Re-read: a Retry splices the old span out above, and the prompt must see that edit.
       const current = get().chapters
-      const split = storyProseSplit(current, active.id!, insertAt)
+      // The one thing the per-Block context setting does: blank one side of the prose or the other.
+      const split = storyProseSplit(current, chapterId, blockId, block.context)
       const budget = {
         contextLimit: connection.contextLimit,
         maxTokens: maxTokensOf(connection),
@@ -535,11 +515,20 @@ export const useWrite = create<WriteState>()((set, get) => ({
         {
           stack,
           castText: castText(resolveCast(story.cast)),
-          authorNote: story.authorNote,
-          chapterGuide: fitChapterGuide(current, active.id!, budget),
+          tokens: storyTokens({
+            title: story.title,
+            premise: story.premise ?? '',
+            ending: story.ending ?? '',
+            scratchpad: story.scratchpad ?? [],
+            castNames: resolveCast(story.cast).map((m) => m.name),
+            chapters: current,
+            chapterId,
+            blockId,
+          }),
+          chapterGuide: fitChapterGuide(current, chapterId, budget),
           storyText: split.text,
           storyTrailing: split.trailing,
-          direction,
+          direction: sent,
         },
         budget,
       )
@@ -553,8 +542,14 @@ export const useWrite = create<WriteState>()((set, get) => ({
     } catch (err) {
       // Write rule: keep whatever streamed (same as Stop) and surface a toast. Nothing rolls back.
       if (!controller.signal.aborted) {
-        await commit(get, set, active.id!, text, insertAt, direction)
-        set({ streaming: false, streamingStoryId: null, streamingText: '', error: (err as Error).message })
+        await commitSwipe(get, set, chapterId, blockId, text)
+        set({
+          streaming: false,
+          streamingStoryId: null,
+          streamingBlockId: null,
+          streamingText: '',
+          error: (err as Error).message,
+        })
         abort = null
         return
       }
@@ -562,10 +557,11 @@ export const useWrite = create<WriteState>()((set, get) => ({
       abort = null
     }
 
-    await commit(get, set, active.id!, text, insertAt, direction)
+    await commitSwipe(get, set, chapterId, blockId, text)
     set({
       streaming: false,
       streamingStoryId: null,
+      streamingBlockId: null,
       streamingText: '',
       // The text is kept either way; this only says why it ended where it did.
       error:
@@ -575,69 +571,47 @@ export const useWrite = create<WriteState>()((set, get) => ({
     })
   },
 
-  writeBeat: async (chapterId, beatId) => {
-    const { story, chapters, streaming, directions } = get()
-    if (streaming || !story) return
-    const chapter = chapters.find((c) => c.id === chapterId)
-    const beat = chapter?.beats.find((b) => b.id === beatId)
-    if (!chapter || !beat) return
-    // "Write this beat" is an explicit statement of where to write, so the Chapter takes the cursor.
-    // No caret cleanup: generate only adopts a caret whose chapterId matches, so one left behind in
-    // another Chapter falls through to the end-of-Chapter default, which is what this should do.
-    set({ activeChapterId: chapterId })
-    // The box is read, not cleared — a following Retry then behaves as it does today.
-    await get().generate(beatDirection(beat.text, beat.targetWords, directions[story.id!] ?? ''))
+  regenBlock: async (chapterId, blockId, instruction) => {
+    const block = get()
+      .chapters.find((c) => c.id === chapterId)
+      ?.blocks.find((b) => b.id === blockId)
+    if (!block || !instruction.trim()) return
+    // The chat's re-roll wording, unchanged: quote what it said, then the instruction. An empty
+    // Block has nothing to rewrite, so the instruction steers a first draft instead. Either way the
+    // beat still arrives through {{beat}}, so it is not repeated here.
+    await get().writeBlock(
+      chapterId,
+      blockId,
+      block.content.trim() ? rewritePrompt(block.content, instruction) : instruction,
+    )
   },
 
-  retry: async () => {
-    const { story, chapters, activeChapterId, streaming, directions } = get()
-    if (streaming || !story) return
-    const chapter = spanChapter(chapters, activeChapterId)
-    const span = validSpan(chapter)
-    if (!chapter || !span) return
-    // The box wins when the Author has typed a new Direction: Retry with an edited Direction is how
-    // you steer the same passage, not a second way to send the old one.
-    const typed = (directions[story.id!] ?? '').trim()
-    const direction = typed || span.direction
-    set((s) => ({ activeChapterId: chapter.id!, directions: { ...s.directions, [story.id!]: '' } }))
-    await get().generate(direction, { insertAt: span.start, replace: { start: span.start, end: span.end } })
+  swipeBlock: async (chapterId, blockId, index) => {
+    const block = get()
+      .chapters.find((c) => c.id === chapterId)
+      ?.blocks.find((b) => b.id === blockId)
+    if (!block) return
+    const next = selectSwipe(block, index)
+    if (next.content === block.content && next.swipeIndex === block.swipeIndex) return
+    await putBlock(get, set, chapterId, next, true)
   },
 
-  continueStory: async () => {
-    const { chapters, activeChapterId, streaming } = get()
-    if (streaming) return
-    const chapter = spanChapter(chapters, activeChapterId)
-    const span = validSpan(chapter)
-    // With no span, carry on from the end of the active Chapter.
-    const target = chapter ?? chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
-    if (!target || !target.text.trim()) return
-    set({ activeChapterId: target.id! })
-    // No Direction: buildStoryPrompt drops the trailing user turn when it's blank, so the model is
-    // asked for more of the same prose rather than for an answer to an empty instruction.
-    await get().generate('', { insertAt: span ? span.end : target.text.length })
-  },
-
-  undoGeneration: async () => {
-    const { story, chapters, activeChapterId, streaming } = get()
-    if (streaming || !story) return
-    const chapter = spanChapter(chapters, activeChapterId)
-    const span = validSpan(chapter)
-    if (!chapter || !span) return
-    const text = chapter.text.slice(0, span.start) + chapter.text.slice(span.end)
-    const next = { ...chapter, text, lastGeneration: undefined, updatedAt: Date.now() }
-    await storage.put('chapters', next as unknown as StoredRecord)
-    set((s) => ({
-      chapters: s.chapters.map((c) => (c.id === chapter.id ? next : c)),
-      revs: { ...s.revs, [chapter.id!]: (s.revs[chapter.id!] ?? 0) + 1 },
-      activeChapterId: chapter.id!,
-      // The Direction that produced the passage goes back in the box, so undo-and-rephrase is one
-      // step. This is what the old restore-last-Direction button did, tied to a real edit.
-      directions: { ...s.directions, [story.id!]: span.direction },
-      // The caret returns to where the passage was, which is where the next one would go.
-      caret: { chapterId: chapter.id!, offset: span.start },
-      pendingCaret: { chapterId: chapter.id!, offset: span.start },
-    }))
-    await touchStory(get, set)
+  deleteSwipe: async (chapterId, blockId) => {
+    const block = get()
+      .chapters.find((c) => c.id === chapterId)
+      ?.blocks.find((b) => b.id === blockId)
+    if (!block) return
+    // Unlike chat, the Block is part of the plan - dropping its last version leaves an empty beat,
+    // and Delete Beat is the separate, confirmed action.
+    const next = deletedSwipes(block, [swipeIndex(block)]) ?? {
+      ...block,
+      swipes: undefined,
+      swipeIndex: undefined,
+      requestSnapshots: undefined,
+      reasonings: undefined,
+      content: '',
+    }
+    await putBlock(get, set, chapterId, next, true)
   },
 
   stop: () => abort?.abort(),
@@ -645,53 +619,79 @@ export const useWrite = create<WriteState>()((set, get) => ({
   dismissError: () => set({ error: '' }),
 }))
 
-/**
- * Splice streamed prose into one Chapter at an offset and persist, recording the span it wrote.
- * Bumps that Chapter's rev so its region re-syncs to the committed text.
- *
- * The recorded span covers the separators as well as the model's text. The plan's `start` is the
- * insert offset plus the leading separator; keeping the separators inside the span instead means
- * Undo removes exactly what the generation added, so a Direct → Undo round-trips the Chapter back
- * to the character it started as. `start` is still the insert point, which is what Retry re-uses.
- */
-async function commit(
+/** Write one Block back onto its Chapter and persist. `resync` bumps the Block's rev, which makes
+ *  its region rebuild its DOM - right for anything that didn't come from the region itself, wrong
+ *  for typing, which would lose the caret. */
+async function putBlock(
   get: () => WriteState,
   set: (partial: Partial<WriteState> | ((s: WriteState) => Partial<WriteState>)) => void,
   chapterId: number,
-  added: string,
-  insertAt: number,
-  direction: string,
+  block: Block,
+  resync: boolean,
 ) {
-  if (!added) return
   // Storage, not state: leaving the Story mid-generation clears `chapters`, and the reply still has
   // to land. The in-memory patch below is then a no-op, and openStory() reloads it on the way back.
   const chapter =
     get().chapters.find((c) => c.id === chapterId) ??
     ((await storage.get('chapters', chapterId)) as unknown as Chapter | undefined)
   if (!chapter) return
-  const base = chapter.text
-  const at = Math.min(Math.max(insertAt, 0), base.length)
-  const before = base.slice(0, at)
-  const after = base.slice(at)
-  // Boundaries so the passage doesn't fuse onto the word on either side; storage still holds raw
-  // prose. The trailing one only matters for a caret insert, where there is prose on the right.
-  const sep = before && !/\s$/.test(before) ? ' ' : ''
-  const tail = after && !/^\s/.test(after) && !/\s$/.test(added) ? ' ' : ''
-  const span = sep + added + tail
   const next = {
     ...chapter,
-    text: before + span + after,
-    lastGeneration: { start: at, end: at + span.length, text: span, direction },
+    blocks: chapter.blocks.map((b) => (b.id === block.id ? block : b)),
     updatedAt: Date.now(),
   }
   await storage.put('chapters', next as unknown as StoredRecord)
   set((s) => ({
     chapters: s.chapters.map((c) => (c.id === chapterId ? next : c)),
-    revs: { ...s.revs, [chapterId]: (s.revs[chapterId] ?? 0) + 1 },
-    // Typing (or a second Direct) carries on from where the passage ended, not from offset 0 where
-    // the rev rebuild would otherwise leave the caret.
-    caret: { chapterId, offset: at + span.length },
-    pendingCaret: { chapterId, offset: at + span.length },
+    ...(resync
+      ? {
+          revs: { ...s.revs, [block.id]: (s.revs[block.id] ?? 0) + 1 },
+          // A rebuild would otherwise leave the caret at the start; typing carries on at the end.
+          pendingCaret: { blockId: block.id, offset: block.content.length },
+        }
+      : null),
   }))
   await touchStory(get, set)
+}
+
+/** Typing, or a wholesale replace. The edit lands on the selected swipe as well as on `content`,
+ *  so swiping away and back doesn't quietly discard it - the same rule chat follows. */
+async function writeBlockContent(
+  get: () => WriteState,
+  set: (partial: Partial<WriteState> | ((s: WriteState) => Partial<WriteState>)) => void,
+  chapterId: number,
+  blockId: string,
+  content: string,
+  resync: boolean,
+) {
+  const block = get()
+    .chapters.find((c) => c.id === chapterId)
+    ?.blocks.find((b) => b.id === blockId)
+  if (!block || block.content === content) return
+  const swipes = block.swipes?.length
+    ? block.swipes.map((t, i) => (i === (block.swipeIndex ?? 0) ? content : t))
+    : undefined
+  await putBlock(get, set, chapterId, { ...block, content, swipes }, resync)
+}
+
+/**
+ * A finished generation: the text becomes a new swipe on the Block and the selected one. Nothing is
+ * spliced and no offsets are recorded - swiping back is what Undo used to be, and it survives a
+ * reload for free because the alternates are stored.
+ */
+async function commitSwipe(
+  get: () => WriteState,
+  set: (partial: Partial<WriteState> | ((s: WriteState) => Partial<WriteState>)) => void,
+  chapterId: number,
+  blockId: string,
+  added: string,
+) {
+  if (!added.trim()) return
+  const chapter =
+    get().chapters.find((c) => c.id === chapterId) ??
+    ((await storage.get('chapters', chapterId)) as unknown as Chapter | undefined)
+  const block = chapter?.blocks.find((b) => b.id === blockId)
+  if (!block) return
+  const next = regenerated(block, added.trim())
+  if (next) await putBlock(get, set, chapterId, next, true)
 }

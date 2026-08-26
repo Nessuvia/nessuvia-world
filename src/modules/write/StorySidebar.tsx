@@ -4,7 +4,7 @@ import { RiAddLine, RiCloseLine, RiSettings3Line } from '@remixicon/react'
 import { Avatar } from '../../app/Avatar'
 import type { CastEntry } from '../../core/storage/types'
 import { useWrite } from '../../core/stores/writeStore'
-import { spanChapter, validSpan } from '../../core/stores/writeSpan'
+import { beatBlocks } from '../../core/prompt/chapterGuide'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import EntityPicker, { type PickerItem } from '../../app/EntityPicker'
@@ -72,7 +72,7 @@ function CastSection() {
               </button>
               {look.page && (
                 <Link to={look.page} className="castRowAction" title={`Open ${entry.kind}`}>
-                  <RiSettings3Line size={14} />
+                  <RiSettings3Line size={21} />
                 </Link>
               )}
               <button
@@ -81,7 +81,7 @@ function CastSection() {
                 title="Remove from cast"
                 onClick={() => detach(entry.kind, entry.id)}
               >
-                <RiCloseLine size={14} />
+                <RiCloseLine size={21} />
               </button>
             </li>
           )
@@ -108,16 +108,74 @@ function CastSection() {
   )
 }
 
-// The Story's standing instruction. Debounced so a keystroke isn't a database write.
-function AuthorNoteSection() {
+/**
+ * The beats of the Chapter the cursor is in, as a checklist. The Chapter comes from
+ * `activeChapterId`, which a Block region's onFocus already sets — "the Chapter you are writing in"
+ * needs no tracking of its own.
+ *
+ * Ticking here is the same write the box in the document makes: one `blocks` patch, one meaning.
+ */
+function ChapterBeatsSection() {
+  const chapters = useWrite((s) => s.chapters)
+  const activeChapterId = useWrite((s) => s.activeChapterId)
+  const updateChapter = useWrite((s) => s.updateChapter)
+
+  const chapter = chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
+  if (!chapter) return null
+  const beats = beatBlocks(chapter)
+  if (beats.length === 0) return <p className="placeholder">No beats in this chapter.</p>
+
+  // Scrolling to the Block and focusing it is one action: the checklist is a way around the
+  // document, not a second place to read it.
+  function jump(blockId: string) {
+    const el = document.querySelector<HTMLElement>(`.storyProse[data-block="${blockId}"]`)
+    if (!el) return
+    el.scrollIntoView({ block: 'center' })
+    el.focus()
+  }
+
+  return (
+    <ul className="beatChecklist">
+      {beats.map((beat, i) => (
+        <li key={beat.id}>
+          <input
+            type="checkbox"
+            checked={beat.done}
+            title="Mark this beat done. Nothing ticks it for you."
+            onChange={(e) =>
+              updateChapter(chapter.id!, {
+                blocks: chapter.blocks.map((b) =>
+                  b.id === beat.id ? { ...b, done: e.target.checked } : b,
+                ),
+              })
+            }
+          />
+          <button
+            type="button"
+            className={beat.done ? 'beatChecklistRow done' : 'beatChecklistRow'}
+            title="Go to this beat"
+            onClick={() => jump(beat.id)}
+          >
+            {beat.beat.trim() || `Beat ${i + 1}`}
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// The Story's standing instruction: read on every generation, never cleared. Debounced so a
+// keystroke isn't a database write.
+function DirectionSection() {
   const story = useWrite((s) => s.story)
-  const setAuthorNote = useWrite((s) => s.setAuthorNote)
-  const [draft, setDraft] = useState(story?.authorNote ?? '')
+  const streaming = useWrite((s) => s.streaming)
+  const setDirection = useWrite((s) => s.setDirection)
+  const [draft, setDraft] = useState(story?.direction ?? '')
   const timer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    setDraft(story?.authorNote ?? '')
-  }, [story?.id, story?.authorNote])
+    setDraft(story?.direction ?? '')
+  }, [story?.id, story?.direction])
 
   // Same flush-on-unmount rule as the editor: the pending keystrokes are still the Author's.
   useEffect(
@@ -132,19 +190,23 @@ function AuthorNoteSection() {
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => {
       timer.current = undefined
-      setAuthorNote(text)
+      setDirection(text)
     }, 500)
   }
 
   return (
-    <textarea
-      className="authorNoteBox"
-      rows={4}
-      value={draft}
-      placeholder="A standing instruction for this Story."
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={() => setAuthorNote(draft)}
-    />
+    <>
+      <textarea
+        className="directionInput"
+        rows={4}
+        value={draft}
+        disabled={streaming}
+        placeholder="A standing instruction for this Story."
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setDirection(draft)}
+      />
+      <p className="hint">Sent with every generation. It is not cleared after one.</p>
+    </>
   )
 }
 
@@ -164,7 +226,7 @@ function NoteEdit({ text, onSave, onDelete }: { text: string; onSave: (t: string
         onBlur={() => draft !== text && onSave(draft)}
       />
       <button type="button" className="castRowAction" title="Delete note" onClick={onDelete}>
-        <RiCloseLine size={14} />
+        <RiCloseLine size={21} />
       </button>
     </div>
   )
@@ -190,38 +252,29 @@ function ScratchpadSection() {
         />
       ))}
       <button type="button" className="noteAdd" onClick={() => setScratchpad([...notes, ''])}>
-        <RiAddLine size={14} /> Add note
+        <RiAddLine size={21} /> Add note
       </button>
     </div>
   )
 }
 
 /**
- * Right panel: Story-exclusive controls. The Direction box is pinned at the top; everything else is
- * an accordion section under it.
+ * Right panel: Story-exclusive controls. Write next beat is pinned at the top; everything else,
+ * the Direction included, is an accordion section under it.
  *
  * On a wide screen it has two states: full, or collapsed to a rail, moved by the chevron.
  *
  * On a phone there is no rail — a rail of this panel carries no controls, so it would be width
  * spent on nothing. The panel is a drawer on the right edge instead (useSideDrawer): the chevron
  * closes it, the button at the top right opens it, a swipe drags it either way under the finger,
- * and Direct closes it so the prose is visible while the Co-Writer writes. Not persisted.
+ * and Write next beat closes it so the prose is visible while the Co-Writer writes. Not persisted.
  */
-export default function StorySidebar({ onDirect }: { onDirect: (direction: string) => void }) {
-  const story = useWrite((s) => s.story)
+export default function StorySidebar() {
   const chapters = useWrite((s) => s.chapters)
   const activeChapterId = useWrite((s) => s.activeChapterId)
   const streaming = useWrite((s) => s.streaming)
   const stop = useWrite((s) => s.stop)
-  // Kept in the store so the draft survives moving around the app; cleared on send.
-  const direction = useWrite((s) => (story?.id != null ? (s.directions[story.id] ?? '') : ''))
-  const setDirection = useWrite((s) => s.setDirection)
-  const retry = useWrite((s) => s.retry)
-  const continueStory = useWrite((s) => s.continueStory)
-  const undoGeneration = useWrite((s) => s.undoGeneration)
-  const writeBeat = useWrite((s) => s.writeBeat)
-  // The same rule the store's actions use, so a button is live exactly when its action would act.
-  const span = useWrite((s) => validSpan(spanChapter(s.chapters, s.activeChapterId)))
+  const writeBlock = useWrite((s) => s.writeBlock)
   // The collapsed rail is a wide-screen state only; on a phone the panel is a drawer.
   const narrow = useMediaQuery('(max-width: 700px)')
   const [collapsed, setCollapsed] = useState(
@@ -238,20 +291,9 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
 
   const active = chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
   const activeIndex = chapters.findIndex((c) => c.id === active?.id)
-  const hasProse = (active?.text ?? '').trim() !== ''
   // The active Chapter's first unwritten beat. It never falls through to another Chapter: "next
   // beat" means next in what is being written, not next in the Story.
-  const nextBeat = active?.beats.find((b) => !b.done && b.text.trim())
-
-  function direct() {
-    const text = direction.trim()
-    if (!text || story?.id == null) return
-    setDirection(story.id, '')
-    // The panel covers the screen on a phone, so sending would leave the Author staring at the
-    // controls while the prose they asked for streams in behind them.
-    if (narrow) setOpen(false)
-    onDirect(text)
-  }
+  const nextBeat = active && beatBlocks(active).find((b) => !b.done && b.beat.trim())
 
   if (collapsed && !narrow)
     return (
@@ -298,50 +340,37 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
         />
       </header>
 
+      {/* The one pinned action. Writing an unplanned passage is "add free prose here" plus that
+          Block's own write button, in the prose where you are looking - there is no second, remote
+          way to start a generation. */}
       <div className="directionBox">
-        <textarea
-          value={direction}
-          placeholder="What should the Co-Writer write next?"
-          disabled={streaming}
-          onChange={(e) => story?.id != null && setDirection(story.id, e.target.value)}
-        />
         <div className="directionButtons">
           {streaming ? (
             <button type="button" className="directBtn" onClick={stop}>
               Stop
             </button>
           ) : (
-            <button type="button" className="directBtn" disabled={!direction.trim()} onClick={direct}>
-              Direct
+            <button
+              type="button"
+              className="directBtn"
+              disabled={!nextBeat}
+              title={
+                nextBeat
+                  ? 'Write the first unchecked beat of this Chapter.'
+                  : 'No unwritten beats in this chapter.'
+              }
+              onClick={() => {
+                // The panel covers the screen on a phone, so sending would leave the Author staring
+                // at the controls while the prose they asked for streams in behind them.
+                if (narrow) setOpen(false)
+                if (nextBeat) writeBlock(active!.id!, nextBeat.id)
+              }}
+            >
+              Write next beat
             </button>
           )}
-          <button
-            type="button"
-            disabled={streaming || !nextBeat}
-            title={
-              nextBeat
-                ? 'Write the first unchecked beat of this Chapter.'
-                : 'No unwritten beats in this chapter.'
-            }
-            onClick={() => nextBeat && writeBeat(active!.id!, nextBeat.id)}
-          >
-            Write next beat
-          </button>
-          <button type="button" disabled={!span || streaming} onClick={() => retry()}>
-            Retry
-          </button>
-          {/* The only one that doesn't need a span: with prose to carry on from, there is something
-              to continue whether or not the last passage came from the Co-Writer. */}
-          <button
-            type="button"
-            disabled={streaming || !hasProse}
-            onClick={() => continueStory()}
-          >
-            Continue
-          </button>
-          <button type="button" disabled={!span || streaming} onClick={() => undoGeneration()}>
-            Undo
-          </button>
+          {/* No Retry / Continue / Undo: a generation is a swipe on its Block now, so those live on
+              the Block's own header where the passage they act on is. */}
         </div>
         {active && (
           <p className="activeChapterName">
@@ -352,8 +381,13 @@ export default function StorySidebar({ onDirect }: { onDirect: (direction: strin
       </div>
 
       <details className="panel accordionSection" open>
-        <summary>Author's note</summary>
-        <AuthorNoteSection />
+        <summary>Chapter beats</summary>
+        <ChapterBeatsSection />
+      </details>
+
+      <details className="panel accordionSection">
+        <summary>Direction</summary>
+        <DirectionSection />
       </details>
 
       <details className="panel accordionSection" open>
