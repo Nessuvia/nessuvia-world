@@ -7,8 +7,8 @@
 // payload around 100 KB, and spreading that many arguments overflows the call stack in Chrome.
 const ascii = new TextDecoder()
 
-/** Returns the base64 payload of the first matching tEXt keyword, or null. */
-function readTextChunk(bytes: Uint8Array, keywords: string[]): string | null {
+/** Returns the base64 payload of the first tEXt chunk with this keyword, or null. */
+function readTextChunk(bytes: Uint8Array, keyword: string): string | null {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let i = 8 // skip the 8-byte PNG signature
   while (i + 8 <= bytes.length) {
@@ -18,8 +18,7 @@ function readTextChunk(bytes: Uint8Array, keywords: string[]): string | null {
       const data = bytes.subarray(i + 8, i + 8 + len)
       const nul = data.indexOf(0)
       if (nul !== -1) {
-        const keyword = ascii.decode(data.subarray(0, nul))
-        if (keywords.includes(keyword)) {
+        if (ascii.decode(data.subarray(0, nul)) === keyword) {
           return ascii.decode(data.subarray(nul + 1))
         }
       }
@@ -40,8 +39,9 @@ export function pngDataUrl(buffer: ArrayBuffer): string {
 /** Parses the card JSON embedded in a Tavern PNG. Throws if none is present. */
 export function parsePngCard(buffer: ArrayBuffer): unknown {
   const bytes = new Uint8Array(buffer)
-  // ccv3 wins when both are present — it's the newer, fuller record.
-  const b64 = readTextChunk(bytes, ['ccv3', 'chara'])
+  // ccv3 wins when both are present — it's the newer, fuller record. Two passes rather than one,
+  // because a single pass would return whichever chunk came first in the file.
+  const b64 = readTextChunk(bytes, 'ccv3') ?? readTextChunk(bytes, 'chara')
   if (!b64) throw new Error('No character data in this PNG')
   const json = decodeURIComponent(escape(atob(b64))) // atob → latin1; this recovers UTF-8
   return JSON.parse(json)

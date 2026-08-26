@@ -830,4 +830,56 @@ for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
   assert.ok(!bad.some((m) => m.content.includes('hemingway')))
 }
 
+// --- card system_prompt / post_history_instructions ----------------------
+{
+  const sysBlock = block({ source: 'characterSystemPrompt', content: 'STACK DEFAULT' })
+  const withCard = (systemPrompt: string) => ({ ...damien, systemPrompt })
+  const text = (s: PromptStack, c: Character) =>
+    build(s, c)
+      .map((m) => m.content)
+      .join('\n')
+
+  // No card value: the block's own content is used. This is the spec's empty-string fallback.
+  assert.ok(text(stack([sysBlock]), withCard('')).includes('STACK DEFAULT'))
+  // Whitespace is not a value either.
+  assert.ok(text(stack([sysBlock]), withCard('   ')).includes('STACK DEFAULT'))
+
+  // A card value replaces the block's content outright.
+  const replaced = text(stack([sysBlock]), withCard('CARD RULES'))
+  assert.ok(replaced.includes('CARD RULES'))
+  assert.ok(!replaced.includes('STACK DEFAULT'))
+
+  // {{original}} brings the block's own content back, so a card can extend instead of replace.
+  const extended = text(stack([sysBlock]), withCard('{{original}} Also be terse.'))
+  assert.ok(extended.includes('STACK DEFAULT Also be terse.'))
+
+  // Same casing and inner-space tolerance as every other token.
+  assert.ok(text(stack([sysBlock]), withCard('{{ ORIGINAL }}!')).includes('STACK DEFAULT!'))
+
+  // {{original}} in the block's own content is NOT substituted into itself — otherwise a stack
+  // author writing it would get their own text pasted in twice.
+  const selfRef = block({ source: 'characterSystemPrompt', content: 'a {{original}} b' })
+  assert.ok(text(stack([selfRef]), withCard('')).includes('a {{original}} b'))
+
+  // A character with the field absent entirely (older record) behaves as empty, not as a crash.
+  const legacy = { ...damien } as Character
+  delete (legacy as Partial<Character>).systemPrompt
+  assert.ok(text(stack([sysBlock]), legacy).includes('STACK DEFAULT'))
+
+  // Post-history reads its own field, and the two don't cross over.
+  const postBlock = block({ source: 'characterPostHistory', content: 'POST DEFAULT' })
+  const both = text(stack([sysBlock, postBlock]), {
+    ...damien,
+    systemPrompt: 'SYS',
+    postHistoryInstructions: 'POST',
+  })
+  assert.ok(both.includes('SYS'))
+  assert.ok(both.includes('POST'))
+  assert.ok(!both.includes('DEFAULT'))
+
+  // Disabled means gone, card value or not.
+  const off = block({ source: 'characterSystemPrompt', content: 'x', disabled: true })
+  assert.ok(!text(stack([off]), withCard('CARD RULES')).includes('CARD RULES'))
+}
+
 console.log('ok')

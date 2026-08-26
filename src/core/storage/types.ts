@@ -20,6 +20,18 @@ export interface Character {
   // Free-text tags. Order matters: tags[0] is the character's group in the picker's grouped view.
   // Unindexed on purpose — the whole roster is in memory, so filtering is an array pass.
   tags: string[]
+  /** Card `system_prompt`. Reaches the model through a `characterSystemPrompt` block; empty falls
+   *  back to that block's own content. Character-level, so it applies to every chat with them.
+   *  ponytail: per-chat override belongs on Chat as an optional field, when one chat needs to
+   *  differ from the rest. */
+  systemPrompt: string
+  /** Card `post_history_instructions` — the "ujb/jailbreak". Same rules as `systemPrompt`. */
+  postHistoryInstructions: string
+  // The three below are card metadata. The spec forbids all of them in prompt engineering, so
+  // nothing in core/prompt may read them.
+  creatorNotes: string
+  creator: string
+  characterVersion: string
   rawCard?: unknown // original parsed card, untouched
   paramOverrides?: ParamOverrides
   stackId?: number // declared now, no UI until it's wanted
@@ -304,6 +316,10 @@ export type BlockSource =
   | 'characterPersonality'
   | 'characterScenario'
   | 'characterExampleDialogue'
+  // The card's system_prompt / post_history_instructions. On these two the block's own `content`
+  // is the fallback used when the character has none, and is what {{original}} resolves to.
+  | 'characterSystemPrompt'
+  | 'characterPostHistory'
   | 'personaDescription' // the active persona's description
   | 'authorNote' // the chat's author's note; skipped when empty. Chat stacks only.
   | 'worldInfo' // the speaking character's matched lorebook entries; skipped when none match

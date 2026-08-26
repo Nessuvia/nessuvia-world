@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { newCharacter, useCharacters } from '../../core/stores/charactersStore'
 import { useSettings } from '../../core/stores/settingsStore'
 import { ColorInput } from '../../app/ColorInput'
-import type { Character } from '../../core/storage/types'
+import type { BlockSource, Character } from '../../core/storage/types'
+import { sourceLabels } from '../prompts/blockTypes'
 import ParamEditor from './ParamEditor'
 import AvatarCropDialog from './AvatarCropDialog'
 import GalleryLightbox from './GalleryLightbox'
@@ -20,6 +21,8 @@ import LorebookTab from './LorebookTab'
 import TagChips from './TagChips'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
+import { useStacks } from '../../core/stores/stacksStore'
+import { hasSource } from '../prompts/stackKinds'
 
 const tabs = ['General', 'Description', 'Openings', 'Gallery', 'Lorebook', 'Details', 'Parameters'] as const
 type Tab = (typeof tabs)[number] | string
@@ -42,6 +45,12 @@ export default function CharacterEditor({
 }) {
   const { characters, load, save } = useCharacters()
   const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  // For the "this text is not sent" notice below: the card's prompt fields only reach the model
+  // through a block, and the default stacks carry neither.
+  const stacks = useStacks((s) => s.stacks)
+  const loadStacks = useStacks((s) => s.load)
+  const activeStackId = useSettings((s) => s.activeStackId)
+  const activeStack = stacks.find((s) => s.id === activeStackId)
   const [draft, setDraft] = useState<Character | null>(
     characterId === null ? newCharacter() : null,
   )
@@ -62,6 +71,10 @@ export default function CharacterEditor({
   useEffect(() => {
     if (characters.length === 0) load()
   }, [characters.length, load])
+
+  useEffect(() => {
+    if (stacks.length === 0) loadStacks()
+  }, [stacks.length, loadStacks])
 
   // Fills once, when the characters land. Switching character remounts this component
   // (the parent keys it on the id), so the draft never needs resetting in place.
@@ -152,6 +165,14 @@ export default function CharacterEditor({
     setDraft(next)
     setSaved(false)
   }
+
+  // The default stacks carry neither block, so text typed above goes nowhere until someone adds
+  // one. Say so rather than let it fail quietly. Silent only when the field is empty — a blank
+  // field has nothing to drop.
+  const missingBlock = (source: BlockSource, value: string | undefined) =>
+    value?.trim() && activeStack && !hasSource(activeStack, source) ? (
+      <p className="hint">The active prompt stack has no {sourceLabels[source]} block. This text is not sent.</p>
+    ) : null
 
   const set = <K extends keyof Character>(key: K, value: Character[K]) =>
     change({ ...draft!, [key]: value })
@@ -626,6 +647,55 @@ export default function CharacterEditor({
               onChange={(e) => set('exampleDialogue', e.target.value)}
             />
           </label>
+
+          {/* ponytail: these five sit here until the editor is rebuilt as sections — they belong
+              in Prompt and About. Placed, not designed. */}
+          <label>
+            System prompt
+            <textarea
+              rows={4}
+              value={draft.systemPrompt ?? ''}
+              onChange={(e) => set('systemPrompt', e.target.value)}
+            />
+          </label>
+          <p className="hint">
+            Used by a Character system prompt block. Empty uses the block's own text.{' '}
+            {'{{original}}'} inserts that text.
+          </p>
+          {missingBlock('characterSystemPrompt', draft.systemPrompt)}
+
+          <label>
+            Post-history instructions
+            <textarea
+              rows={4}
+              value={draft.postHistoryInstructions ?? ''}
+              onChange={(e) => set('postHistoryInstructions', e.target.value)}
+            />
+          </label>
+          {missingBlock('characterPostHistory', draft.postHistoryInstructions)}
+
+          <label>
+            Creator
+            <input value={draft.creator ?? ''} onChange={(e) => set('creator', e.target.value)} />
+          </label>
+
+          <label>
+            Character version
+            <input
+              value={draft.characterVersion ?? ''}
+              onChange={(e) => set('characterVersion', e.target.value)}
+            />
+          </label>
+
+          <label>
+            Creator notes
+            <textarea
+              rows={4}
+              value={draft.creatorNotes ?? ''}
+              onChange={(e) => set('creatorNotes', e.target.value)}
+            />
+          </label>
+          <p className="hint">Shown on the character page. Not sent to the model.</p>
         </>
       )}
 

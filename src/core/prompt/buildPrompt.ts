@@ -10,6 +10,20 @@ import { promptConditions, resolveConditions } from './conditions.ts'
 import type { Budget } from './budget.ts'
 import { countMessages, countTokens, perMessageOverhead, trimHistory } from './budget.ts'
 
+/**
+ * The card's text, or the block's own content when the card has none — which is the spec's
+ * "empty string means use the frontend's own" rule. {{original}} in the card's text resolves to
+ * that same content, so a card can extend the stack's instruction instead of replacing it.
+ *
+ * Per-block, so it can't live in swapTokens: {{original}} means *this* block's content.
+ */
+function cardOverride(cardText: string, block: PromptBlock): string {
+  const fallback = activeContent(block)
+  // Not substituted into the fallback itself — {{original}} inside it would resolve to itself.
+  if (!cardText.trim()) return fallback
+  return cardText.replace(/\{\{\s*original\s*\}\}/gi, fallback)
+}
+
 function boundText(
   block: PromptBlock,
   character: Character,
@@ -30,6 +44,12 @@ function boundText(
       return character.scenario
     case 'characterExampleDialogue':
       return character.exampleDialogue
+    // Both follow the speaker, like every other bound character source: in a group chat
+    // `character` is already whoever is talking.
+    case 'characterSystemPrompt':
+      return cardOverride(character.systemPrompt ?? '', block)
+    case 'characterPostHistory':
+      return cardOverride(character.postHistoryInstructions ?? '', block)
     case 'personaDescription':
       return persona.description
     default:

@@ -1,21 +1,29 @@
 // Character export: a Tavern v2/v3 card. Our own fields ride along in `data.extensions` — readers
 // that don't know them ignore them, and importCard() reads them back.
 import type { Character, WorldInfoEntry } from '../../core/storage/types'
+import { bookOf, cardData } from './importCard.ts' // explicit extension: checkImportCard.ts imports this file under node
+
+type Loose = Record<string, unknown>
+
+const obj = (v: unknown) =>(v && typeof v === 'object' && !Array.isArray(v) ? (v as Loose) : {})
 
 /**
  * The `character_book` half of the card. Each entry's untouched `raw` is preferred, so everything
  * this app doesn't model — secondary_keys, selective, probability, position, extensions — leaves
  * exactly as it arrived. Hand-authored entries have no `raw` and get a minimal spec entry.
+ *
+ * The two book-level flags we don't model come off the original book for the same reason.
  */
 function buildBook(c: Character, entries: WorldInfoEntry[]) {
   if (!entries.length && !c.worldBook) return undefined
+  const was = bookOf(c.rawCard) ?? {}
   return {
     name: c.worldBook?.name ?? '',
     description: c.worldBook?.description ?? '',
     scan_depth: c.worldBook?.scanDepth,
     token_budget: c.worldBook?.tokenBudget,
-    recursive_scanning: false,
-    extensions: {},
+    recursive_scanning: was.recursive_scanning === true,
+    extensions: obj(was.extensions),
     entries: entries.map((e, index) =>
       e.raw && typeof e.raw === 'object'
         ? e.raw
@@ -32,8 +40,14 @@ function buildBook(c: Character, entries: WorldInfoEntry[]) {
   }
 }
 
-/** The card JSON, spec'd as v2 with a v3 marker so both readers find their fields. */
+/** The card JSON, spec'd as v2 with a v3 marker so both readers find their fields.
+ *
+ *  Every spec field is written off the Character record — importCard fills all of them on the way
+ *  in, so a value that arrived on a card is on the record too. `rawCard` is still consulted for
+ *  what this app does NOT model: foreign `extensions` keys and the book's own flags. The spec
+ *  forbids destroying data that was already there. */
 export function buildCard(c: Character, entries: WorldInfoEntry[] = []) {
+  const was = cardData(c.rawCard)
   const data = {
     name: c.name,
     description: c.description,
@@ -41,16 +55,17 @@ export function buildCard(c: Character, entries: WorldInfoEntry[] = []) {
     scenario: c.scenario,
     first_mes: c.firstMessage,
     mes_example: c.exampleDialogue,
-    creator_notes: '',
-    system_prompt: '',
-    post_history_instructions: '',
+    creator_notes: c.creatorNotes,
+    system_prompt: c.systemPrompt,
+    post_history_instructions: c.postHistoryInstructions,
     alternate_greetings: c.alternateGreetings,
-    tags: [],
-    creator: '',
-    character_version: '',
+    tags: c.tags,
+    creator: c.creator,
+    character_version: c.characterVersion,
     character_book: buildBook(c, entries),
     extensions: {
-      alternate_fields: { alt_descriptions: c.altDescriptions },
+      ...obj(was.extensions),
+      alternate_fields: { ...obj(obj(was.extensions).alternate_fields), alt_descriptions: c.altDescriptions },
       nessu: {
         displayName: c.displayName ?? '',
         activeDescriptionIndex: c.activeDescriptionIndex,

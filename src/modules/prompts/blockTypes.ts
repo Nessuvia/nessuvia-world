@@ -9,6 +9,8 @@ export const sourceLabels: Record<BlockSource, string> = {
   characterPersonality: 'Character personality',
   characterScenario: 'Character scenario',
   characterExampleDialogue: 'Character example dialogue',
+  characterSystemPrompt: 'Character system prompt',
+  characterPostHistory: 'Character post-history instructions',
   personaDescription: 'Persona description',
   authorNote: "Author's note",
   worldInfo: 'World info',

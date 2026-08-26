@@ -15,6 +15,8 @@ export const boundSources: Record<StackKind, BlockSource[]> = {
     'characterPersonality',
     'characterScenario',
     'characterExampleDialogue',
+    'characterSystemPrompt',
+    'characterPostHistory',
     'personaDescription',
     'worldInfo',
     'authorNote',
@@ -38,6 +40,10 @@ const countIn = (list: PromptBlock[], source: BlockSource): number =>
   )
 
 const count = (stack: PromptStack, source: BlockSource) => countIn(stack.active, source)
+
+/** Whether a stack has a live block of this source. A disabled one doesn't count — it contributes
+ *  nothing, which is the same outcome as not having it. */
+export const hasSource = (stack: PromptStack, source: BlockSource) => count(stack, source) > 0
 
 /** Why the stack can't be saved, or '' when it's valid. Keyed by kind. */
 export function validateStack(stack: PromptStack): string {
