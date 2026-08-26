@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   RiAddLine,
   RiArrowGoBackLine,
   RiDeleteBinLine,
   RiDownloadLine,
   RiFileCopyLine,
+  RiPaletteLine,
   RiSparkling2Line,
   RiStopFill,
   RiUploadLine,
@@ -19,11 +20,14 @@ import {
   downloadPalettes,
   parsePalettes,
   remapImages,
+  type PaletteFileImage,
 } from '../../core/palette/importPalettes'
+import { bundledPalettes } from '../../core/palette/bundledPalettes'
 import { useBackgroundImages } from '../../core/stores/backgroundImagesStore'
 import { lockedHint, usePalette, usePalettes } from '../../core/stores/palettesStore'
 import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
 import TwoColumn from '../../app/TwoColumn'
+import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import AppearancePanel, { colorField as chatColorField, fonts } from './AppearancePanel'
 import WebfontPicker from './WebfontPicker'
 import './appearance.css'
@@ -71,6 +75,17 @@ export default function PalettesPanel() {
   const [ask, setAsk] = useState('')
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [editorOpen, setEditorOpen] = useState(true)
+  const [bundledOpen, setBundledOpen] = useState(false)
+  const bundledRef = useCloseOnOutside(bundledOpen, () => setBundledOpen(false))
+  // The files ship with the build, so parsing them once per mount is enough.
+  const bundled = useMemo(bundledPalettes, [])
+
+  /** Store the images a set of palettes came with, then append the palettes pointed at the new
+   *  rows. Both the file import and the bundled picker land here. */
+  const addPalettes = async (incoming: Palette[], images: Record<number, PaletteFileImage>) => {
+    const map = await importImages(images)
+    await add(incoming.map((p) => remapImages(p, map)))
+  }
 
   /** Selecting another palette always shows its editor, so the panel can't look empty. */
   const pick = (id: number | null) => {
@@ -211,11 +226,42 @@ export default function PalettesPanel() {
                     e.target.value = ''
                     if (!file) return
                     const { palettes: incoming, images } = parsePalettes(await file.text())
-                    const map = await importImages(images)
-                    await add(incoming.map((p) => remapImages(p, map)))
+                    await addPalettes(incoming, images)
                   }}
                 />
               </label>
+
+              {bundled.length > 0 && (
+                <div className="paletteBundled" ref={bundledRef}>
+                  <button type="button" onClick={() => setBundledOpen(!bundledOpen)}>
+                    <RiPaletteLine size={16} />
+                    Bundled
+                  </button>
+                  {bundledOpen && (
+                    <div className="panel paletteBundledMenu">
+                      {bundled.map(({ key, palette: p, images }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          // Adding, not restoring: an existing copy stays as it is and the new row
+                          // takes a numbered name.
+                          onClick={() => {
+                            setBundledOpen(false)
+                            addPalettes([p], images)
+                          }}
+                        >
+                          <span className="paletteSwatches">
+                            {[p.bg, p.surface, p.accent, p.text].map((c, i) => (
+                              <span key={i} className="paletteSwatch" style={{ background: c }} />
+                            ))}
+                          </span>
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 type="button"
