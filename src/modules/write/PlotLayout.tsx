@@ -18,7 +18,7 @@ import { beatText, emptyBeat, storedBeat, withBeats } from './beatSlots'
 import { parseBulkBeats, type BulkBeat } from './bulkBeats'
 import { useDragReorder } from '../../app/useDragReorder'
 import { useMediaQuery } from '../../app/useMediaQuery'
-import { edgeState, type EdgeState } from '../characters/tabScroll'
+import { edgeState, type EdgeState } from './tabScroll'
 import './plotLayout.css'
 
 /** Words in a blob of prose. A display number — it does not have to agree with any other counter
