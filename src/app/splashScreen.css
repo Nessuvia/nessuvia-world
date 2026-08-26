@@ -1,0 +1,32 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  background: #000;
+  pointer-events: none;
+  animation: splashFade 500ms ease-in 2000ms forwards;
+}
+
+.splashBubble {
+  transform: scale(0);
+  animation: splashPop 620ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes splashPop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes splashFade {
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splashBubble {
+    transform: scale(1);
+    animation: none;
+  }
+}

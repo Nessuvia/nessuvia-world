@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Message, PromptStack, WorldInfoEntry } from '../../core/storage/types'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
 import { buildStoryPrompt } from '../../core/prompt/buildStoryPrompt'
+import { storyTokens } from '../../core/prompt/storyTokens'
 import { worldInfoText } from '../../core/prompt/worldInfo'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { countTokens, loadTokenizer, perMessageOverhead } from '../../core/prompt/budget'
@@ -17,6 +18,30 @@ const defaultUserLine = 'Hello there.'
 const exampleStory = 'The tavern had emptied hours ago. Nessu wiped the last glass and set it down.'
 const exampleDirection = 'Write a short paragraph continuing the scene.'
 const exampleCast = 'Name: Nessuvia\nNessu is the Development Team Lead.'
+// Stand-ins for the Story tokens, so a stack that uses them previews as something readable rather
+// than as a page of blanks. Every token gets a value: the point here is to show the stack's shape.
+const exampleTokens = storyTokens({
+  title: 'Last Call',
+  premise: 'A barkeeper closes up and finds someone still sitting in the dark.',
+  ending: 'She hands back the key.',
+  castNames: ['Nessuvia'],
+  chapters: [
+    { id: 1, title: 'Opening', summary: 'The tavern fills and empties.', blocks: [] },
+    {
+      id: 2,
+      title: 'Last Call',
+      summary: '',
+      blocks: [
+        { id: 'a', beat: 'Nessu notices the last customer', targetWords: 0, done: true },
+        { id: 'b', beat: 'She asks him to leave', targetWords: 250, done: false },
+        { id: 'c', beat: 'He does not', targetWords: 0, done: false },
+      ],
+    },
+    { id: 3, title: 'After', summary: '', blocks: [{ id: 'd', beat: 'Dawn', targetWords: 0, done: false }] },
+  ],
+  chapterId: 2,
+  blockId: 'b',
+})
 const exampleGuide =
   'Chapter 1 — Closing Time [writing now]\n  Nessu shuts the tavern.\n  Beats:\n    · the last glass\nChapter 2 — The Letter [not yet written]\n  A letter arrives with no name on it.'
 
@@ -71,7 +96,14 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
   const [direction, setDirection] = useState(exampleDirection)
 
   const built = buildStoryPrompt(
-    { stack, castText: exampleCast, authorNote: '', chapterGuide: exampleGuide, storyText, direction },
+    {
+      stack,
+      castText: exampleCast,
+      tokens: exampleTokens,
+      chapterGuide: exampleGuide,
+      storyText,
+      direction,
+    },
     budgetFor(connection),
   )
 

@@ -1,17 +1,55 @@
 import type { PromptBlock } from '../../core/storage/types'
+import type { StackKind } from './stackKinds'
 import RangeSlider from './RangeSlider'
 
 const roles: PromptBlock['role'][] = ['system', 'user', 'assistant']
 
+/** The {{tokens}} each kind of stack understands, as [token, what it stands for]. Chat's come from
+ *  `swapTokens`, Story's from `storyTokens` — keep both lists in step with those files. */
+const tokenGuide: Record<StackKind, [string, string][]> = {
+  chat: [
+    ['{{char}}', "The character's name"],
+    ['{{user}}', "The persona's name"],
+    ['{{charDescription}}', 'The active description variant'],
+    ['{{charPersonality}}', "The card's personality field"],
+    ['{{charScenario}}', "The card's scenario field"],
+    ['{{charExampleDialogue}}', "The card's example dialogue"],
+    ['{{personaDescription}}', "The persona's description"],
+    ['{{char1}} … {{char4}}', 'Names by roster position, in a multiplayer session'],
+    ['{{char1Desc}} … {{char4Desc}}', 'Their descriptions'],
+    ['{{personas}}', 'Everyone in the session, one per line'],
+  ],
+  story: [
+    ['{{storyTitle}}', "The Story's title"],
+    ['{{premise}}', 'The opening situation, from the Plot Layout tab'],
+    ['{{ending}}', 'The intended ending, from the Plot Layout tab'],
+    ['{{castNames}}', 'Enabled cast members by name, comma separated'],
+    ['{{chapterNumber}}', 'Which Chapter is being written into, counting from 1'],
+    ['{{chapterCount}}', 'How many Chapters the Story has'],
+    ['{{chapterTitle}}', "The active Chapter's title"],
+    ['{{chapterSummary}}', "The active Chapter's recap"],
+    ['{{previousChapterSummary}}', "The Chapter before it, recapped"],
+    ['{{nextChapterTitle}}', 'The Chapter after it'],
+    ['{{nextChapterBeats}}', 'Its planned beats, one per line'],
+    ['{{beat}}', "The plan line of the Block being written"],
+    ['{{beatTargetWords}}', 'Its word target. Blank when unset'],
+    ['{{beatsDone}}', 'Other beats in this Chapter that are ticked'],
+    ['{{beatsRemaining}}', 'Other beats in this Chapter that are not'],
+  ],
+}
+
 /** Every edit goes straight into the stack draft, which autosaves. There is no Save button. */
 export default function BlockModal({
   block,
+  kind,
   nested,
   onChange,
   onDelete,
   onClose,
 }: {
   block: PromptBlock
+  /** Which token list the guide shows. */
+  kind: StackKind
   /** Inside another block: it shares the parent's role, so there's no role to pick. */
   nested: boolean
   onChange: (block: PromptBlock) => void
@@ -142,16 +180,34 @@ export default function BlockModal({
 
         {draft.input?.kind === 'range' && (
           <>
+            <label className="checkboxRow">
+              <input
+                type="checkbox"
+                checked={draft.input.value2 === undefined}
+                onChange={(e) =>
+                  set({
+                    input: {
+                      ...draft.input!,
+                      value2: e.target.checked
+                        ? undefined
+                        : Math.max(draft.input!.value, draft.input!.max),
+                    },
+                  })
+                }
+              />
+              Single value
+            </label>
             <label className="rangeDefault">
-              Default range
+              {draft.input.value2 === undefined ? 'Default value' : 'Default range'}
               <RangeSlider
                 input={draft.input}
                 onChange={(input) => set({ input })}
               />
             </label>
             <p className="hint">
-              {'{{blockVal}}'} in the content resolves to the low end, {'{{blockVal2}}'} to the
-              high end. A chat sets its own ends in chat settings.
+              {draft.input.value2 === undefined
+                ? `${'{{blockVal}}'} in the content resolves to the value. A chat sets its own value in chat settings.`
+                : `${'{{blockVal}}'} in the content resolves to the low end, ${'{{blockVal2}}'} to the high end. A chat sets its own ends in chat settings.`}
             </p>
           </>
         )}
@@ -229,6 +285,30 @@ export default function BlockModal({
             Make toggleable
           </label>
         )}
+
+        <details className="blockInfo">
+          <summary>Variables</summary>
+          <dl className="tokenGuide">
+            {tokenGuide[kind].map(([token, means]) => (
+              <div key={token}>
+                <dt>{token}</dt>
+                <dd>{means}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="hint">
+            {kind === 'story'
+              ? 'Usable in this block’s text. A line whose variables are all empty is dropped, so a sentence about a field that is not set does not get sent. A variable in the Story prose itself is left alone.'
+              : 'Usable in this block’s text. An unknown variable is left as it is.'}
+          </p>
+          {draft.input && (
+            <p className="hint">
+              {draft.input.value2 === undefined
+                ? `This block also has ${'{{blockVal}}'}, its value.`
+                : `This block also has ${'{{blockVal}}'} and ${'{{blockVal2}}'}, the two ends of its range.`}
+            </p>
+          )}
+        </details>
 
         <details className="blockInfo">
           <summary>Information</summary>

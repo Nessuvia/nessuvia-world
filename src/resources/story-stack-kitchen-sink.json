@@ -1,0 +1,183 @@
+{
+  "format": "nessu-prompt-stack",
+  "version": 1,
+  "name": "Kitchen Sink",
+  "kind": "story",
+  "active": [
+    {
+      "id": "ks-role",
+      "label": "Co-writer role",
+      "source": "text",
+      "role": "system",
+      "content": "You are the co-writer of \"{{storyTitle}}\", an ongoing work of fiction. You write prose only. Do not summarize, do not comment on the text, do not address the author. Continue from where the text stops, in the same voice.",
+      "info": "The standing instruction. The title line blanks out on an untitled Story."
+    },
+    {
+      "id": "ks-style",
+      "label": "Prose style",
+      "source": "text",
+      "role": "system",
+      "activeOption": 0,
+      "options": [
+        {
+          "name": "Close third",
+          "content": "Write in close third person, past tense, anchored to one viewpoint character per scene. Interiority is allowed; head-hopping is not."
+        },
+        {
+          "name": "First person",
+          "content": "Write in first person, past tense. Everything on the page is filtered through the narrator's attention and their blind spots."
+        },
+        {
+          "name": "First person, present",
+          "content": "Write in first person, present tense. Keep the sentences immediate and the reporting close to the moment."
+        },
+        {
+          "name": "Omniscient",
+          "content": "Write in omniscient third person, past tense. The narration may move between characters within a scene and may state what none of them know."
+        },
+        {
+          "name": "Screenplay",
+          "content": "Write in screenplay format: slugline, action in present tense, character name above dialogue. No prose narration."
+        }
+      ],
+      "toggleable": true,
+      "info": "Pick the narrative voice. One option is used at a time."
+    },
+    {
+      "id": "ks-craft",
+      "label": "Craft rules",
+      "source": "text",
+      "role": "system",
+      "content": "Dialogue carries the scene. Attribute with said or nothing at all. Concrete nouns over abstractions. Cut adverbs that repeat the verb. Do not restate what the previous paragraph established.",
+      "toggleable": true,
+      "info": "Line-level craft constraints. Turn off when drafting rough."
+    },
+    {
+      "id": "ks-pace",
+      "label": "Pacing dial",
+      "source": "text",
+      "role": "system",
+      "content": "Pace this passage between {{blockVal}} and {{blockVal2}} on a scale of 1 to 10, where 1 is stillness and reflection and 10 is continuous action with no pause.",
+      "input": { "kind": "range", "min": 1, "max": 10, "step": 1, "value": 3, "value2": 6 },
+      "toggleable": true,
+      "info": "Drag both ends. The low end is the floor for the passage, the high end its ceiling."
+    },
+    {
+      "id": "ks-shape-wrap",
+      "label": "Shape of the work",
+      "source": "text",
+      "role": "system",
+      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nThe people in it: {{castNames}}",
+      "closeContent": "</the_work>",
+      "toggleable": true,
+      "info": "Story-level facts. Each line drops out on its own when the field behind it is empty."
+    },
+    {
+      "id": "ks-cast-wrap",
+      "label": "Cast",
+      "source": "text",
+      "role": "system",
+      "content": "<cast>\nThese people exist in the story. Use only the names given here.",
+      "closeContent": "</cast>",
+      "children": [
+        {
+          "id": "ks-cast",
+          "label": "Cast cards",
+          "source": "cast",
+          "role": "system",
+          "content": ""
+        }
+      ],
+      "info": "Wrapper around the Story's enabled cast. Children inherit this block's role."
+    },
+    {
+      "id": "ks-guide-wrap",
+      "label": "Chapter guide",
+      "source": "text",
+      "role": "system",
+      "content": "<outline>\nThe arc of the work so far. Chapters marked as summaries are compressed; their prose is not in front of you.",
+      "closeContent": "</outline>",
+      "children": [
+        {
+          "id": "ks-guide",
+          "label": "Guide body",
+          "source": "chapterGuide",
+          "role": "system",
+          "content": ""
+        }
+      ],
+      "toggleable": true,
+      "info": "The Chapter list with state stamps. Capped at a share of the context window."
+    },
+    {
+      "id": "ks-where",
+      "label": "Where we are",
+      "source": "text",
+      "role": "system",
+      "content": "<position>\nYou are writing inside Chapter {{chapterNumber}} of {{chapterCount}}, \"{{chapterTitle}}\".\nWhat the previous Chapter came to: {{previousChapterSummary}}\nWhat this Chapter has covered so far: {{beatsDone}}\nStill to come in this Chapter: {{beatsRemaining}}\nThe Chapter after this one is \"{{nextChapterTitle}}\", planned as:\n{{nextChapterBeats}}\n</position>",
+      "toggleable": true,
+      "info": "The Story's shape around the caret. Every line here blanks out on its own when there is nothing behind it, so an unplanned Story sends none of them."
+    },
+    {
+      "id": "ks-story-lead",
+      "label": "Story lead-in",
+      "source": "text",
+      "role": "system",
+      "content": "The text so far. Continue from its final line.",
+      "toggleable": true
+    },
+    {
+      "id": "ks-story",
+      "label": "Story context",
+      "source": "storyContext",
+      "role": "assistant",
+      "content": "",
+      "info": "The scrolling prose. Required. Takes whatever context is left after everything else."
+    },
+    {
+      "id": "ks-trailing",
+      "label": "What follows",
+      "source": "storyTrailing",
+      "role": "system",
+      "content": "<what_follows>\nThe passage you write sits before the text below and must lead into it. Do not repeat it.",
+      "closeContent": "</what_follows>",
+      "info": "Only renders when the caret is above the end of the Chapter."
+    },
+    {
+      "id": "ks-nsfw",
+      "label": "Explicit content",
+      "source": "text",
+      "role": "system",
+      "content": "Explicit sexual and violent content is permitted. Write it in the same register as the rest of the prose.",
+      "toggleable": true,
+      "disabled": true,
+      "info": "Off by default. Turn on per Story."
+    },
+    {
+      "id": "ks-beat",
+      "label": "The beat",
+      "source": "text",
+      "role": "user",
+      "content": "Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.",
+      "info": "The plan line for the Block being written. Both lines drop on a free stretch, and the whole block with them."
+    },
+    {
+      "id": "ks-length",
+      "label": "Length floor",
+      "source": "text",
+      "role": "user",
+      "content": "Write at least {{blockVal}} words unless a length was named above.",
+      "input": { "kind": "range", "min": 50, "max": 800, "step": 50, "value": 200, "value2": 200 },
+      "toggleable": true,
+      "info": "A floor for passages with no beat target of their own."
+    },
+    {
+      "id": "ks-final",
+      "label": "Final instruction",
+      "source": "text",
+      "role": "user",
+      "content": "Output the continuation and nothing else. No headings, no notes, no restating the instruction.",
+      "toggleable": true
+    }
+  ]
+}

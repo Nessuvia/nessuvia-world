@@ -15,12 +15,16 @@ export const boundSources: Record<StackKind, BlockSource[]> = {
     'characterPersonality',
     'characterScenario',
     'characterExampleDialogue',
+    'characterSystemPrompt',
+    'characterPostHistory',
     'personaDescription',
     'worldInfo',
     'authorNote',
     'chatHistory',
   ],
-  story: ['cast', 'storyContext', 'storyTrailing', 'chapterGuide', 'authorNote'],
+  // No authorNote: a Story's standing instruction is the Direction box, and its premise/ending
+  // reach the prompt as {{premise}} / {{ending}}.
+  story: ['cast', 'storyContext', 'storyTrailing', 'chapterGuide'],
 }
 
 /** Sources a block of this kind may take: freeform text plus the kind's bound sources. */
@@ -37,12 +41,17 @@ const countIn = (list: PromptBlock[], source: BlockSource): number =>
 
 const count = (stack: PromptStack, source: BlockSource) => countIn(stack.active, source)
 
+/** Whether a stack has a live block of this source. A disabled one doesn't count — it contributes
+ *  nothing, which is the same outcome as not having it. */
+export const hasSource = (stack: PromptStack, source: BlockSource) => count(stack, source) > 0
+
 /** Why the stack can't be saved, or '' when it's valid. Keyed by kind. */
 export function validateStack(stack: PromptStack): string {
   if (count(stack, 'authorNote') > 1) return "Only one Author's note block allowed"
   if (count(stack, 'worldInfo') > 1) return 'Only one World info block allowed'
   if (stackKind(stack) === 'story') {
     if (count(stack, 'chatHistory') > 0) return 'Story stacks have no Chat History block'
+    if (count(stack, 'authorNote') > 0) return "Story stacks have no Author's note block"
     if (count(stack, 'storyContext') === 0) return 'Add a Story context block'
     if (count(stack, 'storyContext') > 1) return 'Only one Story context block allowed'
     // Optional, unlike Story context: a stack without one is valid and Stories still generate.

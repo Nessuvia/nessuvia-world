@@ -164,7 +164,7 @@ const valueOf = (c: Connection, key: string) => c.params.find((p) => p.key === k
     title: 'A Story',
     cover: '',
     cast: [],
-    authorNote: '',
+    direction: '',
     createdAt: 0,
     updatedAt: 0,
     paramOverrides: { contextLimit: 16384, params: { temperature: 0.2 } },

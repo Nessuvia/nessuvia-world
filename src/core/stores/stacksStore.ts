@@ -85,8 +85,9 @@ export function defaultMultiplayerStack(name = 'Multiplayer'): PromptStack {
   }
 }
 
-/** A Story stack's sensible starting blocks (sub-goal B). Cast + Story context + an empty
- *  Author's note slot, all toggled on. */
+/** A Story stack's sensible starting blocks: Cast, the guide, the prose, and the beat. The beat
+ *  is a `text` block using {{beat}} — nothing folds it into the Direction, so a stack that drops
+ *  this block is a stack that doesn't send the plan. */
 export function defaultStoryStack(name = 'Story'): PromptStack {
   return {
     ownerId: currentOwnerId(),
@@ -108,7 +109,13 @@ export function defaultStoryStack(name = 'Story'): PromptStack {
         source: 'storyTrailing',
         content: 'The passage you write must lead into the text below.',
       }),
-      newBlock({ label: "Author's note", source: 'authorNote', depth: 2 }),
+      // Last, next to the Direction: the beat is the instruction for this generation. Both lines
+      // blank out on a free stretch, and the block drops out.
+      newBlock({
+        label: 'Beat',
+        role: 'user',
+        content: 'Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.',
+      }),
     ],
   }
 }

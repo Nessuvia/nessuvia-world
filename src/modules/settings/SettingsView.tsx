@@ -30,6 +30,8 @@ export default function SettingsView() {
     setPersonaTitleOff,
     customTitle,
     setCustomTitle,
+    splashOff,
+    setSplashOff,
     writeEnabled,
     setWriteEnabled,
     enabledPlugins,
@@ -188,6 +190,17 @@ export default function SettingsView() {
                 <span className="charCount">{customTitle.length}/80</span>
               </div>
             )}
+          </section>
+          <section className="settingsCard">
+            <h3>Loading animation</h3>
+            <label className="debugToggle">
+              <input
+                type="checkbox"
+                checked={splashOff}
+                onChange={(e) => setSplashOff(e.target.checked)}
+              />
+              Disable the logo animation on page load
+            </label>
           </section>
           <section className="settingsCard">
             <h3>Write mode</h3>

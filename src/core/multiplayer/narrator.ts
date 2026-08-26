@@ -52,6 +52,12 @@ export function narratorCharacter(): Character {
     alternateGreetings: [],
     gallery: [],
     tags: [],
+    // The narrator is not a card: it has no author and nothing to override the stack with.
+    systemPrompt: '',
+    postHistoryInstructions: '',
+    creatorNotes: '',
+    creator: '',
+    characterVersion: '',
     createdAt: 0,
     updatedAt: 0,
     colors: emptyColors(),

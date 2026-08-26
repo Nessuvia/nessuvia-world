@@ -335,6 +335,37 @@
   margin-top: 6px;
 }
 
+.tokenGuide {
+  margin: 6px 0;
+  display: grid;
+  gap: 4px 10px;
+  font-size: 0.85em;
+}
+
+.tokenGuide > div {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.tokenGuide dt {
+  font-family: monospace;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.tokenGuide dd {
+  margin: 0;
+  color: var(--textDim);
+}
+
+@media (max-width: 700px) {
+  .tokenGuide > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
 .rangeConfig {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -406,6 +437,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.rangeSingle {
+  flex: 1;
+  accent-color: var(--accent);
 }
 
 .rangeTrack {

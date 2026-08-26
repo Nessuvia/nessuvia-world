@@ -131,6 +131,13 @@
   --surfaceBlur: max(0px, calc(var(--glassBlur) - 4px));
 }
 
+/* The Story panel sits beside prose being read and holds controls and small text, so it gets the
+   same tint bump as a message rather than the panel default. Named here, outside the four contract
+   classes, for the same reason .navbar.sidebar is: it is a reading surface, not a frame. */
+[data-skin='glass'] #root .panel.storySidebar {
+  --surfaceTint: min(100%, calc(var(--glassTint) + 24%));
+}
+
 /* The base stylesheet gives a user message a raised shade; the shared rule above outspecifies it, so
    the distinction is restated here rather than lost. */
 [data-skin='glass'] #root .bubble.user {

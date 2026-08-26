@@ -18,13 +18,13 @@ function stack(active: PromptBlock[]): PromptStack {
   return { ownerId: 'local', name: 's', kind: 'story', active }
 }
 
-// A default-shaped Story stack: system, cast, story context, author's note.
+// A default-shaped Story stack: system, cast, story context, beat.
 const defaultish = () =>
   stack([
     block({ label: 'sys', content: 'You are a co-writer.' }),
     block({ label: 'cast', source: 'cast' }),
     block({ label: 'story', source: 'storyContext' }),
-    block({ label: 'note', source: 'authorNote', depth: 2 }),
+    block({ label: 'beat', role: 'user', content: 'Write this next: {{beat}}' }),
   ])
 
 // --- castText flattens enabled members --------------------------------------
@@ -44,7 +44,7 @@ const defaultish = () =>
   const out = buildStoryPrompt({
     stack: defaultish(),
     castText: 'Name: Mark',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'The rain fell.',
     direction: 'Write two paragraphs.',
@@ -53,7 +53,7 @@ const defaultish = () =>
   assert.deepStrictEqual(out.at(-1), { role: 'user', content: 'Write two paragraphs.' })
   assert.ok(out.some((m) => m.content.includes('Name: Mark')))
   assert.ok(out.some((m) => m.content.includes('The rain fell.')))
-  // The empty author's note produces no turn.
+  // The beat block has no beat behind it, so its one line drops and it produces no turn.
   assert.ok(!out.some((m) => m.content.includes('undefined')))
 }
 
@@ -62,7 +62,7 @@ const defaultish = () =>
   const built = buildStoryPrompt({
     stack: defaultish(),
     castText: 'Name: Mark',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: '',
     direction: 'Open the story.',
@@ -77,7 +77,7 @@ const defaultish = () =>
   const out = buildStoryPrompt({
     stack: stack([block({ source: 'storyContext' })]),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'once upon a time',
     direction: 'continue',
@@ -96,7 +96,7 @@ const defaultish = () =>
     {
       stack: stack([block({ content: 'sys' }), block({ source: 'storyContext' })]),
       castText: '',
-      authorNote: '',
+      tokens: {},
       chapterGuide: '',
       storyText: lines,
       direction: 'go',
@@ -117,7 +117,7 @@ const defaultish = () =>
     {
       stack: stack([block({ source: 'storyContext' })]),
       castText: '',
-      authorNote: '',
+      tokens: {},
       chapterGuide: '',
       storyText: 'short story',
       direction: 'go',
@@ -141,7 +141,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       block({ source: 'storyContext' }),
     ]),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
@@ -162,7 +162,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       block({ source: 'storyContext' }),
     ]),
     castText: 'Name: Mark',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
@@ -187,7 +187,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
         }),
       ]),
       castText: '',
-      authorNote: '',
+      tokens: {},
       chapterGuide: '',
       storyText: lines,
       direction: 'go',
@@ -212,7 +212,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       block({ source: 'storyContext' }),
     ]),
     castText: 'Name: Mark',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
@@ -232,7 +232,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       block({ source: 'storyContext' }),
     ]),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: 'Chapter 1 — Morning [written]',
     storyText: 'prose',
     direction: 'go',
@@ -248,7 +248,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
   const out = buildStoryPrompt({
     stack: stack([block({ source: 'storyContext' })]),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: 'Chapter 1 — Morning [written]',
     storyText: 'prose',
     direction: 'go',
@@ -263,7 +263,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     {
       stack: stack([block({ source: 'chapterGuide' }), block({ source: 'storyContext' })]),
       castText: '',
-      authorNote: '',
+      tokens: {},
       chapterGuide: 'Chapter 1 — Morning [written]\n  John wakes.',
       storyText: Array.from({ length: 200 }, (_, i) => `line ${i} of the prose`).join('\n'),
       direction: 'go',
@@ -287,7 +287,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
   const out = buildStoryPrompt({
     stack: withTrailing(),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'He opened the door.',
     storyTrailing: 'She was already gone.',
@@ -302,7 +302,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
   const none = buildStoryPrompt({
     stack: withTrailing(),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'He opened the door.',
     storyTrailing: '',
@@ -315,7 +315,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     buildStoryPrompt({
       stack: withTrailing(),
       castText: '',
-      authorNote: '',
+      tokens: {},
       chapterGuide: '',
       storyText: 'He opened the door.',
       direction: 'describe the room',
@@ -345,7 +345,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
   const built = buildStoryPrompt({
     stack: stack([block({ source: 'storyContext' }), block({ source: 'storyTrailing' })]),
     castText: '',
-    authorNote: '',
+    tokens: {},
     chapterGuide: '',
     storyText: 'the prose so far',
     storyTrailing: huge,
@@ -355,6 +355,59 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
   assert.ok(text.includes('tail line 0'))
   assert.ok(!text.includes('tail line 3999'))
   assert.ok(built.fixedTokens < maxTrailingTokens + 200, 'the tail is capped, not sent whole')
+}
+
+// --- Story tokens reach a block's own text, and only that -------------------
+{
+  const built = buildStoryPrompt({
+    stack: stack([
+      block({ label: 'sys', content: 'Chapter {{chapterNumber}} of {{storyTitle}}.' }),
+      block({
+        label: 'wrap',
+        content: '<about {{storyTitle}}>',
+        closeContent: '</about {{storyTitle}}>',
+        children: [block({ label: 'cast', source: 'cast' })],
+      }),
+      block({ label: 'story', source: 'storyContext' }),
+      block({ label: 'beat', role: 'user', content: 'Write this next: {{beat}}' }),
+    ]),
+    castText: 'Name: Mark',
+    tokens: { storyTitle: 'Last Call', chapterNumber: '2', beat: 'She asks him to leave' },
+    chapterGuide: '',
+    // The manuscript writes a token of its own. It is prose, and comes through untouched.
+    storyText: 'He said "{{storyTitle}}" and meant it.',
+    direction: '',
+  })
+  const text = built.messages.map((m) => m.content).join('\n')
+  assert.ok(text.includes('Chapter 2 of Last Call.'))
+  // Both halves of a wrapper get swapped, and the child renders between them unchanged.
+  assert.ok(text.includes('<about Last Call>'))
+  assert.ok(text.includes('</about Last Call>'))
+  assert.ok(text.includes('Write this next: She asks him to leave'))
+  assert.ok(text.includes('He said "{{storyTitle}}" and meant it.'), 'prose is never token-swapped')
+}
+
+// --- a beat block with no beat behind it drops out entirely -----------------
+{
+  const built = buildStoryPrompt({
+    stack: stack([
+      block({ label: 'sys', content: 'You are a co-writer.' }),
+      block({ label: 'story', source: 'storyContext' }),
+      block({
+        label: 'beat',
+        role: 'user',
+        content: 'Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.',
+      }),
+    ]),
+    castText: '',
+    tokens: { beat: '', beatTargetWords: '' },
+    chapterGuide: '',
+    storyText: 'the prose so far',
+    direction: '',
+  })
+  // Free prose: no beat, no target, so no user turn at all.
+  assert.ok(!built.messages.some((m) => m.role === 'user'))
+  assert.ok(!built.messages.some((m) => m.content.includes('Write this next')))
 }
 
 console.log('ok')
