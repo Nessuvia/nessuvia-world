@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { storage } from '../storage/db'
 import { buildTablePayload } from '../storage/backup'
+import { hashPayload } from '../storage/tablePayload'
+import { keepDeviceFields, settingsKey } from './settingsObject'
+import { decryptText, encryptText, isEncrypted } from './encrypt'
 import { tableNames, type TableName } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import type { TablePayload } from '../storage/tablePayload'
@@ -32,8 +35,11 @@ interface SyncState {
   comparison: Comparison | null
   compare(): Promise<void>
   apply(decisions: Partial<Record<TableName, Direction>>): Promise<void>
+  pushSettings(): Promise<void>
+  pullSettings(): Promise<void>
   clearError(): void
 }
+
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : 'Sync failed.'
@@ -150,6 +156,48 @@ export const useSync = create<SyncState>()((set, get) => ({
       return
     }
     set({ status: 'idle', comparison: null })
+  },
+
+  /**
+   * Settings, keys and all, as their own object in the bucket. Deliberately outside the table
+   * comparison: it is one small blob, it is not a table, and the two-device case is "send it from
+   * the device that has the keys" rather than a merge.
+   */
+  pushSettings: async () => {
+    set({ status: 'applying', error: '' })
+    try {
+      const plain = localStorage.getItem(settingsKey) ?? '{}'
+      const { passphrase } = useSettings.getState().bucket
+      const json = passphrase ? await encryptText(plain, passphrase) : plain
+      await client.pushTable('settings', json, await hashPayload(json))
+      set({ status: 'idle' })
+    } catch (err) {
+      set({ error: message(err), status: 'idle' })
+    }
+  },
+
+  pullSettings: async () => {
+    set({ status: 'applying', error: '' })
+    try {
+      const object = await client.pullTable('settings')
+      if (!object) {
+        set({ error: 'The bucket has no settings to download.', status: 'idle' })
+        return
+      }
+      // The stored object says whether it is encrypted, not the local setting: a device that has
+      // not been given the passphrase yet must fail with "wrong passphrase", not write ciphertext
+      // into localStorage.
+      const { passphrase } = useSettings.getState().bucket
+      let json = object.json
+      if (isEncrypted(json)) {
+        if (!passphrase) throw new Error('The settings in this bucket are encrypted. Enter the passphrase.')
+        json = await decryptText(json, passphrase)
+      }
+      localStorage.setItem(settingsKey, keepDeviceFields(json, localStorage.getItem(settingsKey)))
+      location.reload()
+    } catch (err) {
+      set({ error: message(err), status: 'idle' })
+    }
   },
 
   clearError: () => set({ error: '' }),

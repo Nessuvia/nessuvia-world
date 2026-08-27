@@ -207,6 +207,9 @@ interface SettingsState {
   customTitle: string
   /** On, the logo reveal on page load is skipped. Global: there is one splash. */
   splashOff: boolean
+  /** On, a full export keeps API keys in the file. Off is the default and the safe one: a backup
+   *  gets emailed around. Turning it on is gated behind typing CONFIRM in Settings. */
+  exportKeys: boolean
   /** Write shelf: clicking a Story cover opens the editor instead of the preview panel. */
   openStoryDirectly: boolean
   /** The Story tab's Chapter rail is collapsed. Global rather than per Story: whether the rail
@@ -242,6 +245,7 @@ interface SettingsState {
   setPersonaTitleOff(on: boolean): void
   setCustomTitle(title: string): void
   setSplashOff(on: boolean): void
+  setExportKeys(on: boolean): void
   setWriteEnabled(on: boolean): void
   setMultiplayerEnabled(on: boolean): void
   setPluginEnabled(id: string, on: boolean): void
@@ -288,6 +292,7 @@ export const useSettings = create<SettingsState>()(
       personaTitleOff: false,
       customTitle: '',
       splashOff: false,
+      exportKeys: false,
       openStoryDirectly: false,
       railCollapsed: false,
       writeEnabled: true,
@@ -313,6 +318,7 @@ export const useSettings = create<SettingsState>()(
 
       setPersonaTitleOff: (personaTitleOff) => set({ personaTitleOff }),
       setSplashOff: (splashOff) => set({ splashOff }),
+      setExportKeys: (exportKeys) => set({ exportKeys }),
 
       setCustomTitle: (customTitle) => set({ customTitle }),
 

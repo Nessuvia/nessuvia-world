@@ -20,14 +20,22 @@
 .syncFormal {
   display: flex;
   flex-direction: column;
-  max-width: 760px;
-  /* Room for the scrollbar so the rule ends don't sit under it. */
-  padding-right: 8px;
+}
+
+/* One column at the palette's chat width, centred, with every section the same width as every
+   other. Sections stretch to it rather than shrink-wrapping their contents. */
+.syncColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: var(--chatWidth, 100%);
+  margin: 0 auto;
 }
 
 .syncHead {
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--borderStrong);
+  width: 100%;
+  padding: 0 2px 4px;
 }
 
 .syncFormal h2 {
@@ -38,23 +46,22 @@
 
 .syncLede {
   margin: 10px 0 0;
-  max-width: 62ch;
   font-size: 14px;
   line-height: 1.6;
   color: var(--textMuted);
 }
 
+/* Each section is a card in one column. The base paint lives here; skins repaint `.card`, which
+   is why that class is on the element too. */
 .syncSection {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  width: 100%;
   gap: 14px;
-  padding: 26px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.syncSection:last-child {
-  border-bottom: none;
+  padding: 16px 18px;
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
 }
 
 .syncSectionHead {
@@ -81,7 +88,6 @@
 }
 
 .syncSection .syncNote {
-  max-width: 62ch;
   line-height: 1.6;
 }
 
@@ -91,7 +97,6 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   width: 100%;
-  max-width: 640px;
 }
 
 .syncBucket label {
@@ -103,8 +108,27 @@
 }
 
 .syncBucket input {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--surfaceSunken);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* Sits in the settings action row rather than the bucket grid, so it carries its own copy of the
+   field styling instead of widening .syncBucket's selectors. */
+.syncPassphrase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.syncPassphrase input {
+  background: var(--surfaceSunken);
   border-radius: var(--radius);
   padding: 8px 10px;
   color: var(--text);
@@ -156,8 +180,7 @@
   margin: 0 0 10px;
   overflow-x: auto;
   padding: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--surfaceSunken);
   border-radius: var(--radius);
   color: var(--text);
   font-size: 12px;
@@ -181,8 +204,7 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--borderStrong);
+  background: var(--surfaceSunken);
   border-radius: var(--radius);
   padding: 12px;
 }
@@ -224,8 +246,8 @@
   justify-content: center;
   gap: 8px;
   padding: 9px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--surfaceSunken);
+  border: none;
   border-radius: var(--radius);
   color: var(--textMuted);
   font: inherit;

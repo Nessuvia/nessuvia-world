@@ -36,6 +36,8 @@ export default function SettingsView() {
     setWriteEnabled,
     enabledPlugins,
     setPluginEnabled,
+    exportKeys,
+    setExportKeys,
   } = useSettings()
   const pluginModules = modules.filter((mod) => mod.plugin)
   const [editing, setEditing] = useState<Connection | null>(null)
@@ -43,6 +45,7 @@ export default function SettingsView() {
   const [tab, setTab] = useHashTab(tabs.map(([id]) => id))
   const [resetting, setResetting] = useState(false)
   const [resetPhrase, setResetPhrase] = useState('')
+  const [keysPhrase, setKeysPhrase] = useState<string | null>(null)
 
   // The editor autosaves, so this runs repeatedly while typing: the first write adds the record,
   // every later one updates it in place. It stays open until the user closes it.
@@ -234,6 +237,44 @@ export default function SettingsView() {
             )}
             <p className="debugHint">
               Off hides the plugin's tab and its chat panel.
+            </p>
+          </section>
+          <section className="settingsCard">
+            <h3>Export</h3>
+            <label className="debugToggle">
+              <input
+                type="checkbox"
+                checked={exportKeys}
+                onChange={(e) => {
+                  // Unchecking is not gated: it only makes exports safer.
+                  if (!e.target.checked) return setExportKeys(false)
+                  setKeysPhrase('')
+                }}
+              />
+              Include API keys in a full export
+            </label>
+            {keysPhrase !== null && (
+              <div className="titleRow">
+                <input
+                  type="text"
+                  className="titleInput"
+                  value={keysPhrase}
+                  placeholder="CONFIRM"
+                  autoFocus
+                  onChange={(e) => {
+                    setKeysPhrase(e.target.value)
+                    if (e.target.value === 'CONFIRM') {
+                      setExportKeys(true)
+                      setKeysPhrase(null)
+                    }
+                  }}
+                />
+                <span className="charCount">Type CONFIRM</span>
+              </div>
+            )}
+            <p className="debugHint">
+              On, Export asks whether to write a full file with your keys or a shareable file
+              without them. Off, keys are always removed.
             </p>
           </section>
           <section className="settingsCard">

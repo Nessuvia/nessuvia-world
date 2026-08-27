@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import BackupButtons from '../../app/BackupButtons'
+import { usePalette } from '../../core/stores/palettesStore'
 import { tableNames, type TableName } from '../../core/storage/storageInterface'
 import { useSettings } from '../../core/stores/settingsStore'
 import { bucketConfigured, type BucketConfig } from '../../core/sync/bucketConfig'
@@ -25,23 +26,32 @@ const verdictLabel: Record<TableComparison['verdict'], string> = {
 }
 
 export default function SyncView() {
+  const palette = usePalette()
   return (
     <div className="sync screenFrame">
       {/* The frame stays put and this one child scrolls — the setup disclosure makes the page
           taller than the viewport as soon as it opens. */}
       <div className="syncFormal screenBody">
-        <header className="syncHead">
-          <h2>Online Sync</h2>
-          <p className="syncLede">
-            Copies your library to storage you own. Settings, connections and API keys stay on this
-            device.
-          </p>
-        </header>
+        {/* Follows the palette's chat width, the same var chat reads. Global rather than per-page:
+            reading width is one preference, and a Sync-only override would be a knob nobody asked
+            for. */}
+        <div
+          className="syncColumn"
+          style={{ '--chatWidth': `${palette.chatWidth}%` } as CSSProperties}
+        >
+          <header className="syncHead">
+            <h2>Online Sync</h2>
+            <p className="syncLede">
+              Copies your library to storage you own. Settings, connections and API keys stay on
+              this device unless you upload them separately.
+            </p>
+          </header>
 
-        <R2Section />
-        <DropboxSection />
-        <DriveSection />
-        <BackupSection />
+          <R2Section />
+          <DropboxSection />
+          <DriveSection />
+          <BackupSection />
+        </div>
       </div>
     </div>
   )
@@ -57,7 +67,8 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <section className="syncSection">
+    // `card` is the skin contract: skins repaint it, sync.css sets the base paint.
+    <section className="syncSection card">
       <div className="syncSectionHead">
         <h3>{title}</h3>
         <span className="syncStatus">{status}</span>
@@ -68,7 +79,8 @@ function Section({
 }
 
 function R2Section() {
-  const { status, error, comparison, compare, apply, clearError } = useSync()
+  const { status, error, comparison, compare, apply, pushSettings, pullSettings, clearError } =
+    useSync()
   const bucket = useSettings((s) => s.bucket)
   const setBucket = useSettings((s) => s.setBucket)
   const lastSyncedAt = useSettings((s) => s.lastSyncedAt)
@@ -156,6 +168,38 @@ function R2Section() {
             <span className="syncNote">Last synced {stamp(lastSyncedAt)}</span>
           )}
         </div>
+      )}
+
+      {ready && (
+        <>
+          <p className="syncNote">
+            Settings include your connections and their API keys, and the access keys for this
+            bucket. With a passphrase they are encrypted in the browser before upload, and the same
+            passphrase has to be typed on the other device to read them back. There is no recovery
+            if you forget it. Without a passphrase they are written to the bucket as plain text,
+            readable by anyone who can read the bucket and by the provider hosting it. Downloading
+            replaces the settings in this browser, apart from the bucket details.
+          </p>
+          <div className="syncActions">
+            <label className="syncPassphrase">
+              Passphrase
+              <input
+                type="password"
+                value={bucket.passphrase}
+                onChange={(e) => setBucket({ passphrase: e.target.value })}
+                placeholder="Leave empty to upload as plain text"
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </label>
+            <button type="button" onClick={() => pushSettings()} disabled={busy}>
+              Upload settings
+            </button>
+            <button type="button" onClick={() => pullSettings()} disabled={busy}>
+              Download settings
+            </button>
+          </div>
+        </>
       )}
 
       {comparison && (

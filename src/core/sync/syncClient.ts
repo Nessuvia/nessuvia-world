@@ -141,8 +141,13 @@ export async function fetchManifest(): Promise<Manifest> {
   return manifest
 }
 
-/** Null when the table has never been pushed — the 404 is an answer, not a failure. */
-export async function pullTable(table: TableName): Promise<PulledTable | null> {
+/**
+ * Null when the table has never been pushed — the 404 is an answer, not a failure.
+ *
+ * Takes a plain name for the same reason objectKey does: the settings blob rides in the same
+ * bucket as `settings.json` and is not a table.
+ */
+export async function pullTable(table: TableName | 'settings'): Promise<PulledTable | null> {
   const c = config()
   const response = await signedFetch(objectUrl(c, objectKey(c, table)), { method: 'GET' }, c)
   if (response.status === 404) return null
@@ -155,7 +160,7 @@ export async function pullTable(table: TableName): Promise<PulledTable | null> {
 }
 
 /** The bucket stamps LastModified from its own clock; the hash rides along as object metadata. */
-export async function pushTable(table: TableName, json: string, hash: string) {
+export async function pushTable(table: TableName | 'settings', json: string, hash: string) {
   const c = config()
   const response = await signedFetch(
     objectUrl(c, objectKey(c, table)),

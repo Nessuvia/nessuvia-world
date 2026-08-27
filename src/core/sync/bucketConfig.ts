@@ -18,6 +18,9 @@ export interface BucketConfig {
   prefix: string
   accessKeyId: string
   secretAccessKey: string
+  /** Encrypts the settings object before it is uploaded. Empty uploads it as plain text. Never sent
+   *  to the bucket in the clear, and not part of bucketConfigured — the tables sync without it. */
+  passphrase: string
 }
 
 export const emptyBucketConfig: BucketConfig = {
@@ -29,6 +32,7 @@ export const emptyBucketConfig: BucketConfig = {
   prefix: '',
   accessKeyId: '',
   secretAccessKey: '',
+  passphrase: '',
 }
 
 /** Every field but `prefix`, which is legitimately empty when the tables sit at the bucket root. */
