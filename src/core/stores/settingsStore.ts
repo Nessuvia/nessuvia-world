@@ -215,6 +215,11 @@ interface SettingsState {
   /** The Story tab's Chapter rail is collapsed. Global rather than per Story: whether the rail
    *  shows is a working preference, not a property of a Story. Per Story is the upgrade path. */
   railCollapsed: boolean
+  /** Story rail section ids pinned to the top, in the order they were pinned. Global rather than
+   *  per Story: which sections you keep to hand is a working habit. Per Story is the upgrade path. */
+  storyRailPinned: string[]
+  /** Story rail section ids currently unfolded. */
+  storyRailOpen: string[]
   /** Write mode on. Off hides the Write tab and route and the Story side of the stack editor. */
   writeEnabled: boolean
   /** Multiplayer on. Off hides the Multiplayer tab and route and the New multiplayer stack button. */
@@ -242,6 +247,8 @@ interface SettingsState {
   setDebugMode(on: boolean): void
   setOpenStoryDirectly(on: boolean): void
   setRailCollapsed(collapsed: boolean): void
+  setStoryRailPinned(ids: string[]): void
+  setStoryRailOpen(ids: string[]): void
   setPersonaTitleOff(on: boolean): void
   setCustomTitle(title: string): void
   setSplashOff(on: boolean): void
@@ -295,6 +302,8 @@ export const useSettings = create<SettingsState>()(
       exportKeys: false,
       openStoryDirectly: false,
       railCollapsed: false,
+      storyRailPinned: [],
+      storyRailOpen: ['beats', 'characters'],
       writeEnabled: true,
       multiplayerEnabled: true,
       enabledPlugins: {},
@@ -315,6 +324,9 @@ export const useSettings = create<SettingsState>()(
       setOpenStoryDirectly: (openStoryDirectly) => set({ openStoryDirectly }),
 
       setRailCollapsed: (railCollapsed) => set({ railCollapsed }),
+
+      setStoryRailPinned: (storyRailPinned) => set({ storyRailPinned }),
+      setStoryRailOpen: (storyRailOpen) => set({ storyRailOpen }),
 
       setPersonaTitleOff: (personaTitleOff) => set({ personaTitleOff }),
       setSplashOff: (splashOff) => set({ splashOff }),

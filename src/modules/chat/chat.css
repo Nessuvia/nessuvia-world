@@ -616,10 +616,48 @@
   border-top: 1px solid var(--border);
 }
 
+/* Same treatment as the Story rail's headers, and for the same reason: a bare line of text is an
+   18px target on a pointer and on a thumb. 44px is the touch floor. */
 .chatSettings summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: var(--radius);
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
+  list-style: none;
+}
+
+.chatSettings summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The chevron the removed marker used to provide. Rotates open. */
+.chatSettings summary::before {
+  content: '';
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.12s;
+}
+
+.chatSettings details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.chatSettings summary:hover {
+  background: var(--surfaceSunken);
+}
+
+.chatSettings summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* The panel's gap only reaches its own children; inside a <details> they're plain block flow.
@@ -858,7 +896,10 @@
   visibility: hidden;
 }
 
-.message:hover .messageActions {
+.message:hover .messageActions,
+/* An open menu pins the row. Without this the whole row is hover-only, so moving the pointer off
+   the message took the open menu with it and moving back brought it there again. */
+.message:has(.quickActions[open]) .messageActions {
   visibility: visible;
 }
 

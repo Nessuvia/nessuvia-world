@@ -148,7 +148,7 @@ function BeatText({ value, onSave }: { value: string; onSave: (text: string) => 
       className="plotBeatText"
       rows={1}
       value={draft}
-      placeholder="What happens"
+      placeholder="What happens in this beat"
       title="What is meant to happen in this beat. Sent to the model as part of the plan."
       onChange={(e) => {
         setDraft(e.target.value)

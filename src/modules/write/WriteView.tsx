@@ -493,14 +493,54 @@ function BlockHead({
   const deleteSwipe = useWrite((s) => s.deleteSwipe)
   const [menu, setMenu] = useState(false)
   const [regenOpen, setRegen] = useState(false)
-  // null while showing the plan line; the beat's text while editing it in place.
-  const [draft, setDraft] = useState<string | null>(null)
   const menuRef = useCloseOnOutside<HTMLDivElement>(menu, () => setMenu(false))
   const jumpToPlot = useContext(JumpToPlot)
 
+  // The beat field is always a textarea — there is no read mode to swap out of, which is what used
+  // to reflow the text on click. Local draft with a debounced save, the same reason PlotLayout's
+  // BeatText keeps one: onPatch awaits a Dexie write, so a controlled value lands a render late
+  // and React puts the caret back at the end of the line.
+  const [draft, setDraft] = useState(() => beatText(block.beat))
+  const timer = useRef<number | undefined>(undefined)
+  const stored = beatText(block.beat)
+  const lastSeen = useRef(stored)
+  // Re-seed when the beat changes underneath the field (swipe, bulk add, another surface editing
+  // it) but never on the store echo of what was just typed here.
+  if (stored !== lastSeen.current) {
+    lastSeen.current = stored
+    if (stored !== draft) setDraft(stored)
+  }
+
+  useEffect(
+    () => () => {
+      if (timer.current !== undefined) window.clearTimeout(timer.current)
+    },
+    [],
+  )
+
+  function editBeat(text: string) {
+    setDraft(text)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => {
+      timer.current = undefined
+      lastSeen.current = text
+      onPatch({ beat: storedBeat(text) })
+    }, 400)
+  }
+
+  function flushBeat() {
+    window.clearTimeout(timer.current)
+    timer.current = undefined
+    if (draft === stored) return
+    lastSeen.current = draft
+    onPatch({ beat: storedBeat(draft) })
+  }
+
   const total = swipeCount(block)
   const at = swipeIndex(block)
-  const label = `Chapter ${chapterIndex + 1} - Beat ${beatIndex + 1}: ${block.beat.trim() || 'Empty beat'}`
+  const crumb = `Chapter ${chapterIndex + 1} · Beat ${beatIndex + 1}`
+  // RegenDialog names the beat it is about to rewrite, so it wants the whole line.
+  const label = `${crumb}: ${block.beat.trim() || 'Empty beat'}`
 
   async function regen(instruction: string, targetWords: number) {
     setRegen(false)
@@ -512,43 +552,34 @@ function BlockHead({
 
   return (
     <div className="blockHead" contentEditable={false}>
+      {/* The beat's name plate. Nothing here is editable, so it never moves. */}
       <div className="blockPlan">
-      <input
-        type="checkbox"
-        checked={block.done}
-        title="Mark this beat done. Nothing ticks it for you."
-        onChange={(e) => onPatch({ done: e.target.checked })}
-      />
-      {/* Wraps rather than truncating — the whole plan line is readable in place. Clicking it edits
-          the beat here, so a plan change doesn't mean a trip to the Plot Layout tab. */}
-      {draft === null ? (
-        <span className="blockLabel" title={label} onClick={() => setDraft(beatText(block.beat))}>
-          {label}
-        </span>
-      ) : (
-        <textarea
-          className="blockLabel blockLabelEdit"
-          autoFocus
-          rows={1}
-          value={draft}
-          placeholder="What happens"
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => {
-            onPatch({ beat: storedBeat(draft) })
-            setDraft(null)
-          }}
-          onKeyDown={(e) => {
-            // Escape unmounts the field, so the blur that would have saved never runs.
-            if (e.key === 'Escape') setDraft(null)
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              e.currentTarget.blur()
-            }
-          }}
+        <input
+          type="checkbox"
+          checked={block.done}
+          title="Mark this beat done. Nothing ticks it for you."
+          onChange={(e) => onPatch({ done: e.target.checked })}
         />
-      )}
+        <span className="blockCrumb">{crumb}</span>
         {block.targetWords > 0 && <span className="blockTarget">{block.targetWords}w</span>}
       </div>
+
+      {/* The beat is written here, so a plan change doesn't mean a trip to the Plot Layout tab. */}
+      <textarea
+        className="blockBeat"
+        value={draft}
+        placeholder="What happens in this beat"
+        onChange={(e) => editBeat(e.target.value)}
+        onBlur={flushBeat}
+        // A beat is one line in the Chapter guide — storedBeat collapses newlines anyway, so
+        // Enter saves instead of inserting one the field would lose.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.currentTarget.blur()
+          }
+        }}
+      />
 
       {/* Every control that acts on the Block, on its own row under the plan line. */}
       <div className="blockTools">

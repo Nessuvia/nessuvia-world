@@ -19,6 +19,7 @@ import { renderText } from './renderText'
 import { stripText } from '../../core/hammer/strip'
 import RewriteBox from './RewriteBox'
 import PromptInspector from '../../app/PromptInspector'
+import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 
 // Per-message "show original" toggle state. Display-only, in-memory: survives re-renders within a
 // session but not a reload — fine for a view toggle. A Set of message ids the user has un-stripped.
@@ -91,6 +92,13 @@ export default function MessageBubble({
 }) {
   const [draft, setDraft] = useState<string | null>(null)
   const [pickingSwipes, setPickingSwipes] = useState(false)
+  // Quick actions is a <details>, but a bare <details> only closes when its own summary is clicked
+  // again — it sat open while the pointer went back to the message. Controlled so the standard
+  // dropdown dismissal applies: a click anywhere outside, or Escape.
+  const [quickActions, setQuickActions] = useState(false)
+  const quickRef = useCloseOnOutside<HTMLDetailsElement>(quickActions, () =>
+    setQuickActions(false),
+  )
   // Blur commits the edit, so Escape has to say it meant the other thing.
   const cancelled = useRef(false)
   const [inspecting, setInspecting] = useState(false)
@@ -205,25 +213,31 @@ export default function MessageBubble({
               <RiRefreshLine size={16} />
             </button>
           )}
-          <details className="quickActions">
+          <details
+            className="quickActions"
+            ref={quickRef}
+            open={quickActions}
+            // The summary still toggles natively; this is what tells React it happened.
+            onToggle={(e) => setQuickActions((e.target as HTMLDetailsElement).open)}
+          >
             <summary title="Quick actions">
               <RiMoreLine size={16} />
             </summary>
             <div className="quickActionsMenu">
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={() => {
                   onEdit(message.content.replace(/\n{2,}/g, '\n'))
-                  e.currentTarget.closest('details')?.removeAttribute('open')
+                  setQuickActions(false)
                 }}
               >
                 Collapse newlines
               </button>
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={() => {
                   onEdit(message.content.replace(/\n+/g, '\n\n'))
-                  e.currentTarget.closest('details')?.removeAttribute('open')
+                  setQuickActions(false)
                 }}
               >
                 Add newlines
@@ -232,9 +246,9 @@ export default function MessageBubble({
                 <button
                   type="button"
                   disabled={!modelRegen}
-                  onClick={(e) => {
+                  onClick={() => {
                     onRewriteOpen(true)
-                    e.currentTarget.closest('details')?.removeAttribute('open')
+                    setQuickActions(false)
                   }}
                 >
                   Regen with instructions
@@ -242,10 +256,10 @@ export default function MessageBubble({
               )}
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={() => {
                   const text = hammerActive && strip ? strip.text : message.content
                   navigator.clipboard.writeText(text)
-                  e.currentTarget.closest('details')?.removeAttribute('open')
+                  setQuickActions(false)
                 }}
               >
                 {hammerActive ? 'Copy (stripped)' : 'Copy'}
@@ -253,9 +267,9 @@ export default function MessageBubble({
               {assistant && (
                 <button
                   type="button"
-                  onClick={(e) => {
+                  onClick={() => {
                     onDeleteSwipes([at])
-                    e.currentTarget.closest('details')?.removeAttribute('open')
+                    setQuickActions(false)
                   }}
                 >
                   Delete Swipe
@@ -264,9 +278,9 @@ export default function MessageBubble({
               {assistant && count > 1 && (
                 <button
                   type="button"
-                  onClick={(e) => {
+                  onClick={() => {
                     setPickingSwipes(true)
-                    e.currentTarget.closest('details')?.removeAttribute('open')
+                    setQuickActions(false)
                   }}
                 >
                   Delete Swipe(s)
@@ -275,9 +289,9 @@ export default function MessageBubble({
               {strip && (
                 <button
                   type="button"
-                  onClick={(e) => {
+                  onClick={() => {
                     navigator.clipboard.writeText(message.content)
-                    e.currentTarget.closest('details')?.removeAttribute('open')
+                    setQuickActions(false)
                   }}
                 >
                   Copy original

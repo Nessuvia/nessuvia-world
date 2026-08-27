@@ -597,11 +597,20 @@ h3.storyPreviewTitle {
   user-select: none;
 }
 
+/* The beat's name plate: nothing in it changes size, so it is a plain centered row. */
 .blockPlan {
   display: flex;
-  /* Not centered: the label wraps, and the checkbox belongs on its first line. */
-  align-items: flex-start;
+  align-items: center;
   gap: 0.4rem;
+}
+
+.blockCrumb {
+  flex: 1;
+  min-width: 0;
+  color: var(--textMuted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
 }
 
 /* Controls sit on their own row, right-aligned, in the order they were before. */
@@ -621,19 +630,33 @@ h3.storyPreviewTitle {
   display: none;
 }
 
-.blockLabel {
-  flex: 1;
-  min-width: 0;
-  /* Wraps to as many lines as the beat needs. It stays inside the head, which is what keeps a long
-     plan line from pushing the controls off the row. */
-  overflow-wrap: anywhere;
+/* Where the beat is written. It reads as the Story's own type on a raised field, not as another
+   row of chrome — this is composition, not a checklist entry.
+
+   `min-height` next to `field-sizing: content` is what stops the card from resizing under the
+   cursor: the field opens three lines tall and only ever grows from there. */
+.blockBeat {
+  width: 100%;
+  box-sizing: border-box;
+  /* Inherited, not restated: .blockHead only shrinks the size, so this picks the Story column's
+     own face back up. */
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: var(--storyLineHeight, 1.6);
+  color: var(--storyTextColor, var(--text));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.6rem;
+  field-sizing: content;
+  min-height: 5.5rem;
+  max-height: 12rem;
+  resize: vertical;
+  user-select: text;
 }
 
-.blockLabelEdit {
-  font: inherit;
-  field-sizing: content;
-  resize: none;
-  max-height: 8rem;
+.blockBeat::placeholder {
+  color: var(--textMuted);
 }
 
 .blockTarget {
@@ -806,10 +829,84 @@ h3.storyPreviewTitle {
   border-top: 1px solid var(--border);
 }
 
-.storyRail summary {
+/* Section headers are the rail's main control, and they were a bare line of text: an 18px target
+   on a desktop pointer and on a thumb. 44px is the touch floor, and the row spans the rail so
+   there is nowhere near the label that misses. */
+.storyRail summary,
+.storyRail .beatChapter,
+.phoneBeats > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: var(--radius);
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
+  list-style: none;
+}
+
+.storyRail summary::-webkit-details-marker,
+.phoneBeats > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The chevron the removed marker used to provide. Rotates open. */
+.storyRail summary::before,
+.phoneBeats > summary::before {
+  content: '';
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.12s;
+}
+
+.storyRail details[open] > summary::before,
+.phoneBeats[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.storyRail summary:hover,
+.phoneBeats > summary:hover {
+  background: var(--surfaceSunken);
+}
+
+.storyRail summary:focus-visible,
+.phoneBeats > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* The label takes the slack so the pin sits hard right. */
+.railSectionLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.railPin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  opacity: 0.5;
+}
+
+.railPin:hover {
+  background: var(--surface);
+  opacity: 1;
+}
+
+.railPin.on {
+  color: var(--accent);
+  opacity: 1;
 }
 
 /* The rail's gap only reaches its own children; inside a <details> they're plain block flow. */

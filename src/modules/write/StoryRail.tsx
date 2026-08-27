@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  RiArrowLeftLine,
   RiCloseLine,
+  RiPushpin2Fill,
+  RiPushpinLine,
   RiSettings3Line,
   RiSparkling2Line,
   RiStopCircleLine,
@@ -21,6 +22,7 @@ import { useWrite } from '../../core/stores/writeStore'
 import AppearancePanel from '../appearance/AppearancePanel'
 import ParamEditor from '../characters/ParamEditor'
 import PromptToggles from '../prompts/PromptToggles'
+import { railOrder, togglePin } from './railOrder'
 import StoryPromptPanel from './StoryPromptPanel'
 
 // Attach any character/persona; each attached entry has an on/off toggle. Only enabled cast is sent.
@@ -201,7 +203,7 @@ export function StoryBeats() {
               {chapter.title.trim() || `Chapter ${ci + 1}`}
             </summary>
             {beats.length === 0 ? (
-              <p className="placeholder">No beats.</p>
+              <p className="placeholder">No beats yet.</p>
             ) : (
               <ul className="beatChecklist">
                 {beats.map((beat, i) => (
@@ -308,22 +310,34 @@ const storyColorField: Record<MarkerKind, 'storyEmphasisColor' | 'storyBoldColor
   quotes: 'storyQuoteColor',
 }
 
-// Tier 2. Connection, stack, sampling and appearance: the settings behind the Story, one level away
-// from the writing controls so neither list has to scroll past the other.
-function SetupTier({ onBack }: { onBack: () => void }) {
+// The active connection, shown here so a Story never needs a trip to Settings to switch endpoints.
+function ConnectionSection() {
   const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
+
+  return (
+    <label className="storyRailPick">
+      <select
+        value={activeConnectionId ?? ''}
+        onChange={(e) => setActiveConnection(e.target.value || null)}
+      >
+        {connections.length === 0 && <option value="">No connections</option>}
+        {connections.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function PromptStackSection() {
   const activeStoryStackId = useSettings((s) => s.activeStoryStackId)
-  const showReasoning = useSettings((s) => s.appearance.showReasoning)
   const stacks = useStacks((s) => s.stacks)
   const saveStack = useStacks((s) => s.save)
   const loadStacks = useStacks((s) => s.load)
-  const { palette, locked, patch } = usePaletteEditor()
-  const story = useWrite((s) => s.story)
-  const setStoryWidth = useWrite((s) => s.setStoryWidth)
-  const setParamOverrides = useWrite((s) => s.setParamOverrides)
-  const connection = connections.find((c) => c.id === activeConnectionId)
 
   useEffect(() => {
     loadStacks()
@@ -334,169 +348,221 @@ function SetupTier({ onBack }: { onBack: () => void }) {
 
   return (
     <>
-      <button type="button" className="storyRailTier" onClick={onBack}>
-        <RiArrowLeftLine size={16} /> Story
-      </button>
-
       <label className="storyRailPick">
-        Connection
         <select
-          value={activeConnectionId ?? ''}
-          onChange={(e) => setActiveConnection(e.target.value || null)}
+          value={activeStoryStackId ?? ''}
+          onChange={(e) => useSettings.setState({ activeStoryStackId: Number(e.target.value) })}
         >
-          {connections.length === 0 && <option value="">No connections</option>}
-          {connections.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+          {storyStacks.length === 0 && <option value="">Default (created on first use)</option>}
+          {storyStacks.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
             </option>
           ))}
         </select>
       </label>
-
-      <details>
-        <summary>Prompt Stack</summary>
-        <label className="storyRailPick">
-          <select
-            value={activeStoryStackId ?? ''}
-            onChange={(e) => useSettings.setState({ activeStoryStackId: Number(e.target.value) })}
-          >
-            {storyStacks.length === 0 && <option value="">Default (created on first use)</option>}
-            {storyStacks.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {stack && <PromptToggles stack={stack} onChange={saveStack} />}
-        <Link to="/prompts?kind=story" className="editStackLink">
-          Edit on the Prompts tab
-        </Link>
-      </details>
-
-      {/* Per Story, not per Chapter and not global: sampling is a property of the work being
-          written. The cast is deliberately not a layer — see Story.paramOverrides. */}
-      <details>
-        <summary>Parameters</summary>
-        {connection ? (
-          <>
-            <p className="hint">Used for this Story only. An empty field uses the connection's value.</p>
-            <ParamEditor
-              overrides={story?.paramOverrides ?? {}}
-              connection={connection}
-              scopeLabel="story"
-              onChange={(paramOverrides) => setParamOverrides(paramOverrides)}
-            />
-          </>
-        ) : (
-          <p className="hint">Pick an active connection in Settings to set parameters.</p>
-        )}
-      </details>
-
-      <details>
-        <summary>Appearance</summary>
-        {/* Per Story, like the chat's width is per chat — the rail is only here while a Story is
-            open, so the scope is the Story on screen. The palette's Story width is the default
-            every Story that has none of its own uses. */}
-        <label className="storyWidth">
-          <span>Story width</span>
-          <input
-            type="range"
-            min={20}
-            max={100}
-            value={story?.storyWidth ?? palette.storyWidth}
-            onChange={(e) => setStoryWidth(Number(e.target.value))}
-          />
-          <input
-            type="number"
-            min={1}
-            max={100}
-            step={1}
-            value={story?.storyWidth ?? palette.storyWidth}
-            onChange={(e) => setStoryWidth(Number(e.target.value))}
-          />
-          %
-        </label>
-        <p className="hint">Overrides the Story width in the palette.</p>
-        {/* The same global switch as the chat's, shown here so it is reachable without opening a
-            chat. There is no per-beat toggle. */}
-        <label
-          className="checkboxRow"
-          title="Hides the reasoning block on beats. Visual only - the reasoning is still stored."
-        >
-          <input
-            type="checkbox"
-            checked={showReasoning}
-            onChange={(e) => useSettings.getState().setAppearance({ showReasoning: e.target.checked })}
-          />
-          Show reasoning
-        </label>
-        {/* Font and size only: the chat's colors don't reach a Story, so showing them here would be
-            a control that does nothing. */}
-        <AppearancePanel colors={false} font={false} />
-        {/* Write-only, so these sit here rather than in AppearancePanel, which the chat rail shows
-            too. Global like the chat's colors, applied to every Story, and independent of them. */}
-        <h3>Story colors</h3>
-        {locked && <p className="hint">{lockedHint}</p>}
-        <ColorStack
-          order={palette.storyColorOrder}
-          colorOf={(kind) => palette[storyColorField[kind]]}
-          textColor={palette.storyTextColor}
-          onOrder={(storyColorOrder) => patch({ storyColorOrder })}
-          onColor={(kind, color) => patch({ [storyColorField[kind]]: color })}
-          onTextColor={(storyTextColor) => patch({ storyTextColor })}
-        />
-        <p className="hint">
-          Colors Story text in double quotes, asterisks and underscores. Where they overlap, the top
-          row wins.
-        </p>
-      </details>
-
-      <details>
-        <summary>Prompt preview</summary>
-        <StoryPromptPanel />
-      </details>
+      {stack && <PromptToggles stack={stack} onChange={saveStack} />}
+      <Link to="/prompts?kind=story" className="editStackLink">
+        Edit on the Prompts tab
+      </Link>
     </>
   )
 }
 
+// Per Story, not per Chapter and not global: sampling is a property of the work being written.
+// The cast is deliberately not a layer — see Story.paramOverrides.
+function ParametersSection() {
+  const connections = useSettings((s) => s.connections)
+  const activeConnectionId = useSettings((s) => s.activeConnectionId)
+  const story = useWrite((s) => s.story)
+  const setParamOverrides = useWrite((s) => s.setParamOverrides)
+  const connection = connections.find((c) => c.id === activeConnectionId)
+
+  if (!connection)
+    return <p className="hint">Pick an active connection in Settings to set parameters.</p>
+
+  return (
+    <>
+      <p className="hint">Used for this Story only. An empty field uses the connection's value.</p>
+      <ParamEditor
+        overrides={story?.paramOverrides ?? {}}
+        connection={connection}
+        scopeLabel="story"
+        onChange={(paramOverrides) => setParamOverrides(paramOverrides)}
+      />
+    </>
+  )
+}
+
+function AppearanceSection() {
+  const showReasoning = useSettings((s) => s.appearance.showReasoning)
+  const { palette, locked, patch } = usePaletteEditor()
+  const story = useWrite((s) => s.story)
+  const setStoryWidth = useWrite((s) => s.setStoryWidth)
+
+  return (
+    <>
+      {/* Per Story, like the chat's width is per chat — the rail is only here while a Story is
+          open, so the scope is the Story on screen. The palette's Story width is the default
+          every Story that has none of its own uses. */}
+      <label className="storyWidth">
+        <span>Story width</span>
+        <input
+          type="range"
+          min={20}
+          max={100}
+          value={story?.storyWidth ?? palette.storyWidth}
+          onChange={(e) => setStoryWidth(Number(e.target.value))}
+        />
+        <input
+          type="number"
+          min={1}
+          max={100}
+          step={1}
+          value={story?.storyWidth ?? palette.storyWidth}
+          onChange={(e) => setStoryWidth(Number(e.target.value))}
+        />
+        %
+      </label>
+      <p className="hint">Overrides the Story width in the palette.</p>
+      {/* The same global switch as the chat's, shown here so it is reachable without opening a
+          chat. There is no per-beat toggle. */}
+      <label
+        className="checkboxRow"
+        title="Hides the reasoning block on beats. Visual only - the reasoning is still stored."
+      >
+        <input
+          type="checkbox"
+          checked={showReasoning}
+          onChange={(e) => useSettings.getState().setAppearance({ showReasoning: e.target.checked })}
+        />
+        Show reasoning
+      </label>
+      {/* Font and size only: the chat's colors don't reach a Story, so showing them here would be
+          a control that does nothing. */}
+      <AppearancePanel colors={false} font={false} />
+      {/* Write-only, so these sit here rather than in AppearancePanel, which the chat rail shows
+          too. Global like the chat's colors, applied to every Story, and independent of them. */}
+      <h3>Story colors</h3>
+      {locked && <p className="hint">{lockedHint}</p>}
+      <ColorStack
+        order={palette.storyColorOrder}
+        colorOf={(kind) => palette[storyColorField[kind]]}
+        textColor={palette.storyTextColor}
+        onOrder={(storyColorOrder) => patch({ storyColorOrder })}
+        onColor={(kind, color) => patch({ [storyColorField[kind]]: color })}
+        onTextColor={(storyTextColor) => patch({ storyTextColor })}
+      />
+      <p className="hint">
+        Colors Story text in double quotes, asterisks and underscores. Where they overlap, the top
+        row wins.
+      </p>
+    </>
+  )
+}
+
+// Every section of the rail, in the order they sit in when nothing is pinned.
+const railSections: { id: string; label: string; body: () => ReactNode }[] = [
+  { id: 'beats', label: 'Beats', body: () => <StoryBeats /> },
+  { id: 'direction', label: 'Direction', body: () => <DirectionSection /> },
+  { id: 'characters', label: 'Characters', body: () => <CastSection /> },
+  { id: 'connection', label: 'Connection', body: () => <ConnectionSection /> },
+  { id: 'promptStack', label: 'Prompt Stack', body: () => <PromptStackSection /> },
+  { id: 'parameters', label: 'Parameters', body: () => <ParametersSection /> },
+  { id: 'appearance', label: 'Appearance', body: () => <AppearanceSection /> },
+  { id: 'promptPreview', label: 'Prompt preview', body: () => <StoryPromptPanel /> },
+]
+
+// One section. The pin sits inside the <summary> so it lines up with the label, which means it has
+// to stop its own click from reaching the <details> and folding the section. It is a <span> with a
+// button role rather than a <button>: a <button> inside a <summary> is invalid HTML.
+function RailSection({
+  label,
+  open,
+  pinned,
+  onOpen,
+  onPin,
+  children,
+}: {
+  label: string
+  open: boolean
+  pinned: boolean
+  onOpen: (open: boolean) => void
+  onPin: () => void
+  children: ReactNode
+}) {
+  return (
+    <details
+      className="railSection"
+      open={open}
+      // currentTarget is already detached by the time this fires; read the element itself.
+      onToggle={(e) => onOpen((e.target as HTMLDetailsElement).open)}
+    >
+      <summary>
+        <span className="railSectionLabel">{label}</span>
+        <span
+          className={pinned ? 'railPin on' : 'railPin'}
+          role="button"
+          tabIndex={0}
+          aria-pressed={pinned}
+          title={pinned ? 'Unpin from the top' : 'Pin to the top'}
+          onClick={(e) => {
+            e.preventDefault()
+            onPin()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onPin()
+            }
+          }}
+        >
+          {pinned ? <RiPushpin2Fill size={16} /> : <RiPushpinLine size={16} />}
+        </span>
+      </summary>
+      {children}
+    </details>
+  )
+}
+
 /**
- * The open Story's one rail, in the app nav rail where the chat's settings panel goes. Two tiers:
- * the writing controls, and the settings behind them.
+ * The open Story's one rail, in the app nav rail where the chat's settings panel goes. Every
+ * section is a sibling, so the prompt toggles and the beat list can be open at the same time;
+ * pinning moves a section to the top of the list.
  *
- * `tier` is local state rather than a route or a hash — the storyBar owns the Story / Plot Layout
- * switch without one, and a second URL axis would collide with it. The rail lives outside the
- * editor's tabs, so both tabs keep it.
+ * Pin and open state are global rather than per Story — how the rail is arranged is a working
+ * habit, not a property of a Story. Per Story is the upgrade path.
  */
 export default function StoryRail() {
-  const [tier, setTier] = useState<'write' | 'setup'>('write')
+  const pinned = useSettings((s) => s.storyRailPinned)
+  const openIds = useSettings((s) => s.storyRailOpen)
+  const setPinned = useSettings((s) => s.setStoryRailPinned)
+  const setOpen = useSettings((s) => s.setStoryRailOpen)
+
+  const order = railOrder(
+    railSections.map((s) => s.id),
+    pinned,
+  )
 
   return (
     <section className="panel storyRail screenBody">
-      {tier === 'setup' ? (
-        <SetupTier onBack={() => setTier('write')} />
-      ) : (
-        <>
-          <details open>
-            <summary>Beats</summary>
-            <StoryBeats />
-          </details>
-
-          <details>
-            <summary>Direction</summary>
-            <DirectionSection />
-          </details>
-
-          <details open>
-            <summary>Characters</summary>
-            <CastSection />
-          </details>
-
-          <button type="button" className="storyRailTier" onClick={() => setTier('setup')}>
-            <RiSettings3Line size={16} /> Story settings
-          </button>
-        </>
-      )}
+      {order.map((id) => {
+        const section = railSections.find((s) => s.id === id)!
+        return (
+          <RailSection
+            key={id}
+            label={section.label}
+            open={openIds.includes(id)}
+            pinned={pinned.includes(id)}
+            onOpen={(on) =>
+              setOpen(on ? [...new Set([...openIds, id])] : openIds.filter((o) => o !== id))
+            }
+            onPin={() => setPinned(togglePin(pinned, id))}
+          >
+            {section.body()}
+          </RailSection>
+        )
+      })}
     </section>
   )
 }
