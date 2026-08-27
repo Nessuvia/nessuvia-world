@@ -252,41 +252,70 @@ export default function CharacterEditor({
               </label>
               <p className="hint">Shown in lists, the character page, and chats. Empty uses the name. {'{{char}}'} and requests always use the name.</p>
 
-              <div className="variantRow defaultRow">
-                <input
-                  type="radio"
-                  name="activeDescription"
-                  checked={draft.activeDescriptionIndex === -1}
-                  onChange={() => set('activeDescriptionIndex', -1)}
-                />
-                <div className="variantFields">
-                  <span>Default Description</span>
+              <div className="descriptionList">
+                <div
+                  className={
+                    draft.activeDescriptionIndex === -1
+                      ? 'descriptionRow active'
+                      : 'descriptionRow'
+                  }
+                >
+                  <div
+                    className="descriptionRowHeader"
+                    onClick={() => set('activeDescriptionIndex', -1)}
+                  >
+                    <span className="descriptionTitle">Default Description</span>
+                  </div>
                   <textarea
                     rows={12}
                     value={draft.description}
                     onChange={(e) => set('description', e.target.value)}
                   />
                 </div>
-              </div>
 
-              {variants.map((v, i) => (
-                <div key={i} className="variantRow">
-                  <input
-                    type="radio"
-                    name="activeDescription"
-                    checked={draft.activeDescriptionIndex === i}
-                    onChange={() => set('activeDescriptionIndex', i)}
-                  />
-                  <div className="variantFields">
-                    <input
-                      value={v.title}
-                      placeholder="Title"
-                      onChange={(e) =>
-                        setVariants(
-                          variants.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)),
-                        )
-                      }
-                    />
+                {variants.map((v, i) => (
+                  <div
+                    key={i}
+                    className={
+                      draft.activeDescriptionIndex === i
+                        ? 'descriptionRow active'
+                        : 'descriptionRow'
+                    }
+                  >
+                    <div
+                      className="descriptionRowHeader"
+                      onClick={() => set('activeDescriptionIndex', i)}
+                    >
+                      <input
+                        className="descriptionTitle"
+                        value={v.title}
+                        placeholder="Title"
+                        onChange={(e) =>
+                          setVariants(
+                            variants.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const next = variants.filter((_, j) => j !== i)
+                          // Removing the active one (or anything before it) must not shift the
+                          // selection onto a different variant.
+                          const active =
+                            draft.activeDescriptionIndex === i
+                              ? -1
+                              : draft.activeDescriptionIndex > i
+                                ? draft.activeDescriptionIndex - 1
+                                : draft.activeDescriptionIndex
+                          setVariants(next, active)
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                     <textarea
                       rows={6}
                       value={v.content}
@@ -297,26 +326,8 @@ export default function CharacterEditor({
                       }
                     />
                   </div>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      const next = variants.filter((_, j) => j !== i)
-                      // Removing the active one (or anything before it) must not shift the
-                      // selection onto a different variant.
-                      const active =
-                        draft.activeDescriptionIndex === i
-                          ? -1
-                          : draft.activeDescriptionIndex > i
-                            ? draft.activeDescriptionIndex - 1
-                            : draft.activeDescriptionIndex
-                      setVariants(next, active)
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
 
               <button
                 type="button"
