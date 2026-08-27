@@ -102,6 +102,8 @@ const mine: Character = {
   paramOverrides: { contextLimit: 8192 },
   activeDescriptionIndex: 2,
   altDescriptions: [{ title: 'Alt', content: 'other' }],
+  // Two greetings, only the second named: the short/holey case is the one that misaligns.
+  greetingTitles: ['', 'Formal'],
 }
 const back = importCard(buildCard(mine, stored))
 assert.equal(back.displayName, 'Ada L.')
@@ -111,6 +113,9 @@ assert.deepStrictEqual(back.avatarCrop, mine.avatarCrop)
 assert.deepStrictEqual(back.paramOverrides, mine.paramOverrides)
 assert.equal(back.activeDescriptionIndex, 2)
 assert.deepStrictEqual(back.altDescriptions, mine.altDescriptions)
+// Titles stay lined up with the greetings they name — index is the only thing joining them.
+assert.deepStrictEqual(back.alternateGreetings, mine.alternateGreetings)
+assert.deepStrictEqual(back.greetingTitles, ['', 'Formal'])
 
 // A card with no nessu block lands on the defaults, not on undefined.
 const bare = importCard({ name: 'Bob', description: 'b' })

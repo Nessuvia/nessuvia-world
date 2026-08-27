@@ -24,6 +24,7 @@ export function newCharacter(): Character {
     altDescriptions: [],
     activeDescriptionIndex: -1,
     alternateGreetings: [],
+    greetingTitles: [],
     gallery: [],
     tags: [],
     systemPrompt: '',

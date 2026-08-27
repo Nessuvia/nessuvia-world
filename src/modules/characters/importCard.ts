@@ -35,6 +35,7 @@ function readNessu(ext: Loose) {
       quoteColor: str(colors.quoteColor),
     } as CharacterColors,
     gallery: strList(n.gallery),
+    greetingTitles: strList(n.greetingTitles),
     avatarCrop: cropped ? ({ x: crop.x, y: crop.y, w: crop.w, h: crop.h } as AvatarCrop) : undefined,
     paramOverrides: n.paramOverrides && typeof n.paramOverrides === 'object' ? (n.paramOverrides as ParamOverrides) : undefined,
     // -1 is the default meaning "description is already the active variant", so an absent value

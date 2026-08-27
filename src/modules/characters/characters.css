@@ -123,6 +123,20 @@
   color: var(--text);
 }
 
+/* The rail doubles as a map of what the card holds, so each entry carries its count. */
+.characters .editorRail button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.railCount {
+  margin-left: auto;
+  color: var(--textDim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 .editorSections {
   flex: 1;
   min-width: 0;
@@ -146,6 +160,26 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  /* The whole header is the toggle, so it needs to react to the pointer. Pulled out to the row's
+     own edges rather than inset, so the strip doesn't look ragged on hover. */
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  transition: background 120ms ease;
+}
+
+.editorSectionHeader:hover {
+  background: var(--surfaceHover);
+}
+
+.editorSectionHeader:hover h3 {
+  color: var(--textBright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorSectionHeader {
+    transition: none;
+  }
 }
 
 .editorSectionHeader h3 {
@@ -162,6 +196,27 @@
 .editorSectionHeader > span:last-child {
   margin-left: auto;
   display: inline-flex;
+}
+
+/* Open/shut every section at once, at the end of the strip where the last chevron is. */
+.sectionBulk {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.characters .sectionBulk button {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 4px 10px;
+  display: inline-flex;
+}
+
+.characters .sectionBulk button:hover {
+  background: var(--borderStrong);
+  color: var(--textBright);
 }
 
 .editorSectionBody {
@@ -358,6 +413,16 @@
 
 .descriptionRow > textarea {
   width: 100%;
+}
+
+/* Openings borrows the row, not the picking. Nothing here selects, so drop the affordances that
+   say it does. */
+.openingsList > .descriptionRow:hover {
+  background: var(--surface);
+}
+
+.openingsList .descriptionRowHeader {
+  cursor: default;
 }
 
 .avatarRow {

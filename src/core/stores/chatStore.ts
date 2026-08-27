@@ -108,6 +108,10 @@ async function worldInfoFor(speaker: Character, messages: Message[]): Promise<st
 export interface CharacterSummary {
   count: number
   latest: number
+  /** Most recently updated chat, so the picker can resume without loading a character's chat list. */
+  lastChatId?: number
+  /** `updatedAt` of that chat — only used to pick it. */
+  lastChatAt?: number
 }
 
 interface ChatState {
@@ -222,6 +226,11 @@ export const useChats = create<ChatState>()((set, get) => ({
     for (const chat of chats) {
       const s = (summaries[chat.characterId] ??= { count: 0, latest: 0 })
       s.count++
+      // Same "last" the profile used to compute: last written to, not last created.
+      if (s.lastChatAt === undefined || chat.updatedAt >= s.lastChatAt) {
+        s.lastChatAt = chat.updatedAt
+        s.lastChatId = chat.id
+      }
     }
     for (const message of messages) {
       const characterId = characterOf.get(message.chatId)
