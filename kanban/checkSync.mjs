@@ -22,6 +22,9 @@ class FakeStorage {
   setItem(k, v) {
     this[k] = String(v)
   }
+  removeItem(k) {
+    delete this[k]
+  }
 }
 
 function run(localStorage, responseText) {
@@ -53,16 +56,39 @@ for (const board of boards) {
   assert.equal(seeded[`nullboard.board.${board.id}`], String(board.revision))
   assert.deepEqual(JSON.parse(seeded[`nullboard.board.${board.id}.${board.revision}`]), board)
 }
-assert.equal(Object.keys(seeded).length, boards.length * 2, 'seeded keys nullboard does not read')
+assert.equal(Object.keys(seeded).length, boards.length * 2 + 1, 'seeded keys nullboard does not read')
+
+// The board opens on load rather than the board list: config.board is the first board's id, as a
+// number, which is what nullboard looks up in its board index.
+assert.deepEqual(JSON.parse(seeded['nullboard.config']), { board: boards[0].id })
 
 // A bare board object, not an array — nullboard exports both shapes.
 const single = run(new FakeStorage(), JSON.stringify(boards[0]))
 assert.equal(single[`nullboard.board.${boards[0].id}`], String(boards[0].revision))
 
-// Browser that already has a board: boards.nbx must not overwrite it.
-const used = new FakeStorage()
-used.setItem('nullboard.board.1', 'mine')
-assert.deepEqual(run(used, nbx), { 'nullboard.board.1': 'mine' }, 'seed clobbered local data')
+// Public tracker: a browser holding an older copy gets the committed one, and the stale meta that
+// would point back at the old revision is dropped.
+const stale = new FakeStorage()
+const old = { ...boards[0], revision: boards[0].revision - 1 }
+stale.setItem(`nullboard.board.${old.id}`, String(old.revision))
+stale.setItem(`nullboard.board.${old.id}.${old.revision}`, JSON.stringify(old))
+stale.setItem(`nullboard.board.${old.id}.meta`, '{"current":1}')
+stale.setItem('nullboard.config', '{"board":1,"theme":"dark"}')
+const fresh = run(stale, nbx)
+
+assert.equal(fresh[`nullboard.board.${old.id}`], String(boards[0].revision))
+assert.deepEqual(JSON.parse(fresh[`nullboard.board.${boards[0].id}.${boards[0].revision}`]), boards[0])
+assert.equal(fresh[`nullboard.board.${old.id}.meta`], undefined, 'stale meta outranks the seed')
+assert.equal(fresh['nullboard.config'], '{"board":1,"theme":"dark"}', 'seed took the visitor theme')
+
+// Same revision already stored: nothing is touched, so nullboard keeps its own meta.
+const current = new FakeStorage()
+for (const board of boards) {
+  current.setItem(`nullboard.board.${board.id}.${board.revision}`, JSON.stringify(board))
+  current.setItem(`nullboard.board.${board.id}.meta`, 'kept')
+}
+const before = { ...current }
+assert.deepEqual({ ...run(current, nbx) }, { ...before, 'nullboard.config': `{"board":${boards[0].id}}` })
 
 // Garbage on the wire is ignored rather than half-applied.
 assert.deepEqual(run(new FakeStorage(), 'not json'), {})

@@ -15,8 +15,9 @@ of one sideways-scrolling row. Both are commented as ours. `public/sync.js` is o
    click it.
 2. Save it over `public/boards.nbx` and commit.
 
-A browser with no board yet loads `public/boards.nbx` on first visit. A browser that already has
-one ignores the file — the export is the only way data moves.
+`public/boards.nbx` is loaded on every visit where the stored copy is behind the file, so a commit
+reaches people who have been here before. Cards typed into the board in a browser are overwritten
+by the next commit. Theme and font settings are the visitor's and are left alone.
 
 `node kanban/checkSync.mjs` checks the seed.
 
