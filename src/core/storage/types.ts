@@ -13,6 +13,10 @@ export interface Character {
   altDescriptions: { title: string; content: string }[]
   activeDescriptionIndex: number // -1 = use `description` verbatim
   alternateGreetings: string[]
+  // Labels for the greetings above, by the same index — the card spec has nowhere to put them, so
+  // they ride in our own extensions block and are dropped by any other reader. Absent or short
+  // means the rest are unnamed; only the editor writes it, and it splices alongside a delete.
+  greetingTitles?: string[]
   // Externally hosted image URLs; nothing is downloaded or stored locally. When local images land,
   // the bytes belong in a `galleryImages` table keyed on characterId (not on this record, which
   // every list load pulls in full) and this becomes an array of {url} | {imageId} objects.

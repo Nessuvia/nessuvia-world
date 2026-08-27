@@ -5,6 +5,8 @@ import { usePersonas } from '../../core/stores/personasStore'
 import { useSettings } from '../../core/stores/settingsStore'
 import { ColorInput } from '../../app/ColorInput'
 import TwoColumn from '../../app/TwoColumn'
+import AvatarCropDialog from '../characters/AvatarCropDialog'
+import GalleryLightbox from '../characters/GalleryLightbox'
 
 // one screen, inline editor — a persona is three fields, it doesn't need its own route.
 export default function PersonasView() {
@@ -13,6 +15,8 @@ export default function PersonasView() {
   const setActivePersona = useSettings((s) => s.setActivePersona)
   const [draft, setDraft] = useState<Persona | null>(null)
   const [saved, setSaved] = useState(true)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   // ensureActive, not load: a fresh install gets its "User" persona here as well as on send.
   useEffect(() => {
@@ -45,10 +49,18 @@ export default function PersonasView() {
     if (!saved && draft?.name.trim()) await save(draft)
   }
 
+  // Load the picked file into the crop dialog. The ORIGINAL lands on `avatar` and the dialog's rect
+  // on `avatarCrop` — one copy of the pixels, and "View full" shows the whole image.
   function readAvatar(file: File) {
     const reader = new FileReader()
-    reader.onload = () => set('avatar', String(reader.result))
+    reader.onload = () => setCropSrc(String(reader.result))
     reader.readAsDataURL(file)
+  }
+
+  function setAvatar(url: string, crop?: Persona['avatarCrop']) {
+    if (!draft) return
+    setDraft({ ...draft, avatar: url, avatarCrop: crop })
+    setSaved(false)
   }
 
   return (
@@ -143,12 +155,24 @@ export default function PersonasView() {
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) readAvatar(file)
+                  e.target.value = '' // let the same file re-open the dialog
                 }}
               />
               {draft.avatar && (
-                <button type="button" onClick={() => set('avatar', '')}>
-                  Remove
-                </button>
+                <>
+                  {/* Cropping needs the local original; a URL avatar has no copy to crop. */}
+                  {draft.avatar.startsWith('data:') && (
+                    <button type="button" onClick={() => setCropSrc(draft.avatar)}>
+                      Crop
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setAvatar('')}>
+                    Remove
+                  </button>
+                  <button type="button" onClick={() => setLightbox(draft.avatar)}>
+                    View full
+                  </button>
+                </>
               )}
             </span>
           </label>
@@ -216,6 +240,20 @@ export default function PersonasView() {
           )
         }
       />
+
+      {lightbox && <GalleryLightbox src={lightbox} onClose={() => setLightbox(null)} />}
+
+      {cropSrc && (
+        <AvatarCropDialog
+          src={cropSrc}
+          initialCrop={cropSrc === draft?.avatar ? draft.avatarCrop : undefined}
+          onCancel={() => setCropSrc(null)}
+          onConfirm={({ crop }) => {
+            setAvatar(cropSrc, crop)
+            setCropSrc(null)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -45,6 +45,40 @@
   color: var(--text);
 }
 
+/* The title text is the second collapse control. Styled as text until hovered. */
+.sidebarTitleButton {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebarTitleButton:hover {
+  background: var(--surfaceHover);
+}
+
+/* Import and Export share a row, half each. */
+.sidebarBackupRow {
+  display: flex;
+  gap: 4px;
+}
+
+.sidebarBackupRow > * {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+}
+
 .sidebar-item {
   display: flex;
   align-items: center;
@@ -142,6 +176,7 @@
   padding: 8px 0 0;
   color: var(--textMuted);
   font-size: 11px;
+  text-align: center;
 }
 
 .sidebarCreditLink {
@@ -271,6 +306,13 @@
     padding: 16px 12px;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  /* The drawer scrolls, so pushing the backup block to the bottom of the viewport only takes
+     vertical room away from the nav items above it. It follows the content instead. */
+  .sidebar .sidebarBackup,
+  .sidebar.collapsed .sidebarBackup {
+    margin-top: 0;
   }
 
   /* Above the other drawers: the navbar is the way out of any screen. */

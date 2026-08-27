@@ -75,17 +75,15 @@
   font-size: 14px;
 }
 
-/* The character edit page — header over the editor, one column. */
-.characterPanel,
-.characterProfile {
+/* The character sheet — header over the editor, one column. */
+.characterSheet {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.characterPanel > .chatPickerHeader button,
-.characterProfile .chatPickerHeader button,
-.characterProfile .profileActions button,
+.characterSheet .chatPickerHeader button,
+.characterSheet .profileActions button,
 .exportMenuList button {
   background: var(--surfaceActive);
   border: 1px solid var(--borderStrong);
@@ -97,20 +95,19 @@
   cursor: pointer;
 }
 
-.characterPanel > .chatPickerHeader button:hover,
-.characterProfile .chatPickerHeader button:hover,
-.characterProfile .profileActions button:hover,
+.characterSheet .chatPickerHeader button:hover,
+.characterSheet .profileActions button:hover,
 .exportMenuList button:hover:not(:disabled) {
   background: var(--borderStrong);
 }
 
-.characterPanel > .chatPickerHeader button.danger,
-.characterProfile button.danger {
+.characterSheet .chatPickerHeader button.danger,
+.characterSheet button.danger {
   color: var(--danger);
 }
 
-.characterPanel > .chatPickerHeader button.secondary,
-.characterProfile button.secondary {
+.characterSheet .chatPickerHeader button.secondary,
+.characterSheet button.secondary {
   background: transparent;
 }
 
@@ -126,24 +123,18 @@
   width: 100%;
 }
 
-.characterPanel > .characters {
+.characterSheet > .characters {
   flex: 1;
   min-height: 0;
 }
 
-.characterPanel .chatPickerHeader h2,
-.characterProfile .chatPickerHeader h2 {
-  margin: 0;
-}
-
-/* Back and the overflow menu both sit at the far right. */
-.characterProfile .chatPickerHeader {
-  justify-content: flex-end;
+/* Back on the left, save state and the overflow menu on the right. */
+.characterSheet > .chatPickerHeader {
   gap: 8px;
 }
 
-.characterProfile .chatPickerHeader h2 {
-  flex: 1;
+.characterSheet > .chatPickerHeader .saveState {
+  margin-left: auto;
 }
 
 .profileMenu {
@@ -172,10 +163,13 @@
   white-space: nowrap;
 }
 
-.profileBody {
+/* Everything above the card's sections: who this is, the two chat actions, and the chat list.
+   It scrolls with the sections rather than pinning, so a long card gets the full column. */
+.sheetTop {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-bottom: 4px;
 }
 
 .profileIdentity {
@@ -204,25 +198,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.profileNotes {
-  margin: 0;
-  white-space: pre-wrap;
-  color: var(--textMuted);
-  font-size: 14px;
-}
-
-.profileGallery {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-}
-
-.profileGallery img {
-  height: 120px;
-  border-radius: var(--radius);
-  cursor: pointer;
 }
 
 /* The title and its chevron sit together on the left of the Chats header. */
@@ -383,9 +358,58 @@
   gap: 8px;
   padding: 16px 12px;
   background: var(--surface);
-  border-color: var(--border);
+  border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 4px);
   text-align: center;
+}
+
+/* The two hit zones. Neither paints itself as a button: the card is still one object, and the
+   avatar's play overlay is what says the halves do different things. */
+.pickerCard > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pickerAvatarButton {
+  position: relative;
+  border-radius: 50%;
+}
+
+/* The play badge sits over the avatar, out of the way until you're on it. */
+.pickerResume {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--overlay);
+  color: var(--textBright);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.pickerAvatarButton:hover .pickerResume,
+.pickerAvatarButton:focus-visible .pickerResume {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pickerResume {
+    transition: none;
+  }
+}
+
+.pickerNameButton:hover .characterName {
+  color: var(--textBright);
 }
 
 .pickerCard .avatar {
@@ -1291,6 +1315,22 @@
 .chatPicker .headerActions button.active {
   border-color: var(--borderAccent);
   color: var(--textBright);
+}
+
+/* Sort by tag, below the filter list. .importMenuList hides inputs, so the checkbox comes back. */
+.tagMenuToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.importMenuList .tagMenuToggle input[type='checkbox'] {
+  display: inline-block;
+  width: auto;
+  margin: 0;
 }
 
 /* The filter menu borrows .importMenuList for position and chrome, which hides inputs and paints

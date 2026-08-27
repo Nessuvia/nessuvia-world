@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { RiStarFill, RiStarLine } from '@remixicon/react'
 import { useChats } from '../../core/stores/chatStore'
 import type { Character } from '../../core/storage/types'
@@ -12,10 +12,9 @@ export default function ChatList({
   character: Character
   onCollapse?: () => void
 }) {
-  const { chats, loadChats, createChat, renameChat, deleteChat, toggleBookmark } = useChats()
+  const { chats, loadChats, renameChat, deleteChat, toggleBookmark } = useChats()
   const searchMessages = useChats((s) => s.searchMessages)
   const loadSearchIndex = useChats((s) => s.loadSearchIndex)
-  const navigate = useNavigate()
   const [renaming, setRenaming] = useState<number | null>(null)
   const [title, setTitle] = useState('')
   const [search, setSearch] = useState('')
@@ -36,7 +35,10 @@ export default function ChatList({
     if (inside) loadSearchIndex(character.id!)
   }, [inside, character.id, loadSearchIndex])
 
-  const query = search.trim().toLowerCase()
+  // The search row only exists above this many chats; below it, a query left over from before a
+  // delete must not go on hiding rows from a box that isn't on screen.
+  const showTools = chats.length > 4
+  const query = showTools ? search.trim().toLowerCase() : ''
 
   /** Matching messages per chat id. Empty unless searching inside. */
   const counts = useMemo(() => {
@@ -59,37 +61,43 @@ export default function ChatList({
       <div className="chatPickerHeader">
         <span className="chatPickerTitle">
           <h2>Chats</h2>
+          {chats.length > 0 && <span className="hint">({chats.length})</span>}
           {onCollapse && <CollapseButton label="Chats" collapsed={false} onToggle={onCollapse} />}
         </span>
-        <button
-          type="button"
-          onClick={async () => navigate(`/chat/${await createChat(character.id!)}`)}
-        >
-          New chat
-        </button>
       </div>
 
-      <div className="chatSearchRow">
-        <input
-          className="chatSearch"
-          placeholder="Search chats..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <label className="chatSearchInside">
-          <input type="checkbox" checked={inside} onChange={(e) => setInside(e.target.checked)} />
-          Search inside chats
-        </label>
-      </div>
+      {/* The sheet sits this list above the card's sections, so its chrome costs the sections
+          screen space. Under a handful of chats you can see them all anyway — the search and the
+          delete toggle only earn their rows once the list is long enough to need them. */}
+      {showTools && (
+        <>
+          <div className="chatSearchRow">
+            <input
+              className="chatSearch"
+              placeholder="Search chats..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <label className="chatSearchInside">
+              <input
+                type="checkbox"
+                checked={inside}
+                onChange={(e) => setInside(e.target.checked)}
+              />
+              Search inside chats
+            </label>
+          </div>
 
-      <label className="chatDeleteToggle">
-        <input
-          type="checkbox"
-          checked={skipDeleteConfirm}
-          onChange={(e) => setSkipDeleteConfirm(e.target.checked)}
-        />
-        Immediately delete chats when clicking Delete
-      </label>
+          <label className="chatDeleteToggle">
+            <input
+              type="checkbox"
+              checked={skipDeleteConfirm}
+              onChange={(e) => setSkipDeleteConfirm(e.target.checked)}
+            />
+            Immediately delete chats when clicking Delete
+          </label>
+        </>
+      )}
 
       {chats.length === 0 && <p className="placeholder">No chats yet.</p>}
       {chats.length > 0 && shown.length === 0 && <p className="placeholder">No matches.</p>}

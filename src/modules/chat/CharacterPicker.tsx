@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  RiAddLine,
-  RiFilter3Line,
-  RiImportLine,
-  RiPriceTag3Line,
-  RiSearchLine,
-  RiStackLine,
-} from '@remixicon/react'
+import { RiAddLine, RiImportLine, RiPlayFill, RiSearchLine } from '@remixicon/react'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { Avatar } from '../../app/Avatar'
 import { CollapseButton } from '../../app/CollapseButton'
@@ -21,7 +14,7 @@ import { formatStamp } from './formatStamp'
 import ImportUrlModal from './ImportUrlModal'
 import ImportTagsModal from './ImportTagsModal'
 import TagContextMenu from './TagContextMenu'
-import TagList from './TagList'
+import TagMenu from './TagMenu'
 import { useLongPress } from './useLongPress'
 import { allTags, groupByPrimaryTag, matchesTags, type TagMode } from './tags'
 
@@ -44,7 +37,6 @@ export default function CharacterPicker() {
   const [search, setSearch] = useState('')
 
   const [tagsOpen, setTagsOpen] = useState(false)
-  const tagsRef = useCloseOnOutside<HTMLSpanElement>(tagsOpen, () => setTagsOpen(false))
   const [selected, setSelected] = useState<string[]>([])
   const [mode, setMode] = useState<TagMode>(storedMode)
   // Grouping and which groups are shut are both per-visit: you arrive at a flat, fully open grid.
@@ -136,6 +128,11 @@ export default function CharacterPicker() {
         }
         blip={blips.includes(c.id!)}
         onOpen={() => navigate(`/chat/c/${c.id}`)}
+        // Nine visits in ten are "resume the chat I was in", so that gets its own hit zone rather
+        // than a stop at the sheet. Nothing to resume falls through to the sheet.
+        onResume={
+          summary?.lastChatId ? () => navigate(`/chat/${summary.lastChatId}`) : undefined
+        }
         onMenu={(x, y) => setContextMenu({ character: c, x, y })}
       />
     )
@@ -156,75 +153,22 @@ export default function CharacterPicker() {
             />
           </span>
 
-          {/* Both tag controls stay out of the way until a character actually has a tag. */}
+          {/* The tag controls stay out of the way until a character actually has a tag. */}
           {tags.length > 0 && (
-            <>
-              <span className="importMenu" ref={tagsRef}>
-                <button
-                  type="button"
-                  className={`importButton${selected.length ? ' active' : ''}`}
-                  title="Filter tags"
-                  onClick={() => setTagsOpen((o) => !o)}
-                >
-                  <RiFilter3Line size={16} />
-                  <span className="btnLabel">
-                    {selected.length
-                      ? `${selected.length} tag${selected.length === 1 ? '' : 's'}`
-                      : 'Filter tags'}
-                  </span>
-                </button>
-                {tagsOpen && (
-                  <div className="panel importMenuList tagFilterMenu">
-                    <TagList
-                      tags={tags}
-                      checked={selected}
-                      onToggle={(tag) =>
-                        setSelected((s) => (s.includes(tag) ? s.filter((t) => t !== tag) : [...s, tag]))
-                      }
-                      header={
-                        <div className="tagFilterHead">
-                          {/* Any vs All only means something with two tags picked. */}
-                          {selected.length > 1 && (
-                            <span className="tagModeSwitch">
-                              <button
-                                type="button"
-                                className={mode === 'any' ? 'on' : ''}
-                                onClick={() => pickMode('any')}
-                              >
-                                Any
-                              </button>
-                              <button
-                                type="button"
-                                className={mode === 'all' ? 'on' : ''}
-                                onClick={() => pickMode('all')}
-                              >
-                                All
-                              </button>
-                            </span>
-                          )}
-                          {selected.length > 0 && (
-                            <button type="button" onClick={() => setSelected([])}>
-                              Clear
-                            </button>
-                          )}
-                        </div>
-                      }
-                    />
-                  </div>
-                )}
-              </span>
-
-              <button
-                type="button"
-                className={grouped ? 'active' : ''}
-                title="Sort by tag"
-                aria-pressed={grouped}
-                onClick={() => setGrouped((g) => !g)}
-              >
-                <RiStackLine size={16} />
-                <span className="btnLabel">Sort by tag</span>
-              </button>
-            </>
+            <TagMenu
+              tags={tags}
+              selected={selected}
+              onToggle={(tag) =>
+                setSelected((s) => (s.includes(tag) ? s.filter((t) => t !== tag) : [...s, tag]))
+              }
+              onClear={() => setSelected([])}
+              mode={mode}
+              onMode={pickMode}
+              grouped={grouped}
+              onGrouped={setGrouped}
+              open={tagsOpen}
+              onOpen={setTagsOpen}
+            />
           )}
 
           <span className="importMenu" ref={menuRef}>
@@ -267,10 +211,6 @@ export default function CharacterPicker() {
           <button type="button" title="New character" onClick={() => navigate('/chat/c/new')}>
             <RiAddLine size={16} />
             <span className="btnLabel">New character</span>
-          </button>
-          <button type="button" title="Tags" onClick={() => navigate('/chat/tags')}>
-            <RiPriceTag3Line size={16} />
-            <span className="btnLabel">Tags</span>
           </button>
         </span>
       </div>
@@ -346,42 +286,64 @@ export default function CharacterPicker() {
   )
 }
 
-/** One card. Split out so the flat grid and the grouped view share exactly one copy of it. */
+/**
+ * One card, two targets. Split out so the flat grid and the grouped view share exactly one copy
+ * of it.
+ *
+ * The avatar resumes the last chat and the name opens the character; both are one click and
+ * neither is behind a menu. Two hit zones on one card is only learnable if they look like two, so
+ * the avatar carries a play overlay on hover and focus. Without a chat to resume it does what the
+ * rest of the card does — there's nothing there to mislearn.
+ */
 function PickerCard({
   character,
   meta,
   blip,
   onOpen,
+  onResume,
   onMenu,
 }: {
   character: Character
   meta: string
   blip: boolean
   onOpen: () => void
+  onResume?: () => void
   onMenu: (x: number, y: number) => void
 }) {
   const longPress = useLongPress(onMenu)
   const avatar = <Avatar of={character} name={displayName(character) || '?'} />
   return (
-    <button
-      type="button"
+    <div
       className="card pickerCard"
-      onClick={onOpen}
       onContextMenu={(e) => {
         e.preventDefault()
         onMenu(e.clientX, e.clientY)
       }}
       {...longPress}
     >
-      {blip ? (
-        <span className="blipRing" title="New reply">
-          {avatar}
-        </span>
-      ) : (
-        avatar
-      )}
-      <span className="characterName">{displayName(character) || 'Unnamed'}</span>
-      <span className="pickerMeta">{meta}</span>
-    </button>
+      <button
+        type="button"
+        className="pickerAvatarButton"
+        title={onResume ? 'Continue last chat' : 'Open character'}
+        onClick={onResume ?? onOpen}
+      >
+        {blip ? (
+          <span className="blipRing" title="New reply">
+            {avatar}
+          </span>
+        ) : (
+          avatar
+        )}
+        {onResume && (
+          <span className="pickerResume" aria-hidden="true">
+            <RiPlayFill size={20} />
+          </span>
+        )}
+      </button>
+      <button type="button" className="pickerNameButton" title="Open character" onClick={onOpen}>
+        <span className="characterName">{displayName(character) || 'Unnamed'}</span>
+        <span className="pickerMeta">{meta}</span>
+      </button>
+    </div>
   )
 }

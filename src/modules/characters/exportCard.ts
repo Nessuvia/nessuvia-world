@@ -69,6 +69,7 @@ export function buildCard(c: Character, entries: WorldInfoEntry[] = []) {
       nessu: {
         displayName: c.displayName ?? '',
         activeDescriptionIndex: c.activeDescriptionIndex,
+        greetingTitles: c.greetingTitles ?? [],
         colors: c.colors,
         gallery: c.gallery,
         avatarCrop: c.avatarCrop,

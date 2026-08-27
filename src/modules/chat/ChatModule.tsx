@@ -1,7 +1,6 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import CharacterPicker from './CharacterPicker'
-import CharacterPanel from './CharacterPanel'
-import CharacterProfile from './CharacterProfile'
+import CharacterSheet from './CharacterSheet'
 import ChatView from './ChatView'
 import TagsPage from './TagsPage'
 
@@ -12,9 +11,10 @@ export default function ChatModule() {
     <Routes>
       <Route index element={<CharacterPicker />} />
       {/* The open character lives in the URL, so clicking Chat in the sidebar closes it. */}
-      <Route path="c/new" element={<CharacterPanel />} />
-      <Route path="c/:characterId/edit" element={<CharacterPanel />} />
-      <Route path="c/:characterId" element={<CharacterProfile />} />
+      <Route path="c/new" element={<CharacterSheet />} />
+      {/* Reading and editing are the same page; /edit only survives so an open bookmark lands. */}
+      <Route path="c/:characterId/edit" element={<Navigate to=".." replace />} />
+      <Route path="c/:characterId" element={<CharacterSheet />} />
       {/* Above :chatId, which would otherwise swallow it. */}
       <Route path="tags" element={<TagsPage />} />
       <Route path=":chatId" element={<ChatView />} />

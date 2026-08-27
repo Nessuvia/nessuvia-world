@@ -9,40 +9,60 @@ import AvatarCropDialog from './AvatarCropDialog'
 import GalleryLightbox from './GalleryLightbox'
 import { Avatar } from '../../app/Avatar'
 import { CollapseButton } from '../../app/CollapseButton'
-import { RiDeleteBinLine, RiImageCircleLine } from '@remixicon/react'
+import {
+  RiArrowDownSLine,
+  RiArrowUpSLine,
+  RiDeleteBinLine,
+  RiImageCircleLine,
+} from '@remixicon/react'
 import LorebookTab from './LorebookTab'
 import TagChips from './TagChips'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import { hasSource } from '../prompts/stackKinds'
 
-const sectionIds = ['Main', 'Openings', 'Media', 'Lorebook', 'Prompt', 'About'] as const
+// Identity and Metadata were Main and About: neither said what it held, and the labels are the
+// first thing anyone reads when working out what a card is made of.
+const sectionIds = ['Identity', 'Openings', 'Media', 'Lorebook', 'Prompt', 'Metadata'] as const
 type SectionId = (typeof sectionIds)[number]
 
-// Not persisted — which sections are open is a glance-level choice, not a setting. Main and About
-// are the two that read as the character, so they start open.
-const initialOpen: Record<SectionId, boolean> = {
-  Main: true,
+// Not persisted — which sections are open is a glance-level choice, not a setting. Everything
+// starts shut: with a summary on every header the collapsed strip is the table of contents, and
+// it only fits under the chat list while it stays six rows tall.
+const allShut: Record<SectionId, boolean> = {
+  Identity: false,
   Openings: false,
   Media: false,
   Lorebook: false,
   Prompt: false,
-  About: true,
+  Metadata: false,
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** The leading number of a summary, for the rail badge. Empty summary means no badge. */
+const railCount = (summary: string | undefined) => summary?.split(' ')[0] ?? ''
 
 /**
  * `characterId` null means a brand new character — it's written on the first autosave, and
  * `onCreated` hands back its new id. Edits autosave 1s after the last keystroke; there is no
  * Save button.
+ *
+ * `header` renders inside the scrolling column above the first section: CharacterSheet passes the
+ * identity block, the chat actions and the chat list through it, so reading a character and
+ * editing it are one page rather than two routes.
  */
 export default function CharacterEditor({
   characterId,
   onCreated,
+  header,
+  onSaveState,
 }: {
   characterId: number | null
   onCreated?: (id: number) => void
+  header?: ReactNode
+  /** Save state goes to whoever owns the header bar. */
+  onSaveState?: (state: string) => void
 }) {
   const { characters, load, save } = useCharacters()
   const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
@@ -60,7 +80,11 @@ export default function CharacterEditor({
     characterId === null ? newCharacter() : null,
   )
   const [saved, setSaved] = useState(true)
-  const [open, setOpen] = useState<Record<SectionId, boolean>>(initialOpen)
+  // A new character has no identity block or chat list above it, so open the one section there is
+  // something to type into.
+  const [open, setOpen] = useState<Record<SectionId, boolean>>(
+    characterId === null ? { ...allShut, Identity: true } : allShut,
+  )
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [galleryUrl, setGalleryUrl] = useState('')
@@ -109,6 +133,12 @@ export default function CharacterEditor({
     const timer = setTimeout(persist, 1000)
     return () => clearTimeout(timer)
   }, [saved, draft, save, onCreated])
+
+  // The header bar belongs to the sheet now, so the state it shows is reported rather than drawn.
+  const saveState = !draft ? '' : draft.name.trim() ? (saved ? 'Saved' : 'Saving…') : 'Name required'
+  useEffect(() => {
+    onSaveState?.(saveState)
+  }, [saveState, onSaveState])
 
   if (!draft) return <p className="placeholder">Loading…</p>
 
@@ -163,6 +193,10 @@ export default function CharacterEditor({
   ) => change({ ...draft!, altDescriptions: next, activeDescriptionIndex: activeIndex })
 
   const greetings = draft.alternateGreetings
+  const greetingTitles = draft.greetingTitles ?? []
+  // The two arrays are keyed by index, so every edit that changes the shape of one changes both.
+  const setGreetings = (next: string[], titles: string[]) =>
+    change({ ...draft!, alternateGreetings: next, greetingTitles: titles })
 
   const gallery = draft.gallery
 
@@ -183,17 +217,57 @@ export default function CharacterEditor({
 
   const toggle = (id: SectionId) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }))
 
+  const setAll = (value: boolean) =>
+    setOpen(
+      Object.fromEntries(sectionIds.map((id) => [id, value])) as Record<SectionId, boolean>,
+    )
+
   // A rail click always opens; it never shuts what it scrolls to.
   const jump = (id: SectionId) => {
     setOpen((prev) => ({ ...prev, [id]: true }))
     sectionRefs.current[id]?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }
 
+  // Every section says what it holds, open or shut. With all six shut on arrival these summaries
+  // are the only thing telling you the card system is there at all, so an empty section says
+  // nothing rather than "0 of x" — a blank row reads as room, a zero reads as broken.
+  const openings = greetings.length + (draft.firstMessage.trim() ? 1 : 0)
+  const promptFields =
+    (draft.systemPrompt?.trim() ? 1 : 0) +
+    (draft.postHistoryInstructions?.trim() ? 1 : 0) +
+    Object.keys(draft.paramOverrides ?? {}).length
   const summaries: Partial<Record<SectionId, string>> = {
-    Openings: plural(greetings.length + (draft.firstMessage.trim() ? 1 : 0), 'greeting'),
-    Media: plural(galleryTiles.length, 'image'),
-    Lorebook: `${bookEntries.length} ${bookEntries.length === 1 ? 'entry' : 'entries'}`,
+    Identity: variants.length ? plural(variants.length, 'description variant') : '',
+    Openings: openings ? plural(openings, 'greeting') : '',
+    Media: galleryTiles.length ? plural(galleryTiles.length, 'image') : '',
+    Lorebook: bookEntries.length
+      ? `${bookEntries.length} ${bookEntries.length === 1 ? 'entry' : 'entries'}`
+      : '',
+    Prompt: promptFields ? plural(promptFields, 'override') : '',
+    Metadata: (draft.tags ?? []).length ? plural((draft.tags ?? []).length, 'tag') : '',
   }
+
+  // Top and bottom of the strip: from either end, every section is one click from open or shut.
+  const bulkRow = (
+    <div className="sectionBulk">
+      <button
+        type="button"
+        title="Collapse all"
+        aria-label="Collapse all"
+        onClick={() => setAll(false)}
+      >
+        <RiArrowUpSLine size={18} />
+      </button>
+      <button
+        type="button"
+        title="Expand all"
+        aria-label="Expand all"
+        onClick={() => setAll(true)}
+      >
+        <RiArrowDownSLine size={18} />
+      </button>
+    </div>
+  )
 
   const section = (id: SectionId, children: ReactNode) => (
     <section
@@ -205,7 +279,7 @@ export default function CharacterEditor({
     >
       <div className="editorSectionHeader" onClick={() => toggle(id)}>
         <h3>{id}</h3>
-        {!open[id] && summaries[id] && <span className="hint">{summaries[id]}</span>}
+        {summaries[id] && <span className="hint">{summaries[id]}</span>}
         <span onClick={(e) => e.stopPropagation()}>
           <CollapseButton label={id} collapsed={!open[id]} onToggle={() => toggle(id)} />
         </span>
@@ -216,26 +290,28 @@ export default function CharacterEditor({
 
   return (
     <div className="characters characterEditor screenFrame">
-      <div className="charactersHeader">
-        <span className="saveState">
-          {draft.name.trim() ? (saved ? 'Saved' : 'Saving…') : 'Name required'}
-        </span>
-      </div>
-
       <div className="editorLayout">
         {/* Hidden below the breakpoint by CSS — the shut section headers are the table of
-            contents on a phone. */}
+            contents on a phone. The counts make the rail a map of what this card holds rather
+            than six identical words. */}
         <nav className="editorRail">
           {sectionIds.map((id) => (
             <button key={id} type="button" onClick={() => jump(id)}>
               {id}
+              {railCount(summaries[id]) && (
+                <span className="railCount">{railCount(summaries[id])}</span>
+              )}
             </button>
           ))}
         </nav>
 
         <div className="screenBody editorSections">
+          {header}
+
+          {bulkRow}
+
           {section(
-            'Main',
+            'Identity',
             <>
               <label>
                 Name
@@ -252,41 +328,70 @@ export default function CharacterEditor({
               </label>
               <p className="hint">Shown in lists, the character page, and chats. Empty uses the name. {'{{char}}'} and requests always use the name.</p>
 
-              <div className="variantRow defaultRow">
-                <input
-                  type="radio"
-                  name="activeDescription"
-                  checked={draft.activeDescriptionIndex === -1}
-                  onChange={() => set('activeDescriptionIndex', -1)}
-                />
-                <div className="variantFields">
-                  <span>Default Description</span>
+              <div className="descriptionList">
+                <div
+                  className={
+                    draft.activeDescriptionIndex === -1
+                      ? 'descriptionRow active'
+                      : 'descriptionRow'
+                  }
+                >
+                  <div
+                    className="descriptionRowHeader"
+                    onClick={() => set('activeDescriptionIndex', -1)}
+                  >
+                    <span className="descriptionTitle">Default Description</span>
+                  </div>
                   <textarea
                     rows={12}
                     value={draft.description}
                     onChange={(e) => set('description', e.target.value)}
                   />
                 </div>
-              </div>
 
-              {variants.map((v, i) => (
-                <div key={i} className="variantRow">
-                  <input
-                    type="radio"
-                    name="activeDescription"
-                    checked={draft.activeDescriptionIndex === i}
-                    onChange={() => set('activeDescriptionIndex', i)}
-                  />
-                  <div className="variantFields">
-                    <input
-                      value={v.title}
-                      placeholder="Title"
-                      onChange={(e) =>
-                        setVariants(
-                          variants.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)),
-                        )
-                      }
-                    />
+                {variants.map((v, i) => (
+                  <div
+                    key={i}
+                    className={
+                      draft.activeDescriptionIndex === i
+                        ? 'descriptionRow active'
+                        : 'descriptionRow'
+                    }
+                  >
+                    <div
+                      className="descriptionRowHeader"
+                      onClick={() => set('activeDescriptionIndex', i)}
+                    >
+                      <input
+                        className="descriptionTitle"
+                        value={v.title}
+                        placeholder="Title"
+                        onChange={(e) =>
+                          setVariants(
+                            variants.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const next = variants.filter((_, j) => j !== i)
+                          // Removing the active one (or anything before it) must not shift the
+                          // selection onto a different variant.
+                          const active =
+                            draft.activeDescriptionIndex === i
+                              ? -1
+                              : draft.activeDescriptionIndex > i
+                                ? draft.activeDescriptionIndex - 1
+                                : draft.activeDescriptionIndex
+                          setVariants(next, active)
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                     <textarea
                       rows={6}
                       value={v.content}
@@ -297,26 +402,8 @@ export default function CharacterEditor({
                       }
                     />
                   </div>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      const next = variants.filter((_, j) => j !== i)
-                      // Removing the active one (or anything before it) must not shift the
-                      // selection onto a different variant.
-                      const active =
-                        draft.activeDescriptionIndex === i
-                          ? -1
-                          : draft.activeDescriptionIndex > i
-                            ? draft.activeDescriptionIndex - 1
-                            : draft.activeDescriptionIndex
-                      setVariants(next, active)
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
 
               <button
                 type="button"
@@ -357,47 +444,80 @@ export default function CharacterEditor({
           {section(
             'Openings',
             <>
-              <label>
-                First message
-                <textarea
-                  rows={8}
-                  value={draft.firstMessage}
-                  onChange={(e) => set('firstMessage', e.target.value)}
-                />
-              </label>
+              {/* Same row layout as the descriptions above: a greeting is as long as a
+                  description and was getting a quarter of the space. The rows aren't selectable
+                  here — every greeting becomes a swipe on the first message, so there's no
+                  active one to pick. */}
+              <div className="descriptionList openingsList">
+                <div className="descriptionRow">
+                  <div className="descriptionRowHeader">
+                    <span className="descriptionTitle">First message</span>
+                  </div>
+                  <textarea
+                    rows={10}
+                    value={draft.firstMessage}
+                    onChange={(e) => set('firstMessage', e.target.value)}
+                  />
+                </div>
 
-              <fieldset className="variants">
-                <legend>Alternate greetings</legend>
                 {greetings.map((g, i) => (
-                  <div key={i} className="variantRow">
+                  <div key={i} className="descriptionRow">
+                    <div className="descriptionRowHeader">
+                      <input
+                        className="descriptionTitle"
+                        value={greetingTitles[i] ?? ''}
+                        placeholder={`Alternate greeting ${i + 1}`}
+                        onChange={(e) =>
+                          setGreetings(
+                            greetings,
+                            // Pad rather than index past the end: naming the third greeting first
+                            // must not leave holes the first two can't be typed into.
+                            greetings.map((_, j) =>
+                              j === i ? e.target.value : (greetingTitles[j] ?? ''),
+                            ),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() =>
+                          setGreetings(
+                            greetings.filter((_, j) => j !== i),
+                            greetings.map((_, j) => greetingTitles[j] ?? '').filter((_, j) => j !== i),
+                          )
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
                     <textarea
-                      rows={4}
+                      rows={8}
                       value={g}
                       onChange={(e) =>
-                        set(
-                          'alternateGreetings',
+                        setGreetings(
                           greetings.map((x, j) => (j === i ? e.target.value : x)),
+                          greetingTitles,
                         )
                       }
                     />
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() =>
-                        set(
-                          'alternateGreetings',
-                          greetings.filter((_, j) => j !== i),
-                        )
-                      }
-                    >
-                      Delete
-                    </button>
                   </div>
                 ))}
-                <button type="button" onClick={() => set('alternateGreetings', [...greetings, ''])}>
-                  Add greeting
-                </button>
-              </fieldset>
+              </div>
+
+              <button
+                type="button"
+                // Padded first: an imported card has greetings and no titles at all, and appending
+                // to the short array would name the wrong rows.
+                onClick={() =>
+                  setGreetings(
+                    [...greetings, ''],
+                    [...greetings.map((_, j) => greetingTitles[j] ?? ''), ''],
+                  )
+                }
+              >
+                Add greeting
+              </button>
             </>,
           )}
 
@@ -618,7 +738,7 @@ export default function CharacterEditor({
           )}
 
           {section(
-            'About',
+            'Metadata',
             <>
               <label>
                 Tags
@@ -646,9 +766,11 @@ export default function CharacterEditor({
                   onChange={(e) => set('creatorNotes', e.target.value)}
                 />
               </label>
-              <p className="hint">Shown on the character page. Not sent to the model.</p>
+              <p className="hint">Not sent to the model.</p>
             </>,
           )}
+
+          {bulkRow}
         </div>
       </div>
 
