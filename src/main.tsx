@@ -13,10 +13,9 @@ import './modules/prompts'
 import './modules/appearance'
 import './modules/settings'
 import './modules/bodyMap' // a plugin: off until enabled in Settings > Miscellaneous
-// Sync is off in every build, dev included. Not deleted: the bucket code works and the decision to
-// drop BYO-S3 for good hasn't been made. Unregistering is the whole switch — Sidebar guards its two
-// sync entries with `syncModule &&`, and /sync stops resolving. Re-enable by uncommenting.
-// import './modules/sync'
+// Sits under Import/Export in the rail, not in the main nav — Sidebar guards its two sync entries
+// with `syncModule &&`, so commenting this line out is still the whole off switch.
+import './modules/sync'
 
 // A WIP tab that ships: registered everywhere, so /learn resolves on live, but the rail only shows
 // its button on dev (see Sidebar.tsx).

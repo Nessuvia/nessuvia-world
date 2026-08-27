@@ -14,11 +14,83 @@
   color: var(--textMuted);
 }
 
-/* Two columns so the six fields don't run down the whole screen. */
+/* The formal layer: one measured column, sections divided by rules rather than cards, and no
+   decoration. Everything in here is spacing and type — the colors are the same vars as the rest
+   of the app, so it still follows the palette. */
+.syncFormal {
+  display: flex;
+  flex-direction: column;
+  max-width: 760px;
+  /* Room for the scrollbar so the rule ends don't sit under it. */
+  padding-right: 8px;
+}
+
+.syncHead {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--borderStrong);
+}
+
+.syncFormal h2 {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.syncLede {
+  margin: 10px 0 0;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--textMuted);
+}
+
+.syncSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.syncSection:last-child {
+  border-bottom: none;
+}
+
+.syncSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.syncSectionHead h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.syncStatus {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--textMuted);
+}
+
+.syncSection .syncNote {
+  max-width: 62ch;
+  line-height: 1.6;
+}
+
+/* Two columns so the fields don't run down the whole screen. */
 .syncBucket {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
+  width: 100%;
   max-width: 640px;
 }
 
@@ -40,17 +112,75 @@
   font-size: 14px;
 }
 
+/* A button that reads as a link: the mode toggle and the copy action are asides, not actions with
+   the same weight as Test connection. #root because .sync button would otherwise pick up the
+   app's default button skin. */
+#root .syncLinkButton {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--textMuted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+#root .syncLinkButton:hover {
+  color: var(--text);
+}
+
+.syncSetup {
+  width: 100%;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+.syncSetup summary {
+  cursor: pointer;
+  color: var(--textMuted);
+}
+
+.syncSetup summary:hover {
+  color: var(--text);
+}
+
+.syncSetup ol {
+  margin: 12px 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+.syncSetup pre {
+  margin: 0 0 10px;
+  overflow-x: auto;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.syncSetup .syncNote {
+  margin-top: 10px;
+}
+
 .syncActions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  width: 100%;
 }
 
 .syncComparison {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--borderStrong);
   border-radius: var(--radius);
@@ -79,6 +209,39 @@
   color: var(--textMuted);
 }
 
+/* Import and Export fill the section, half each. Both are buttons in every way but the markup —
+   Import is a label wrapping a hidden file input. */
+.syncBackupRow {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+#root .syncBackupButton {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#root .syncBackupButton:hover {
+  background: var(--surfaceHover);
+  color: var(--text);
+}
+
+.syncBackupRow input[type='file'] {
+  display: none;
+}
+
 .syncError {
   display: flex;
   align-items: center;
@@ -86,4 +249,15 @@
   margin: 0;
   color: var(--danger);
   font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .syncRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .syncActions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
 }

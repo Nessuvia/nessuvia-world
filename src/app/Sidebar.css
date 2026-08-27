@@ -67,7 +67,7 @@
   background: var(--surfaceHover);
 }
 
-/* Import and Export share a row, half each. */
+/* Import and Export share a row, half each, with Sync as an icon at the end. */
 .sidebarBackupRow {
   display: flex;
   gap: 4px;
@@ -77,6 +77,11 @@
   flex: 1 1 0;
   min-width: 0;
   justify-content: center;
+}
+
+/* Sync takes its icon's width rather than a third of the row. */
+.sidebarBackupRow > .sidebarIconOnly {
+  flex: 0 0 auto;
 }
 
 .sidebar-item {

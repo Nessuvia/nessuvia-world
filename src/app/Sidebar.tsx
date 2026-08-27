@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { Link, NavLink, useMatch } from 'react-router-dom'
-import { RiArrowLeftLine, RiArrowRightSLine, RiCloseLine, RiDownloadLine, RiGithubFill, RiMenuFoldLine, RiMenuLine, RiRedditFill, RiUploadLine } from '@remixicon/react'
+import { RiArrowLeftLine, RiArrowRightSLine, RiCloseLine, RiGithubFill, RiMenuFoldLine, RiMenuLine, RiRedditFill } from '@remixicon/react'
 import { useSettings } from '../core/stores/settingsStore'
 import { lockedHint, usePaletteEditor } from '../core/stores/palettesStore'
 import { useChats } from '../core/stores/chatStore'
@@ -13,7 +13,7 @@ import PersonaSwitcher from './PersonaSwitcher'
 import ChatSettingsPanel from '../modules/chat/ChatSettingsPanel'
 import StoryRail from '../modules/write/StoryRail'
 import BookmarkList from '../modules/chat/BookmarkList'
-import { buildBackup, downloadBackup, parseBackup, restoreBackup } from '../core/storage/backup'
+import BackupButtons from './BackupButtons'
 import './sideDrawer.css'
 import './Sidebar.css'
 
@@ -354,50 +354,20 @@ export default function Sidebar() {
               </div>
             )}
 
+            {/* Import and Export split the row; Sync rides along at the end as an icon. */}
             <div className="sidebarBackupRow">
-            {/* File inputs can't be styled; the label is the button. */}
-            <label className="sidebar-item">
-              <RiUploadLine size={18} />
-              Import
-              <input
-                type="file"
-                accept="application/json,.json"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ''
-                  if (!file) return
-                  if (!confirm('Import replaces all data in this browser. Continue?')) return
-                  // Parsed before the confirm's work begins: a bad file must not get as far as
-                  // clearing a table. Failures are silent otherwise — nothing renders this throw.
-                  let backup
-                  try {
-                    backup = parseBackup(await file.text())
-                  } catch (err) {
-                    alert(err instanceof Error ? err.message : 'Not a backup file.')
-                    return
-                  }
-                  await restoreBackup(backup)
-                  location.reload()
-                }}
-              />
-            </label>
-
-            <button
-              type="button"
-              className="sidebar-item"
-              onClick={async () => downloadBackup(await buildBackup())}
-            >
-              <RiDownloadLine size={18} />
-              Export
-            </button>
+              <BackupButtons className="sidebar-item" />
+              {syncModule && (
+                <NavLink
+                  to={syncModule.route}
+                  className="sidebar-item sidebarIconOnly"
+                  title={syncModule.label}
+                  aria-label={syncModule.label}
+                >
+                  <syncModule.icon size={18} />
+                </NavLink>
+              )}
             </div>
-
-            {syncModule && (
-              <NavLink to={syncModule.route} className="sidebar-item">
-                <syncModule.icon size={18} />
-                {syncModule.label}
-              </NavLink>
-            )}
 
             <div className="sidebarIconRow">
               {['ask', ...(import.meta.env.DEV ? ['learn'] : [])]
