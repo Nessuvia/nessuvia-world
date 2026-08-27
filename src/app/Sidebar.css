@@ -3,8 +3,8 @@
   position: relative;
   /* Above .pageBackgroundLayer, which now runs the full width of the shell. */
   z-index: 1;
-  width: var(--sidebarWidth, 200px);
-  flex: 0 0 var(--sidebarWidth, 200px);
+  width: var(--sidebarWidth, 280px);
+  flex: 0 0 var(--sidebarWidth, 280px);
   overflow: hidden;
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -12,12 +12,6 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-/* The rail carries the open chat's settings, so it needs room for form fields. */
-.sidebar.inChat {
-  width: var(--sidebarWidth, 280px);
-  flex: 0 0 var(--sidebarWidth, 280px);
 }
 
 .sidebarResize {

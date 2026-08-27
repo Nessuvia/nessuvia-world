@@ -560,11 +560,18 @@ export default function PalettesPanel() {
               max={560}
               value={palette.sidebarWidth}
               onChange={(e) => patch({ sidebarWidth: Number(e.target.value) })}
+              // Clamped on blur, not on change: clamping mid-typing eats the first digit. 0 means
+              // "use the default"; anything else gets the drag floor from Sidebar.tsx, since
+              // narrower clips the chat settings labels.
+              onBlur={(e) => {
+                const n = Number(e.target.value)
+                patch({ sidebarWidth: n <= 0 ? 0 : Math.min(560, Math.max(280, n)) })
+              }}
             />
             px
             {rewindOf('sidebarWidth')}
           </label>
-          <p className="hint">Sidebar width 0 uses the stylesheet's default.</p>
+          <p className="hint">Sidebar width 0 uses the default of 280px. Minimum is 280px.</p>
           <label className="appearanceRow">
             <span>Corner radius</span>
             <input
