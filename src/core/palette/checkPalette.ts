@@ -10,12 +10,15 @@ import {
   effectiveFont,
   fitStyle,
   isLight,
+  nextOrder,
   normalizeBackgrounds,
   normalizeSkinVars,
   paletteVars,
   resolveBackground,
   resolvePalette,
   rootVarFields,
+  sortByOrder,
+  type Palette,
 } from './palette.ts'
 import {
   buildPaletteFile,
@@ -466,5 +469,24 @@ for (const file of bundledFiles) {
   assert.ok(rows.length > 0, `${file} holds no palette`)
   for (const row of rows) assert.ok(row.name.trim(), `${file} has an unnamed palette`)
 }
+
+// --- list order -----------------------------------------------------------
+const row = (id: number, orderId?: number) => ({ ...defaultPalette, id, orderId })
+const names = (rows: Palette[]) => rows.map((p) => p.id)
+
+assert.deepStrictEqual(names(sortByOrder([row(3, 2), row(1, 0), row(2, 1)])), [1, 2, 3])
+// Rows written before the field existed keep the table's own order, after the ordered ones.
+assert.deepStrictEqual(names(sortByOrder([row(9), row(4, 1), row(7), row(5, 0)])), [5, 4, 7, 9])
+// Two rows on the same number break the tie on id rather than on read order.
+assert.deepStrictEqual(names(sortByOrder([row(8, 0), row(2, 0)])), [2, 8])
+// Sorting doesn't touch the array it was given.
+const unsorted = [row(2, 1), row(1, 0)]
+sortByOrder(unsorted)
+assert.deepStrictEqual(names(unsorted), [2, 1])
+
+assert.strictEqual(nextOrder([]), 0)
+assert.strictEqual(nextOrder([row(1, 0), row(2, 4), row(3, 2)]), 5)
+// A list of nothing but pre-field rows still appends at 0 — they sort last anyway.
+assert.strictEqual(nextOrder([row(1), row(2)]), 0)
 
 console.log('checkPalette ok')

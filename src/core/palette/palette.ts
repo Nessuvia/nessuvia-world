@@ -55,6 +55,9 @@ export interface Palette {
   id?: number
   ownerId: string
   name: string
+  /** Where the row sits in the palette list. Not indexed — the list is small and gets sorted
+   *  after the read. Missing on rows written before the field existed; those sort last, by id. */
+  orderId?: number
 
   // Surfaces
   bg: string
@@ -336,6 +339,23 @@ export function fitStyle(fit: BackgroundFit): {
   return { backgroundSize: fit, backgroundRepeat: 'no-repeat', ...at } // cover | contain
 }
 
+/**
+ * List order: by `orderId`, with rows written before the field existed sorting last, by id. Ties
+ * break on id so the order is stable however the rows came out of the table.
+ */
+export function sortByOrder(rows: Palette[]): Palette[] {
+  return rows.slice().sort((a, b) => {
+    const ao = a.orderId ?? Infinity
+    const bo = b.orderId ?? Infinity
+    return ao === bo ? (a.id ?? 0) - (b.id ?? 0) : ao - bo
+  })
+}
+
+/** The position a new row appends at: one past the highest in use, 0 for an empty list. */
+export function nextOrder(rows: Palette[]): number {
+  return rows.reduce((max, p) => Math.max(max, (p.orderId ?? -1) + 1), 0)
+}
+
 /** A stored order can be partial or hold junk; keep every known kind exactly once, order kept. */
 export function normalizeOrder(order?: MarkerKind[]): MarkerKind[] {
   const list = Array.isArray(order) ? order : []
@@ -367,13 +387,14 @@ export function paletteVars(p: Palette): Record<string, string> {
 }
 
 /**
- * Which fields differ between two palettes â€” what the rewind controls render from. `id` and
- * `ownerId` are identity, not appearance, so they never count as a change.
+ * Which fields differ between two palettes â€” what the rewind controls render from. `id`,
+ * `ownerId` and `orderId` are identity and list position, not appearance, so they never count as
+ * a change.
  */
 export function changedFields(before: Palette, after: Palette): (keyof Palette)[] {
   const changed: (keyof Palette)[] = []
   for (const key of Object.keys(before) as (keyof Palette)[]) {
-    if (key === 'id' || key === 'ownerId') continue
+    if (key === 'id' || key === 'ownerId' || key === 'orderId') continue
     const a = before[key]
     const b = after[key]
     // Objects and arrays compare by contents: `backgrounds` and the marker orders are rebuilt on

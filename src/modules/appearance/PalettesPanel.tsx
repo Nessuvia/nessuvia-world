@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import {
   RiAddLine,
+  RiArrowDownLine,
   RiArrowGoBackLine,
+  RiArrowUpLine,
   RiDeleteBinLine,
   RiDownloadLine,
   RiFileCopyLine,
@@ -57,6 +59,7 @@ export default function PalettesPanel() {
   const remove = usePalettes((s) => s.remove)
   const update = usePalettes((s) => s.update)
   const add = usePalettes((s) => s.add)
+  const move = usePalettes((s) => s.move)
   const generate = usePalettes((s) => s.generate)
   const generating = usePalettes((s) => s.generating)
   const cancelGenerate = usePalettes((s) => s.cancelGenerate)
@@ -159,7 +162,7 @@ export default function PalettesPanel() {
         list={
           <>
             <ul className="paletteList">
-              {palettes.map((p) => {
+              {palettes.map((p, i) => {
                 const id = p.id!
                 const open = id === activeId && editorOpen
                 return (
@@ -181,6 +184,30 @@ export default function PalettesPanel() {
                     </span>
                     <span className="paletteActions">
                       {id === activeId && <em>active</em>}
+                      <button
+                        type="button"
+                        title="Move up"
+                        aria-label="Move up"
+                        disabled={i === 0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          move(id, -1)
+                        }}
+                      >
+                        <RiArrowUpLine size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Move down"
+                        aria-label="Move down"
+                        disabled={i === palettes.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          move(id, 1)
+                        }}
+                      >
+                        <RiArrowDownLine size={16} />
+                      </button>
                       <button
                         type="button"
                         title="Copy"
@@ -255,7 +282,7 @@ export default function PalettesPanel() {
                               <span key={i} className="paletteSwatch" style={{ background: c }} />
                             ))}
                           </span>
-                          {p.name}
+                          <span className="paletteBundledName">{p.name}</span>
                         </button>
                       ))}
                     </div>

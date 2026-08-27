@@ -3,7 +3,13 @@ import { create } from 'zustand'
 import { storage } from '../storage/db'
 import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
-import { defaultPalette, resolvePalette, type Palette } from '../palette/palette'
+import {
+  defaultPalette,
+  nextOrder,
+  resolvePalette,
+  sortByOrder,
+  type Palette,
+} from '../palette/palette'
 import {
   generatePalette,
   type PaletteAttempt,
@@ -48,6 +54,8 @@ interface PalettesState {
   remove(id: number): Promise<void>
   /** Import: append rows with fresh ids, clashing names suffixed. Nothing existing is touched. */
   add(rows: Palette[]): Promise<void>
+  /** Move a row one place up (-1) or down (+1). No-op at either end. */
+  move(id: number, delta: -1 | 1): Promise<void>
 }
 
 let generateAbort: AbortController | null = null
@@ -116,12 +124,17 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
       useSettings.getState().markPalettesSeeded()
       let first: number | null = null
       let finalFrontierId: number | null = null
+      let order = 0
       for (const { palette, images } of bundledPalettes()) {
         // Per palette rather than per file: `importImages` reuses a row whose bytes it already
         // holds, so two palettes out of one file still share the one image row.
         const map = await useBackgroundImages.getState().importImages(images)
         const { id: _id, ...fields } = remapImages(palette, map)
-        const id = await storage.put('palettes', { ...fields, ownerId: currentOwnerId() } as unknown as StoredRecord)
+        const id = await storage.put('palettes', {
+          ...fields,
+          orderId: order++,
+          ownerId: currentOwnerId(),
+        } as unknown as StoredRecord)
         if (palette.name === 'Final Frontier') finalFrontierId = id
         first ??= id
       }
@@ -129,14 +142,18 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
       const defaultId = finalFrontierId ?? first
       if (defaultId === null) {
         const { id: _id, ...fields } = defaultPalette
-        const id = await storage.put('palettes', { ...fields, ownerId: currentOwnerId() } as unknown as StoredRecord)
+        const id = await storage.put('palettes', {
+          ...fields,
+          orderId: 0,
+          ownerId: currentOwnerId(),
+        } as unknown as StoredRecord)
         useSettings.getState().setActivePalette(id)
       } else {
         useSettings.getState().setActivePalette(defaultId)
       }
     }
     const rows = (await storage.getAll('palettes')) as unknown as Palette[]
-    set({ palettes: rows, loaded: true })
+    set({ palettes: sortByOrder(rows), loaded: true })
   },
 
   create: async (fromId) => {
@@ -144,7 +161,14 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
     const source = resolvePalette(from ?? defaultPalette)
     const { id: _id, ...fields } = source
     const name = from ? `${source.name} copy` : 'New preset'
-    const record = { ...fields, ownerId: currentOwnerId(), name: uniqueName(name, get().palettes) }
+    const record = {
+      ...fields,
+      ownerId: currentOwnerId(),
+      name: uniqueName(name, get().palettes),
+      // A copy lands at the end rather than beside its source: the list is short and the new row
+      // being where new rows always are beats keeping it next to what it came from.
+      orderId: nextOrder(get().palettes),
+    }
     const id = await storage.put('palettes', record as unknown as StoredRecord)
     await get().load()
     return id
@@ -173,13 +197,39 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
   add: async (rows) => {
     for (const row of rows) {
       const { id: _id, ...fields } = row
-      const record = { ...fields, ownerId: currentOwnerId(), name: uniqueName(row.name, get().palettes) }
+      const record = {
+        ...fields,
+        ownerId: currentOwnerId(),
+        name: uniqueName(row.name, get().palettes),
+        // An imported row's own position means nothing here; it appends like any other new row.
+        orderId: nextOrder(get().palettes),
+      }
       await storage.put('palettes', record as unknown as StoredRecord)
       // Reloaded per row so the next name check sees the one just written.
       await get().load()
     }
   },
+
+  move: async (id, delta) => {
+    const rows = get().palettes
+    const from = rows.findIndex((p) => p.id === id)
+    const to = from + delta
+    if (from === -1 || to < 0 || to >= rows.length) return
+    const next = rows.slice()
+    next[from] = rows[to]
+    next[to] = rows[from]
+    // Positions are renumbered from scratch, which also gives an orderId to any row that predates
+    // the field. Only the rows whose number actually changed get written.
+    const renumbered = next.map((p, i) => ({ ...p, orderId: i }))
+    set({ palettes: renumbered })
+    for (let i = 0; i < renumbered.length; i++) {
+      if (next[i].orderId !== i) {
+        await storage.put('palettes', renumbered[i] as unknown as StoredRecord)
+      }
+    }
+  },
 }))
+
 
 /** `Name`, `Name (2)`, `Name (3)` … */
 function uniqueName(wanted: string, existing: Palette[]): string {

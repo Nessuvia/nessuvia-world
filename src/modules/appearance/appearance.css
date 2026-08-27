@@ -317,6 +317,8 @@
   gap: 12px;
 }
 
+/* A container, not a media query: what squashes the rows is the editor opening and the list column
+   giving up its width (down to 260px), which the viewport width says nothing about. */
 .paletteList {
   list-style: none;
   margin: 0;
@@ -324,6 +326,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  container-type: inline-size;
 }
 
 .paletteList li {
@@ -382,6 +385,30 @@
   align-items: center;
   padding: 7px 8px;
   line-height: 0;
+}
+
+/* Move up on the first row and move down on the last: still there, still in the same place. */
+.paletteActions button:disabled {
+  opacity: 0.4;
+}
+
+/* Too narrow for a name and four icon buttons on one line: the buttons take their own line under
+   the swatches and the name, which keeps the name readable instead of squeezed to an ellipsis. */
+@container (max-width: 360px) {
+  .paletteList li {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .paletteActions {
+    justify-content: flex-end;
+  }
+
+  /* Pushed to the left so the buttons stay grouped on the right edge. */
+  .paletteActions em {
+    margin-right: auto;
+  }
 }
 
 .paletteActions em {
@@ -467,16 +494,19 @@
   position: relative;
 }
 
-/* Opens upward: the row sits at the bottom of the list column. */
+/* Opens downward: upward put the menu behind the list rows above it and cut off the top entries.
+   Width follows the button but may grow to the column, and the height is clamped to what is left
+   below the button so the last row stays reachable. */
 .paletteBundledMenu {
   position: absolute;
-  bottom: calc(100% + 4px);
+  top: calc(100% + 4px);
   left: 0;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  min-width: 180px;
-  max-height: 300px;
+  min-width: 100%;
+  max-width: min(280px, 90vw);
+  max-height: min(300px, 50vh);
   overflow-y: auto;
   padding: 4px;
 }
@@ -487,7 +517,18 @@
   background: none;
   border: none;
   text-align: left;
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+.paletteBundledName {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.paletteBundledMenu .paletteSwatches {
+  flex: 0 0 auto;
 }
 
 .paletteBundledMenu button:hover {
