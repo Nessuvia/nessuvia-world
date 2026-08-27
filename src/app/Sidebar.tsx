@@ -405,7 +405,7 @@ export default function Sidebar() {
                 title="Nessuvia Sub-reddit"
               >
                 <RiRedditFill size={13} />
-              </a>{' '}
+              </a>{' '} • v{__APP_VERSION__}
             </div>
           </div>
         </>
