@@ -723,12 +723,6 @@
   width: 80px;
 }
 
-.chatSettings label.checkboxRow {
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-}
-
 .chatSettings label.ruleToggleRow {
   padding-left: 16px;
 }

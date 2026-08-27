@@ -110,7 +110,16 @@ export interface Palette {
   webfont: string
   webfontId: string
   useWebfont: boolean
+  // The app chrome's font — sidebar, panels, settings — separate from the chat/story font above.
+  // Same three-field webfont shape; '' = the stylesheet's system-ui stack.
+  appFontFamily: string
+  appWebfont: string
+  appWebfontId: string
+  useAppWebfont: boolean
   fontSize: number // px
+  // Base font weight for body text, set at :root. Elements with a weight of their own (headings,
+  // buttons) keep it — this is the knob for text that would otherwise inherit 400.
+  textWeight: number
   // Unitless, so it scales with the font size. Text is pre-wrap, which makes a paragraph break a
   // literal blank line â€” this knob sets the space between paragraphs as well as between lines.
   lineHeight: number
@@ -191,8 +200,13 @@ export const defaultPalette: Palette = {
   webfont: '',
   webfontId: '',
   useWebfont: false,
+  appFontFamily: '',
+  appWebfont: '',
+  appWebfontId: '',
+  useAppWebfont: false,
   fontSize: 15,
   lineHeight: 1.55,
+  textWeight: 400,
 
   chatWidth: 100,
   storyWidth: 100,
@@ -373,6 +387,41 @@ export function effectiveFont(p: Pick<Palette, 'fontFamily' | 'useWebfont' | 'we
   return p.useWebfont && p.webfont ? `"${p.webfont}", sans-serif` : p.fontFamily
 }
 
+/** The same, for the app chrome. Empty string means the stylesheet's system-ui stack. */
+export function effectiveAppFont(
+  p: Pick<Palette, 'appFontFamily' | 'useAppWebfont' | 'appWebfont'>,
+): string {
+  return p.useAppWebfont && p.appWebfont ? `"${p.appWebfont}", sans-serif` : p.appFontFamily
+}
+
+/** Whether the app font's four fields already equal the chat font's. Derived rather than stored as
+ *  a flag: a flag would be a fifth field to keep true, and this can't drift out of sync. */
+export function appFontMatched(p: Palette): boolean {
+  return (
+    p.appFontFamily === p.fontFamily &&
+    p.useAppWebfont === p.useWebfont &&
+    p.appWebfont === p.webfont &&
+    p.appWebfontId === p.webfontId
+  )
+}
+
+/** The patch that turns the match on or off. Off drops the app font back to the default stack — but
+ *  when the chat font *is* the default, that would still read as matched and the toggle could never
+ *  come off, so it takes the equivalent named stack instead: same typeface, different value. */
+export function matchAppFontPatch(p: Palette, on: boolean): Partial<Palette> {
+  if (on)
+    return {
+      appFontFamily: p.fontFamily,
+      useAppWebfont: p.useWebfont,
+      appWebfont: p.webfont,
+      appWebfontId: p.webfontId,
+    }
+  return {
+    appFontFamily: !p.fontFamily && !p.useWebfont ? 'system-ui, sans-serif' : '',
+    useAppWebfont: false,
+  }
+}
+
 /** `--name` â†’ value for every var applied at the root element. A cleared color is left out, so
  *  the `:root` block in index.css shows through as the fallback. */
 export function paletteVars(p: Palette): Record<string, string> {
@@ -380,6 +429,10 @@ export function paletteVars(p: Palette): Record<string, string> {
   for (const field of rootVarFields) if (p[field]) vars[`--${field}`] = p[field]
   vars['--radius'] = `${p.radius}px`
   vars['--chatFont'] = effectiveFont(p)
+  // Unlike --chatFont, which the views also set inline, this one only lives at the root: the app
+  // chrome is precisely what sits outside those views. Empty means the index.css fallback wins.
+  vars['--appFont'] = effectiveAppFont(p)
+  vars['--textWeight'] = String(p.textWeight || 400)
   // Derived, not a knob: the browser paints scrollbars and form controls from `color-scheme`, and
   // a light palette with dark controls looks broken. Any palette with a light background gets it.
   vars['--colorScheme'] = isLight(p.bg) ? 'light' : 'dark'

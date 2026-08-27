@@ -173,18 +173,20 @@ h3.storyPreviewTitle {
   cursor: text;
 }
 
+/* One row, equal widths — same shape as the Export row above it. */
 .storyPreviewActions {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 1.5rem;
 }
 
 .storyPreviewActions button {
+  flex: 1;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.85rem;
+  justify-content: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
 }
 
 /* The Story's facts as a marquee plaque: rules top and bottom, letterspaced billing labels, and a
@@ -308,7 +310,7 @@ h3.storyPreviewTitle {
   color: var(--textDim);
 }
 
-.storyExportLabel {
+.storyPanelLabel {
   margin: 1.75rem 0 0.5rem;
   color: var(--textMuted);
   font-size: 0.7rem;
@@ -920,12 +922,6 @@ h3.storyPreviewTitle {
   gap: 4px;
   font-size: 12px;
   color: var(--textMuted);
-}
-
-.storyRail label.checkboxRow {
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
 }
 
 .storyRail textarea,

@@ -16,6 +16,9 @@ import {
   RiArrowRightSLine,
   RiBookLine,
   RiCloseLine,
+  RiDeleteBinLine,
+  RiFileCopyLine,
+  RiImageEditLine,
   RiItalic,
   RiListCheck3,
   RiMapPinLine,
@@ -340,7 +343,7 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
         </dd>
       </dl>
 
-      <h4 className="storyExportLabel">Export</h4>
+      <h4 className="storyPanelLabel">Export</h4>
       <div className="storyExportRow">
         {/* Chapters are fetched per click rather than held in state: the shelf never loads them,
             and an export is rare enough that one read on demand is cheaper than keeping them. */}
@@ -358,9 +361,17 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
         </button>
       </div>
 
+      <h4 className="storyPanelLabel">Misc Options</h4>
       <div className="storyPreviewActions">
+        {story.cover && (
+          <button type="button" onClick={() => setCover(story.id!, '')}>
+            <RiImageEditLine size={16} />
+            Clear cover
+          </button>
+        )}
         <button type="button" onClick={() => duplicate(story.id!)}>
-          Copy Story
+          <RiFileCopyLine size={16} />
+          Copy
         </button>
         <button
           type="button"
@@ -369,7 +380,8 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
             if (confirm(`Delete ${story.title || 'this Story'}?`)) remove(story.id!)
           }}
         >
-          Delete Story
+          <RiDeleteBinLine size={16} />
+          Delete
         </button>
       </div>
     </aside>

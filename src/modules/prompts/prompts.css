@@ -312,13 +312,6 @@
   color: var(--textMuted);
 }
 
-/* A checkbox reads left-to-right, not stacked like the text fields above. */
-.dialog label.checkboxRow {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
 .optionContent {
   display: flex;
   flex-direction: column;

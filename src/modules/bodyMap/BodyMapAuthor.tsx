@@ -380,6 +380,11 @@ export default function BodyMapAuthor() {
             Import image ({view})
             <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0])} />
           </label>
+          {images[view] && (
+            <button type="button" onClick={() => setImages((s) => ({ ...s, [view]: '' }))}>
+              Remove image
+            </button>
+          )}
         </div>
 
         <div className="panel bodyAuthorBar">

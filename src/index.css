@@ -3,7 +3,12 @@
 :root {
   /* Set by the active palette, derived from its background. Dark until a palette applies. */
   color-scheme: var(--colorScheme, dark);
-  font-family: system-ui, sans-serif;
+  /* The palette's app font. Cleared to empty when the palette doesn't set one, which drops the
+     property and leaves this fallback — the same trick --chatFont uses. */
+  font-family: var(--appFont, system-ui, sans-serif);
+  /* Palette knob for legibility, mostly on light themes. Anything with a weight of its own
+     (headings, buttons) is unaffected. */
+  font-weight: var(--textWeight, 400);
 
   --composerButton: 72px;
   /* The general panel/button corner. Larger surfaces use calc(var(--radius) + 2px|4px). */
@@ -220,6 +225,30 @@ input[type='search'] {
    the Connections panel to the skin knobs share the same palette-driven color. */
 input[type='range'] {
   accent-color: var(--accent);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+/* Checkbox-and-label baseline: box on the left, text beside it, both left-aligned. Panels stack
+   their labels in a column (`.chatSettings label`, `.formPage label`, `.storyRail label`) because
+   a text field belongs under its name — a checkbox doesn't, and without this it lands above the
+   text and centered. #root because those module rules are single-class selectors this has to beat
+   whatever the stylesheet order happens to be. */
+#root label.checkboxRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 8px;
+}
+
+/* The box keeps its size when the text wraps. */
+#root label.checkboxRow > input[type='checkbox'] {
+  flex: none;
+  margin: 0;
 }
 
 /* Button baseline. Mirrors .formPage button. Buttons carrying their own module styling override. */

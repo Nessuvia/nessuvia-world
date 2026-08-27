@@ -7,7 +7,10 @@ import {
   backgroundSlots,
   changedFields,
   defaultPalette,
+  appFontMatched,
+  effectiveAppFont,
   effectiveFont,
+  matchAppFontPatch,
   fitStyle,
   isLight,
   nextOrder,
@@ -86,6 +89,48 @@ const webfontVars = paletteVars(resolvePalette({ useWebfont: true, webfont: 'ABe
 assert.strictEqual(webfontVars['--chatFont'], '"ABeeZee", sans-serif')
 const stackVars = paletteVars(resolvePalette({ fontFamily: 'Georgia, serif' }))
 assert.strictEqual(stackVars['--chatFont'], 'Georgia, serif')
+
+// The app font is the same shape on its own four fields, and must not move with the chat font.
+assert.strictEqual(defaultPalette.useAppWebfont, false)
+assert.strictEqual(defaultPalette.appFontFamily, '')
+assert.strictEqual(effectiveAppFont(resolvePalette({ appFontFamily: 'Georgia, serif' })), 'Georgia, serif')
+assert.strictEqual(
+  effectiveAppFont(resolvePalette({ useAppWebfont: true, appWebfont: 'Roboto', appFontFamily: 'Georgia, serif' })),
+  '"Roboto", sans-serif',
+)
+assert.strictEqual(
+  effectiveAppFont(resolvePalette({ useAppWebfont: true, appWebfont: '', appFontFamily: 'Georgia, serif' })),
+  'Georgia, serif',
+)
+const splitVars = paletteVars(resolvePalette({ fontFamily: 'Georgia, serif', appFontFamily: 'ui-monospace, monospace' }))
+assert.strictEqual(splitVars['--chatFont'], 'Georgia, serif')
+assert.strictEqual(splitVars['--appFont'], 'ui-monospace, monospace')
+// Turning on the chat webfont leaves the app font alone.
+assert.strictEqual(webfontVars['--appFont'], '')
+
+// The match toggle: on copies the chat font over, off must always leave the two unmatched — the
+// checkbox is derived from the fields, so a no-op "off" would stick on forever.
+const georgia = resolvePalette({ fontFamily: 'Georgia, serif' })
+assert.strictEqual(appFontMatched(georgia), false)
+assert.strictEqual(appFontMatched(resolvePalette({ ...georgia, ...matchAppFontPatch(georgia, true) })), true)
+assert.strictEqual(appFontMatched(resolvePalette({ ...georgia, ...matchAppFontPatch(georgia, false) })), false)
+// A webfont match copies all four fields, and unmatching breaks it.
+const roboto = resolvePalette({ useWebfont: true, webfont: 'Roboto', webfontId: 'roboto' })
+const linked = resolvePalette({ ...roboto, ...matchAppFontPatch(roboto, true) })
+assert.strictEqual(appFontMatched(linked), true)
+assert.strictEqual(effectiveAppFont(linked), '"Roboto", sans-serif')
+assert.strictEqual(appFontMatched(resolvePalette({ ...linked, ...matchAppFontPatch(linked, false) })), false)
+// The default palette starts matched (both fonts empty); turning the toggle off there still has to
+// produce an unmatched pair, which is why the patch falls to the named stack rather than ''.
+const fresh = resolvePalette({})
+assert.strictEqual(appFontMatched(fresh), true)
+assert.strictEqual(appFontMatched(resolvePalette({ ...fresh, ...matchAppFontPatch(fresh, false) })), false)
+
+// textWeight: emitted as a bare number string, and never empty — an unset weight means 400, not a
+// dropped var, since :root's fallback is the same value either way.
+assert.strictEqual(paletteVars(resolvePalette({ textWeight: 600 }))['--textWeight'], '600')
+assert.strictEqual(paletteVars(resolvePalette({}))['--textWeight'], '400')
+assert.strictEqual(paletteVars(resolvePalette({ textWeight: 0 }))['--textWeight'], '400')
 
 // --- paletteVars emits every root var -------------------------------------
 const vars = paletteVars(defaultPalette)
@@ -291,7 +336,20 @@ const props = schema.properties as Record<string, { type: string }>
 // backgrounds is deliberately not in the schema: image references and raw CSS are not the model's
 // to invent, and a nested object is what a strict backend refuses.
 const paletteFields = Object.keys(defaultPalette).filter(
-  (k) => !['id', 'ownerId', 'backgrounds', 'webfont', 'webfontId', 'useWebfont', 'skin', 'skinVars'].includes(k),
+  (k) =>
+    ![
+      'id',
+      'ownerId',
+      'backgrounds',
+      'webfont',
+      'webfontId',
+      'useWebfont',
+      'appWebfont',
+      'appWebfontId',
+      'useAppWebfont',
+      'skin',
+      'skinVars',
+    ].includes(k),
 )
 // No bare `{type:'object'}` property: a strict backend either rejects it or builds a grammar that
 // can emit nothing, which showed up as an empty reply.

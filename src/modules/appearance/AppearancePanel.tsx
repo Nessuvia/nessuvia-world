@@ -1,8 +1,9 @@
 import type { MarkerKind } from '../../core/stores/settingsStore'
+import { appFontMatched, matchAppFontPatch, type Palette } from '../../core/palette/palette'
 import { lockedHint, usePaletteEditor } from '../../core/stores/palettesStore'
 // Rendered in the Settings tab and in the chat rail's Visual Options, so it carries its own styles.
 import ColorStack from '../../app/ColorStack'
-import WebfontPicker from './WebfontPicker'
+import WebfontPicker, { appFontKeys } from './WebfontPicker'
 import './appearance.css'
 
 // A short list rather than a free-text box: a font the browser doesn't have renders as a silent
@@ -40,18 +41,34 @@ export default function AppearancePanel({
 }) {
   const { palette, locked, patch } = usePaletteEditor()
 
+  const matched = appFontMatched(palette)
+
+  // While matched, every chat font edit is mirrored onto the app fields, so the match holds.
+  const patchChatFont = (fields: Partial<Palette>) => {
+    if (!matched) return patch(fields)
+    const mirrored: Partial<Palette> = { ...fields }
+    if ('fontFamily' in fields) mirrored.appFontFamily = fields.fontFamily
+    if ('useWebfont' in fields) mirrored.useAppWebfont = fields.useWebfont
+    if ('webfont' in fields) mirrored.appWebfont = fields.webfont
+    if ('webfontId' in fields) mirrored.appWebfontId = fields.webfontId
+    patch(mirrored)
+  }
+
   return (
     <section className="appearance">
       {heading && <h3>Text</h3>}
       {locked && <p className="hint">{lockedHint}</p>}
       {font && (
-        <WebfontPicker
-          palette={palette}
-          locked={locked}
-          patch={patch}
-          fonts={fonts}
-          compact={font === 'compact'}
-        />
+        <>
+          {font === true && <h4 className="appearanceSubhead">Chat and story font</h4>}
+          <WebfontPicker
+            palette={palette}
+            locked={locked}
+            patch={font === true ? patchChatFont : patch}
+            fonts={fonts}
+            compact={font === 'compact'}
+          />
+        </>
       )}
 
       <label className="appearanceRow">
@@ -77,6 +94,43 @@ export default function AppearancePanel({
           value={palette.lineHeight}
           disabled={locked}
           onChange={(e) => patch({ lineHeight: Number(e.target.value) })}
+        />
+      </label>
+
+      {font === true && (
+        <>
+          <h4 className="appearanceSubhead">App font</h4>
+          <label className="checkboxRow">
+            <input
+              type="checkbox"
+              checked={matched}
+              disabled={locked}
+              onChange={(e) => patch(matchAppFontPatch(palette, e.target.checked))}
+            />
+            Match the chat and story font
+          </label>
+          {!matched && (
+            <WebfontPicker
+              palette={palette}
+              locked={locked}
+              patch={patch}
+              fonts={fonts}
+              keys={appFontKeys}
+            />
+          )}
+        </>
+      )}
+
+      <label className="appearanceRow">
+        <span>Text weight</span>
+        <input
+          type="number"
+          min={300}
+          max={800}
+          step={100}
+          value={palette.textWeight}
+          disabled={locked}
+          onChange={(e) => patch({ textWeight: Number(e.target.value) })}
         />
       </label>
 

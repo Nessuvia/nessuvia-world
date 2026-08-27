@@ -18,6 +18,12 @@
   margin-top: 0;
 }
 
+.appearance h4.appearanceSubhead {
+  margin: 12px 0 6px;
+  font-size: 12px;
+  color: var(--textDim);
+}
+
 /* Two classes so this beats `.chatSettings label`, which stacks labels vertically —
    the same panel renders inside the chat rail's Visual Options. */
 .appearance .appearanceRow {
@@ -199,24 +205,13 @@
   cursor: default;
 }
 
-/* Sits directly under the toggle: checkbox, then text, on one vertically centred line. Two classes
-   plus the tag so it beats `.formPage label` and `.chatSettings label`, which both stack the parts
-   into a column — the picker renders under each. */
+/* Row layout comes from the global .checkboxRow baseline; this is the picker's own type. The
+   label, its hint and the box stay on one line even in a narrow rail. */
 #root .webfontLeft label.webfontOption {
-  display: flex;
-  flex-direction: row;
   flex-wrap: nowrap;
-  align-items: center;
-  gap: 6px;
   font-size: 13px;
   line-height: 1.2;
   color: var(--textSoft);
-}
-
-.webfontOption input[type='checkbox'] {
-  flex: 0 0 auto;
-  margin: 0;
-  accent-color: var(--accent);
 }
 
 .webfontOption .hint {

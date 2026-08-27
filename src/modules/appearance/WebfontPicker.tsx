@@ -4,6 +4,32 @@ import { listFonts, searchFonts, type FontsourceFont } from '../../core/connecto
 
 const pangram = 'The quick brown fox jumps over the lazy dog'
 
+/** The four palette fields one picker drives. Two sets exist: the chat/story font and the app font.
+ *  `slot` also namespaces the preview `<link>`, since both pickers can be mounted at once. */
+export interface FontKeys {
+  slot: string
+  family: 'fontFamily' | 'appFontFamily'
+  use: 'useWebfont' | 'useAppWebfont'
+  webfont: 'webfont' | 'appWebfont'
+  webfontId: 'webfontId' | 'appWebfontId'
+}
+
+export const chatFontKeys: FontKeys = {
+  slot: 'chat',
+  family: 'fontFamily',
+  use: 'useWebfont',
+  webfont: 'webfont',
+  webfontId: 'webfontId',
+}
+
+export const appFontKeys: FontKeys = {
+  slot: 'app',
+  family: 'appFontFamily',
+  use: 'useAppWebfont',
+  webfont: 'appWebfont',
+  webfontId: 'appWebfontId',
+}
+
 /**
  * The Font row in the Appearance panel, with a Webfont checkbox that swaps the stack dropdown for a
  * Fontsource catalog search.
@@ -24,6 +50,7 @@ export default function WebfontPicker({
   fonts,
   rewind,
   compact = false,
+  keys = chatFontKeys,
 }: {
   palette: Palette
   locked: boolean
@@ -35,8 +62,16 @@ export default function WebfontPicker({
   /** Chat rail mode: no Webfont toggle, no preview, no per-row font loading. Either the four
    *  stacks or — when the palette already names a webfont — just the search box and list. */
   compact?: boolean
+  /** Which set of palette fields this picker edits: the chat/story font or the app font. */
+  keys?: FontKeys
 }) {
-  const { fontFamily, useWebfont, webfont, webfontId } = palette
+  const fontFamily = palette[keys.family]
+  const useWebfont = palette[keys.use]
+  const webfont = palette[keys.webfont]
+  const webfontId = palette[keys.webfontId]
+  const setFamily = (value: string) => patch({ [keys.family]: value })
+  const setWebfont = (f: FontsourceFont) =>
+    patch({ [keys.webfont]: f.family, [keys.webfontId]: f.id, [keys.use]: true })
   // A picker preference, not a palette value: whether result rows load their own font as they scroll
   // into view. Local state, so it resets per mount — it doesn't belong on the stored palette.
   const [loadFonts, setLoadFonts] = useState(false)
@@ -53,16 +88,13 @@ export default function WebfontPicker({
             <WebfontSearch
               family={webfont}
               id={webfontId}
+              slot={keys.slot}
               locked={locked}
               loadFonts={false}
-              onPick={(f) => patch({ webfont: f.family, webfontId: f.id, useWebfont: true })}
+              onPick={setWebfont}
             />
           ) : (
-            <select
-              value={fontFamily}
-              disabled={locked}
-              onChange={(e) => patch({ fontFamily: e.target.value })}
-            >
+            <select value={fontFamily} disabled={locked} onChange={(e) => setFamily(e.target.value)}>
               {fonts.map(([value, label]) => (
                 <option key={label} value={value}>
                   {label}
@@ -84,12 +116,12 @@ export default function WebfontPicker({
             className="webfontToggle"
             aria-pressed={useWebfont}
             disabled={locked}
-            onClick={() => patch({ useWebfont: !useWebfont })}
+            onClick={() => patch({ [keys.use]: !useWebfont })}
           >
             Webfont
           </button>
           {useWebfont && (
-            <label className="webfontOption">
+            <label className="checkboxRow webfontOption">
               <input
                 type="checkbox"
                 checked={loadFonts}
@@ -102,11 +134,7 @@ export default function WebfontPicker({
           )}
         </div>
         {!useWebfont ? (
-          <select
-            value={fontFamily}
-            disabled={locked}
-            onChange={(e) => patch({ fontFamily: e.target.value })}
-          >
+          <select value={fontFamily} disabled={locked} onChange={(e) => setFamily(e.target.value)}>
             {fonts.map(([value, label]) => (
               <option key={label} value={value}>
                 {label}
@@ -127,10 +155,11 @@ export default function WebfontPicker({
             <WebfontSearch
               family={webfont}
               id={webfontId}
+              slot={keys.slot}
               locked={locked}
               loadFonts={loadFonts}
               onPick={(f) => {
-                patch({ webfont: f.family, webfontId: f.id, useWebfont: true })
+                setWebfont(f)
                 setSample(pangram)
               }}
             />
@@ -146,12 +175,15 @@ export default function WebfontPicker({
 function WebfontSearch({
   family,
   id,
+  slot,
   locked,
   loadFonts,
   onPick,
 }: {
   family: string
   id: string
+  /** Namespaces the preview `<link>` so the chat and app pickers don't overwrite each other's. */
+  slot: string
   locked: boolean
   /** Load each result's font as it renders so the name shows in its own typeface. Slow at scale. */
   loadFonts: boolean
@@ -173,7 +205,7 @@ function WebfontSearch({
   // default. This is the picker's own concern — useApplyWebfont loads the active palette's font for
   // the chat surfaces, but the picker needs the font regardless of which palette is active.
   useEffect(() => {
-    const linkId = 'webfontPreview'
+    const linkId = `webfontPreview-${slot}`
     if (!family || !id) {
       document.getElementById(linkId)?.remove()
       return
@@ -188,7 +220,7 @@ function WebfontSearch({
       document.head.append(link)
     }
     link.setAttribute('href', href)
-  }, [family, id])
+  }, [family, id, slot])
 
   // Reset paging whenever the query changes.
   useEffect(() => {

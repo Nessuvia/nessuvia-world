@@ -347,12 +347,9 @@
   align-items: center;
 }
 
+/* Row layout is the global .checkboxRow baseline; these are the panel's own spacing. */
 .grammarHammer .checkboxRow {
-  display: flex;
   flex-grow: 0;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
   margin: 0 0 12px;
 }
 

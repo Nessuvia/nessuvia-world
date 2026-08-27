@@ -37,8 +37,10 @@ Fields:
 - overlay: the wash behind a modal. Must carry alpha, as 8-digit hex, roughly 40 to 70 percent.
 - textColor, emphasisColor, boldColor, quoteColor: colors for message text, *emphasis*, **bold** and "quoted speech". An empty string means no color for that one.
 - storyTextColor, storyEmphasisColor, storyBoldColor, storyQuoteColor: the same four for the prose editor.
-- fontFamily: a CSS font stack, or an empty string for the app default.
+- fontFamily: a CSS font stack for chat and story text, or an empty string for the app default.
+- appFontFamily: a CSS font stack for the app interface, or an empty string for the app default.
 - fontSize: message text size in px, 13 to 18.
+- textWeight: base font weight for body text, 300 to 700.
 - radius: corner radius in px, 0 to 16.
 
 Rules:
@@ -84,6 +86,9 @@ const promptSkipped = [
   'webfont',
   'webfontId',
   'useWebfont',
+  'appWebfont',
+  'appWebfontId',
+  'useAppWebfont',
   // `skin` is the user's pick and `parsePaletteReply` puts it back regardless. `skinVars` is worse
   // than pointless in the schema: an empty `Record<string, number>` types as a bare
   // `{type:'object'}` with no properties, which a strict json_schema backend either rejects or
@@ -123,7 +128,7 @@ export function responseFormat(mode: StructuredMode): Record<string, unknown> {
 /** System prompt, then the palette being edited plus what the user asked for. Sending the current
  *  palette is what lets an ask like "make it warmer" mean anything. */
 export function buildPaletteMessages(prompt: string, ask: string, palette: Palette): ChatMessage[] {
-  const { id: _id, ownerId: _ownerId, backgrounds: _backgrounds, webfont: _w, webfontId: _wi, useWebfont: _u, skin: _skin, skinVars: _skinVars, ...fields } = palette
+  const { id: _id, ownerId: _ownerId, backgrounds: _backgrounds, webfont: _w, webfontId: _wi, useWebfont: _u, appWebfont: _aw, appWebfontId: _awi, useAppWebfont: _au, skin: _skin, skinVars: _skinVars, ...fields } = palette
   const request = ask.trim() || 'Design a new scheme.'
   return [
     { role: 'system', content: prompt.trim() || defaultPalettePrompt },
