@@ -273,8 +273,8 @@ export default function SettingsView() {
               </div>
             )}
             <p className="debugHint">
-              On, Export asks whether to write a full file with your keys or a shareable file
-              without them. Off, keys are always removed.
+              On, Export offers a full file with your keys or a sanitized file without them. Off,
+              keys are always removed.
             </p>
           </section>
           <section className="settingsCard">

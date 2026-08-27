@@ -1,0 +1,27 @@
+/* The wrapper stands in for the Export button in whatever row hosts it, so it inherits the flex. */
+.exportMenuWrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+}
+
+.exportMenuWrap > button {
+  width: 100%;
+}
+
+.exportMenu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  padding: 4px;
+  gap: 2px;
+}
+
+.exportMenu button {
+  white-space: nowrap;
+  text-align: left;
+}
