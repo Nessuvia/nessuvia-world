@@ -683,12 +683,6 @@
     padding-left: 4px;
   }
 
-  /* The overlay row's text field, the one control here that isn't a fixed-width swatch. */
-  .paletteColorRow > input {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
   .paletteColorRow > span {
     min-width: 0;
     overflow: hidden;

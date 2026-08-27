@@ -28,7 +28,8 @@ Vite · React 19 + TypeScript · plain CSS · React Router · Zustand · Dexie (
 
 Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (token budgeting),
 `compromise` (POS tagging for the grammar hammer), `@supabase/supabase-js` and `centrifuge`
-(multiplayer relays), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping).
+(multiplayer relays), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping),
+`react-colorful` (the swatch picker in `app/ColorInput.tsx`).
 Dev side adds `vite-plugin-pwa` and `wrangler`.
 
 There is no drag-and-drop library. Reordering is hand-rolled in `app/useDragReorder.ts`; use it.

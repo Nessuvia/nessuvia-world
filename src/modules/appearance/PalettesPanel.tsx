@@ -478,11 +478,14 @@ export default function PalettesPanel() {
             {label === 'Accents' && (
               <div className="paletteColorRow">
                 <span>overlay</span>
-                {/* Text, not a swatch: the overlay carries an alpha channel and a color input
-                    would drop it. */}
-                <input
+                {/* The one field that carries an alpha channel, so the swatch gets the alpha
+                    slider and stores 8-digit hex. */}
+                <ColorInput
                   value={palette.overlay}
-                  onChange={(e) => patch({ overlay: e.target.value })}
+                  title="--overlay"
+                  compact
+                  alpha
+                  onChange={(color) => patch({ overlay: color })}
                 />
                 {rewindOf('overlay')}
               </div>
