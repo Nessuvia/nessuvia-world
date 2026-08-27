@@ -33,6 +33,9 @@ interface SyncState {
   status: 'idle' | 'comparing' | 'applying'
   error: string
   comparison: Comparison | null
+  /** Lines from the run in progress, oldest first. Kept for the session; a pull ends in a reload,
+   *  which clears it. */
+  log: string[]
   compare(): Promise<void>
   apply(decisions: Partial<Record<TableName, Direction>>): Promise<void>
   pushSettings(): Promise<void>
@@ -45,10 +48,20 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : 'Sync failed.'
 }
 
+/** Appends one line to the run log. Hoisted, so it can reach the store it is defined above. */
+function note(line: string) {
+  useSync.setState((s) => ({ log: [...s.log, line] }))
+}
+
+function size(bytes: number): string {
+  return bytes < 1_000_000 ? `${Math.round(bytes / 1000)} KB` : `${(bytes / 1_000_000).toFixed(1)} MB`
+}
+
 export const useSync = create<SyncState>()((set, get) => ({
   status: 'idle',
   error: '',
   comparison: null,
+  log: [],
 
   compare: async () => {
     set({ status: 'comparing', error: '', comparison: null })
@@ -104,25 +117,33 @@ export const useSync = create<SyncState>()((set, get) => ({
       return
     }
 
-    set({ status: 'applying', error: '' })
+    set({ status: 'applying', error: '', log: [] })
     const settings = useSettings.getState()
     const pulled: TableName[] = []
+    const queue = Object.entries(decisions) as [TableName, Direction][]
+    note(`${queue.length} table${queue.length === 1 ? '' : 's'} to do: ${queue.map(([t]) => t).join(', ')}.`)
     try {
-      for (const [name, direction] of Object.entries(decisions)) {
+      for (const [name, direction] of queue) {
         const table = name as TableName
         if (direction === 'push') {
+          note(`Uploading ${table}…`)
           const { json, hash } = await buildTablePayload(table)
-          const size = new Blob([json]).size
-          if (size > maxPayloadBytes) {
+          const bytes = new Blob([json]).size
+          if (bytes > maxPayloadBytes) {
             throw new Error(
-              `${table} is ${(size / 1_000_000).toFixed(1)} MB. The limit is ${maxPayloadBytes / 1_000_000} MB.`,
+              `${table} is ${(bytes / 1_000_000).toFixed(1)} MB. The limit is ${maxPayloadBytes / 1_000_000} MB.`,
             )
           }
           await client.pushTable(table, json, hash)
           settings.setTableSynced(table, hash)
+          note(`Uploaded ${table}, ${size(bytes)}.`)
         } else {
+          note(`Downloading ${table}…`)
           const object = await client.pullTable(table)
-          if (!object) continue
+          if (!object) {
+            note(`${table} is not in the bucket. Skipped.`)
+            continue
+          }
           const payload = JSON.parse(object.json) as TablePayload
           if (payload.format !== 'nessuTavern.table' || payload.table !== table) {
             throw new Error(`${table} came back in an unrecognized format.`)
@@ -136,10 +157,13 @@ export const useSync = create<SyncState>()((set, get) => ({
           })
           settings.setTableSynced(table, object.hash)
           pulled.push(table)
+          note(`Downloaded ${table}, ${rows.length} record${rows.length === 1 ? '' : 's'}.`)
         }
       }
       settings.setLastSyncedAt(Date.now())
+      note(pulled.length ? 'Done. Reloading to pick up the downloaded records.' : 'Done.')
     } catch (err) {
+      note(`Stopped: ${message(err)}`)
       set({ error: message(err), status: 'idle' })
       return
     }
@@ -164,23 +188,28 @@ export const useSync = create<SyncState>()((set, get) => ({
    * the device that has the keys" rather than a merge.
    */
   pushSettings: async () => {
-    set({ status: 'applying', error: '' })
+    set({ status: 'applying', error: '', log: [] })
     try {
       const plain = localStorage.getItem(settingsKey) ?? '{}'
       const { passphrase } = useSettings.getState().bucket
+      note(passphrase ? 'Encrypting settings…' : 'Uploading settings as plain text…')
       const json = passphrase ? await encryptText(plain, passphrase) : plain
       await client.pushTable('settings', json, await hashPayload(json))
+      note(`Uploaded settings, ${size(new Blob([json]).size)}. Done.`)
       set({ status: 'idle' })
     } catch (err) {
+      note(`Stopped: ${message(err)}`)
       set({ error: message(err), status: 'idle' })
     }
   },
 
   pullSettings: async () => {
-    set({ status: 'applying', error: '' })
+    set({ status: 'applying', error: '', log: [] })
     try {
+      note('Downloading settings…')
       const object = await client.pullTable('settings')
       if (!object) {
+        note('The bucket has no settings to download.')
         set({ error: 'The bucket has no settings to download.', status: 'idle' })
         return
       }
@@ -191,11 +220,14 @@ export const useSync = create<SyncState>()((set, get) => ({
       let json = object.json
       if (isEncrypted(json)) {
         if (!passphrase) throw new Error('The settings in this bucket are encrypted. Enter the passphrase.')
+        note('Decrypting settings…')
         json = await decryptText(json, passphrase)
       }
       localStorage.setItem(settingsKey, keepDeviceFields(json, localStorage.getItem(settingsKey)))
+      note('Downloaded settings. Reloading.')
       location.reload()
     } catch (err) {
+      note(`Stopped: ${message(err)}`)
       set({ error: message(err), status: 'idle' })
     }
   },

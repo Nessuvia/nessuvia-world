@@ -79,7 +79,7 @@ function Section({
 }
 
 function R2Section() {
-  const { status, error, comparison, compare, apply, pushSettings, pullSettings, clearError } =
+  const { status, error, log, comparison, compare, apply, pushSettings, pullSettings, clearError } =
     useSync()
   const bucket = useSettings((s) => s.bucket)
   const setBucket = useSettings((s) => s.setBucket)
@@ -222,6 +222,10 @@ function R2Section() {
         />
       )}
 
+      {/* Keyed on the first line so a new run remounts the disclosure open, and collapsing it
+          mid-run sticks. */}
+      {log.length > 0 && <RunLog key={log[0]} log={log} />}
+
       {error && <SyncError error={error} onDismiss={clearError} />}
     </Section>
   )
@@ -336,6 +340,19 @@ function SetupSteps() {
         Without the policy the browser blocks every request before it is sent. Press Test connection
         once the policy is saved.
       </p>
+    </details>
+  )
+}
+
+function RunLog({ log }: { log: string[] }) {
+  return (
+    <details className="syncSetup syncLog" open>
+      <summary>Last run</summary>
+      <ol>
+        {log.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ol>
     </details>
   )
 }
