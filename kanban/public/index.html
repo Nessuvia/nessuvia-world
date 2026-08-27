@@ -51,7 +51,7 @@
   <link rel="icon" href="extras/favicon-16.png"/>
 
   <!-- Ours, not nullboard's. Must load before nullboard's own script: it seeds localStorage
-       from the committed boards.json, and nullboard reads localStorage on init. -->
+       from the committed boards.nbx, and nullboard reads localStorage on init. -->
   <script src="sync.js"></script>
   <style>
 
@@ -1598,7 +1598,6 @@
 				<input class=imp-board-select type="file" accept=".nbx">
 
 			<a href=# class=auto-backup>Auto-backup...</a>
-			<a href=# class=sync-cards>Sync cards</a>
 
 			<div class="section ui-prefs break">
 				<a href=# class=title>UI preferences<u>...</u></a>

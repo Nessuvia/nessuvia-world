@@ -1,13 +1,12 @@
 // Gets nullboard's cards in and out of git.
 //
-// Out: "Sync cards" in the ≡ menu downloads boards.json. Drop it over kanban/public/boards.json
-// and commit.
-// In: on a browser that has never seen this board, the committed boards.json is loaded into
+// Out: ≡ menu → "Export all boards...". Save the .nbx over kanban/public/boards.nbx and commit.
+// In: on a browser that has never seen this board, the committed boards.nbx is loaded into
 // localStorage before nullboard starts.
 //
-// Every localStorage key nullboard owns is prefixed 'nullboard.' — see Storage_Local in
-// index.html. We copy those keys verbatim in both directions and never look inside them, so the
-// board format, revision history and config are none of our business.
+// .nbx is nullboard's own export format — plain JSON, either one board object or an array of
+// them. We write the two localStorage keys the "old format" branch of Storage_Local.openInner()
+// looks for, and nullboard rebuilds meta and config on its own.
 
 const prefix = 'nullboard.'
 
@@ -23,7 +22,7 @@ function seed() {
   if (ourKeys().length) return
 
   const req = new XMLHttpRequest()
-  req.open('GET', 'boards.json', false)
+  req.open('GET', 'boards.nbx', false)
   try {
     req.send()
   } catch {
@@ -35,34 +34,19 @@ function seed() {
   try {
     data = JSON.parse(req.responseText)
   } catch {
-    console.warn('boards.json is not valid JSON; starting empty')
+    console.warn('boards.nbx is not valid JSON; starting empty')
     return
   }
+  if (!Array.isArray(data)) data = [data]
 
-  for (const [key, val] of Object.entries(data)) {
-    if (key.startsWith(prefix)) localStorage.setItem(key, val)
+  for (const board of data) {
+    if (!board || !board.id || !board.revision || !Array.isArray(board.lists)) {
+      console.warn('boards.nbx holds something that is not a board; skipping it')
+      continue
+    }
+    localStorage.setItem(prefix + 'board.' + board.id, String(board.revision))
+    localStorage.setItem(prefix + 'board.' + board.id + '.' + board.revision, JSON.stringify(board))
   }
-}
-
-function download() {
-  const data = {}
-  for (const key of ourKeys().sort()) data[key] = localStorage.getItem(key)
-
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
-  )
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'boards.json'
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 seed()
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelector('.config .sync-cards').addEventListener('click', (e) => {
-    e.preventDefault()
-    download()
-  })
-})

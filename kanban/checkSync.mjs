@@ -1,8 +1,8 @@
 // node kanban/checkSync.mjs
 //
-// The round trip is the only thing in sync.js that can break: seed boards.json into localStorage,
-// click Sync cards, get the same JSON back out. sync.js is a plain browser script, so we run it
-// against stubs rather than importing it.
+// The seed is the only thing in sync.js that can break: boards.nbx has to land in localStorage as
+// the keys nullboard looks for, and it must not touch a browser that already has a board.
+// sync.js is a plain browser script, so we run it against stubs rather than importing it.
 
 import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
@@ -12,7 +12,7 @@ import vm from 'node:vm'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const source = readFileSync(join(here, 'public/sync.js'), 'utf8')
-const boardsJson = readFileSync(join(here, 'public/boards.json'), 'utf8')
+const nbx = readFileSync(join(here, 'public/boards.nbx'), 'utf8')
 
 // Methods on the prototype stay off Object.keys(), same as a real Storage.
 class FakeStorage {
@@ -25,16 +25,13 @@ class FakeStorage {
 }
 
 function run(localStorage, responseText) {
-  let onReady
-  let downloaded = null
-  let onSync
-
   const ctx = {
     localStorage,
     console,
     JSON,
     Object,
     String,
+    Array,
     XMLHttpRequest: class {
       open() {}
       send() {
@@ -42,45 +39,33 @@ function run(localStorage, responseText) {
         this.responseText = responseText
       }
     },
-    Blob: class {
-      constructor(parts) {
-        this.text = parts.join('')
-      }
-    },
-    URL: {
-      createObjectURL: (b) => {
-        downloaded = b.text
-        return 'blob:x'
-      },
-      revokeObjectURL() {},
-    },
-    document: {
-      createElement: () => ({ click() {} }),
-      addEventListener: (_, fn) => (onReady = fn),
-      querySelector: () => ({ addEventListener: (_, fn) => (onSync = fn) }),
-    },
   }
 
   vm.runInNewContext(source, ctx)
-  onReady()
-  onSync({ preventDefault() {} })
-  return downloaded
+  return { ...localStorage }
 }
 
-// Empty browser: seeds from boards.json, and syncing back gives the same thing.
-const fresh = new FakeStorage()
-const out = run(fresh, boardsJson)
-assert.deepEqual(JSON.parse(out), JSON.parse(boardsJson), 'round trip changed the data')
-assert.equal(fresh['nullboard.config'], JSON.parse(boardsJson)['nullboard.config'])
+// Empty browser: every board in the file lands under the keys nullboard reads on init.
+const boards = JSON.parse(nbx)
+const seeded = run(new FakeStorage(), nbx)
 
-// Browser that already has a board: boards.json must not overwrite it.
+for (const board of boards) {
+  assert.equal(seeded[`nullboard.board.${board.id}`], String(board.revision))
+  assert.deepEqual(JSON.parse(seeded[`nullboard.board.${board.id}.${board.revision}`]), board)
+}
+assert.equal(Object.keys(seeded).length, boards.length * 2, 'seeded keys nullboard does not read')
+
+// A bare board object, not an array — nullboard exports both shapes.
+const single = run(new FakeStorage(), JSON.stringify(boards[0]))
+assert.equal(single[`nullboard.board.${boards[0].id}`], String(boards[0].revision))
+
+// Browser that already has a board: boards.nbx must not overwrite it.
 const used = new FakeStorage()
 used.setItem('nullboard.board.1', 'mine')
-const out2 = run(used, boardsJson)
-assert.deepEqual(JSON.parse(out2), { 'nullboard.board.1': 'mine' }, 'seed clobbered local data')
+assert.deepEqual(run(used, nbx), { 'nullboard.board.1': 'mine' }, 'seed clobbered local data')
 
 // Garbage on the wire is ignored rather than half-applied.
-const broken = new FakeStorage()
-assert.deepEqual(JSON.parse(run(broken, 'not json')), {})
+assert.deepEqual(run(new FakeStorage(), 'not json'), {})
+assert.deepEqual(run(new FakeStorage(), '[{"title":"no id"}]'), {})
 
 console.log('ok')
