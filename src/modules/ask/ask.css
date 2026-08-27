@@ -19,8 +19,26 @@
   gap: 8px;
 }
 
-.askHeader .collapseChevron {
+/* Ask's only way back to the settings panel, so it reads as a button rather than a bare glyph.
+   #root to beat the shared `#root button.collapseChevron` defaults. */
+#root .askHeader button.collapseChevron {
   margin-left: auto;
+  width: 34px;
+  height: 34px;
+  background: var(--surfaceRaised);
+  border-color: var(--borderStrong);
+  color: var(--text);
+}
+
+#root .askHeader button.collapseChevron svg {
+  width: 24px;
+  height: 24px;
+}
+
+#root .askHeader button.collapseChevron:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--textBright);
 }
 
 .askCharacterSelect {

@@ -132,7 +132,9 @@ export default function Sidebar() {
     let width = startW
 
     const move = (ev: PointerEvent) => {
-      width = Math.min(560, Math.max(180, startW + ev.clientX - startX))
+      // Floor is 240, not 180: below that the chat settings form fields lose their labels to the
+      // rail's overflow clip.
+      width = Math.min(560, Math.max(240, startW + ev.clientX - startX))
       el.style.setProperty('--sidebarWidth', `${width}px`)
     }
     const stop = () => {

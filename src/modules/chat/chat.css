@@ -700,6 +700,13 @@
   color: var(--textMuted);
 }
 
+/* The rail is resizable and clips its overflow, so nothing in here may be wider than it. */
+.chatSettings select,
+.chatSettings textarea,
+.chatSettings input {
+  max-width: 100%;
+}
+
 .chatSettings textarea,
 .chatSettings input {
   background: var(--bg);
@@ -1190,16 +1197,21 @@
 }
 
 /* Same pattern as .checkboxRow: beats the panel's column-flex label rule. */
+/* Wraps rather than nowrap: at a narrow rail the label plus slider plus number box overflowed the
+   panel, and .sidebar clips it. */
 .chatSettings label.chatWidth {
   flex-direction: row;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
-  white-space: nowrap;
+}
+
+.chatSettings .chatWidth > span {
+  flex: 1 1 70px;
 }
 
 .chatSettings .chatWidth input[type='range'] {
-  flex: 1;
+  flex: 1 1 80px;
   min-width: 0;
   padding: 0;
 }

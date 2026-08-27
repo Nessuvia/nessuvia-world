@@ -1,18 +1,26 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" name="referrer" content="no-referrer" />
+    <meta charset="UTF-8" />
+    <meta name="referrer" content="no-referrer" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <!-- The manifest link is injected by vite-plugin-pwa (see vite.config.ts). -->
     <!-- <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Xenia Nessuvia</title>
+    <title>Xenia Nessuvia — local-first character chat app</title>
 
-    <!-- Link previews (Discord, Slack, etc). Static because crawlers don't run JS.
-         Dev-only: this file is built by wrangler.jsonc, which serves xenia.nessuvia.com.
-         The live site is src/coming-soon.js and carries its own tags. -->
+    <!-- Search and link previews. Static because crawlers don't run JS: everything past this
+         point in the DOM is an empty #root until React mounts, so these tags plus /about.html
+         are the whole of what a crawler sees. -->
+    <meta
+      name="description"
+      content="A browser-based character chat app. Chat with character cards, write longer stories, and host multiplayer sessions. Data stays in your browser and there are no accounts."
+    />
+    <link rel="canonical" href="https://xenia.nessuvia.com/" />
+
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Xenia Nessuvia" />
     <meta property="og:title" content="Xenia Nessuvia" />
@@ -31,6 +39,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- The only link into /about.html that exists in static HTML, so a crawler can reach it
+         from the root. React never touches this node. -->
+    <noscript><a href="/about.html">About Xenia Nessuvia</a></noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

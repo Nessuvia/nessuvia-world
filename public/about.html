@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About Xenia Nessuvia — local-first character chat app</title>
+    <meta
+      name="description"
+      content="Xenia Nessuvia is a browser-based character chat app. Chat with character cards, write longer stories, and host multiplayer sessions. Data stays in your browser and there are no accounts."
+    />
+    <link rel="canonical" href="https://xenia.nessuvia.com/about.html" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Xenia Nessuvia" />
+    <meta property="og:title" content="About Xenia Nessuvia" />
+    <meta
+      property="og:description"
+      content="A browser-based character chat app. Data stays in your browser and there are no accounts."
+    />
+    <meta property="og:url" content="https://xenia.nessuvia.com/about.html" />
+    <meta property="og:image" content="https://xenia.nessuvia.com/android-chrome-512x512.png" />
+
+    <!-- Standalone page: it must render before any of the app's CSS exists, so the handful of
+         rules it needs live here rather than in index.css. Colors match the Default palette. -->
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0 auto;
+        padding: 3rem 1.25rem 5rem;
+        max-width: 42rem;
+        background: #101014;
+        color: #e6e6ea;
+        font-family: system-ui, sans-serif;
+        line-height: 1.6;
+      }
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+      h2 {
+        margin-top: 2.5rem;
+      }
+      a {
+        color: #9bb8ff;
+      }
+      .tagline {
+        margin-top: 0;
+        opacity: 0.75;
+      }
+      .open {
+        display: inline-block;
+        margin: 1.5rem 0;
+        padding: 0.6rem 1.1rem;
+        border: 1px solid #9bb8ff;
+        border-radius: 0.4rem;
+        text-decoration: none;
+      }
+      dt {
+        margin-top: 1rem;
+        font-weight: 600;
+      }
+      dd {
+        margin: 0.25rem 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Xenia Nessuvia</h1>
+    <p class="tagline">A character chat app that runs in your browser.</p>
+
+    <a class="open" href="/">Open the app</a>
+
+    <h2>What it does</h2>
+    <dl>
+      <dt>Chat</dt>
+      <dd>Talk with character cards. Import cards you already have, or make your own.</dd>
+
+      <dt>Write</dt>
+      <dd>Longer-form stories in chapters, with the same characters and world info.</dd>
+
+      <dt>Multiplayer</dt>
+      <dd>Guests join your chat from a link. Turn order and a narrator are built in.</dd>
+
+      <dt>Ask</dt>
+      <dd>A scratchpad for one-off questions to the model.</dd>
+    </dl>
+
+    <h2>Where your data goes</h2>
+    <p>
+      Characters, chats and stories are stored in your browser. There are no accounts and no server
+      of ours holds your data. Three things leave the tab:
+    </p>
+    <ul>
+      <li>The model endpoint you configure, using your own API key.</li>
+      <li>The multiplayer relay, when you host or join a session. Nothing is stored there.</li>
+      <li>Your own S3-compatible bucket, if you turn on sync.</li>
+    </ul>
+
+    <h2>Requirements</h2>
+    <p>
+      A modern browser and an API key for an OpenAI-compatible model endpoint, hosted or running on
+      your own machine. The app installs as a PWA.
+    </p>
+
+    <p><a href="/">Open the app</a></p>
+  </body>
+</html>
