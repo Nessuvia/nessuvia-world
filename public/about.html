@@ -6,7 +6,7 @@
     <title>About Xenia Nessuvia — local-first character chat app</title>
     <meta
       name="description"
-      content="Xenia Nessuvia is a browser-based character chat app. Chat with character cards, write longer stories, and host multiplayer sessions. Data stays in your browser and there are no accounts."
+      content="Xenia Nessuvia is a browser-based character chat app. Chat with character cards, write longer stories, and host multiplayer sessions. Works with local or hosted OpenAI-compatible models, chat or text completion, with a modular sampler system and JSON import/export. Data stays in your browser and there are no accounts."
     />
     <link rel="canonical" href="https://xenia.nessuvia.com/about.html" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -68,40 +68,66 @@
   </head>
   <body>
     <h1>Xenia Nessuvia</h1>
-    <p class="tagline">A character chat app that runs in your browser.</p>
+    <p class="tagline">Everything happens in a browser tab, with nothing to install.</p>
 
     <a class="open" href="/">Open the app</a>
 
     <h2>What it does</h2>
     <dl>
       <dt>Chat</dt>
-      <dd>Talk with character cards. Import cards you already have, or make your own.</dd>
+      <dd>Existing character cards import, or write a new one here.</dd>
 
       <dt>Write</dt>
-      <dd>Longer-form stories in chapters, with the same characters and world info.</dd>
+      <dd>Stories run long here, in chapters, using the same characters and world info.</dd>
 
       <dt>Multiplayer</dt>
-      <dd>Guests join your chat from a link. Turn order and a narrator are built in.</dd>
+      <dd>Direct people to a link and they land in your chat. Everyone gets a turn, and a narrator fills the gaps.</dd>
 
       <dt>Ask</dt>
-      <dd>A scratchpad for one-off questions to the model.</dd>
+      <dd>Single questions go straight to the model, outside any chat.</dd>
+    </dl>
+
+    <h2>Models and settings</h2>
+    <dl>
+      <dt>Local or hosted models</dt>
+      <dd>
+        Reach any OpenAI-compatible endpoint, hosted or running on your own machine. Text
+        completion and chat completion both work.
+      </dd>
+
+      <dt>Modular samplers</dt>
+      <dd>
+        One sampler parameter is one row of data, not code. That means a sampler your backend
+        supports but Xenia has never heard of is one you can add, and it appears in the UI.
+      </dd>
+
+      <dt>Import and export</dt>
+      <dd>
+        One JSON file holds everything, and it imports on the next machine. API keys and bucket
+        credentials are blanked before the file is written.
+      </dd>
     </dl>
 
     <h2>Where your data goes</h2>
     <p>
-      Characters, chats and stories are stored in your browser. There are no accounts and no server
-      of ours holds your data. Three things leave the tab:
+      All of it sits in your browser: characters, chats, stories, settings. There is no account to
+      make and no server of ours to hold any of it. Outside the tab, three things travel:
     </p>
     <ul>
-      <li>The model endpoint you configure, using your own API key.</li>
-      <li>The multiplayer relay, when you host or join a session. Nothing is stored there.</li>
-      <li>Your own S3-compatible bucket, if you turn on sync.</li>
+      <li>Generated replies come from the model endpoint you configure, with your own API key.</li>
+      <li>Others in a multiplayer session reach you through a relay that stores nothing.</li>
+      <li>Turning on sync writes your records to your own S3-compatible bucket.</li>
     </ul>
 
     <h2>Requirements</h2>
     <p>
-      A modern browser and an API key for an OpenAI-compatible model endpoint, hosted or running on
-      your own machine. The app installs as a PWA.
+      A modern browser, and an API key for an OpenAI-compatible endpoint, hosted or on your own
+      machine. Once loaded, the app installs as a PWA.
+    </p>
+
+    <h2>Status</h2>
+    <p>
+      Zero cost to use. The developer behind it uses it daily, and new features land often.
     </p>
 
     <p><a href="/">Open the app</a></p>

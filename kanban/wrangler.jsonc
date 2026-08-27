@@ -5,5 +5,5 @@
   "compatibility_date": "2026-01-01",
   "workers_dev": false,
   "assets": { "directory": "./public" },
-  "routes": [{ "pattern": "kanban.nessuvia.com/*", "zone_name": "nessuvia.com" }]
+  "routes": [{ "pattern": "kanban.nessuvia.com", "custom_domain": true }]
 }

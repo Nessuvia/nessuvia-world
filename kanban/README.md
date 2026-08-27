@@ -24,3 +24,18 @@ npx wrangler deploy --config kanban/wrangler.jsonc
 ```
 
 No build step. `npx wrangler dev --config kanban/wrangler.jsonc` to run it locally.
+
+`kanban.nessuvia.com` is a `custom_domain` route, so Cloudflare owns the DNS record and the first
+deploy created it. The app's own Worker uses a plain route instead, because `xenia.nessuvia.com`
+already had a record made by hand.
+
+Neither Worker deploys on push today — the API reports `last_deployed_from: "wrangler"` for
+`xenia-nessuvia-dev`, so both go live by someone running the command by hand.
+
+To put the kanban on a push trigger, connect a Workers Build to this repo in the Cloudflare
+dashboard (Workers → nessuvia-kanban → Settings → Builds):
+
+- Root directory: repo root
+- Build command: none
+- Deploy command: `npx wrangler deploy --config kanban/wrangler.jsonc`
+- Build watch paths: `kanban/*`, so an app-only push doesn't redeploy the board
