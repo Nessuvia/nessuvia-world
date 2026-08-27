@@ -78,6 +78,17 @@ body {
   overscroll-behavior-x: none;
 }
 
+/* The four skin-contract surfaces, painted for the default skin. Without this a surface that never
+   set its own background sat transparent over the page background and its text had nothing to read
+   against. Background only — radius, padding and borders stay wherever they already are, and any
+   module rule outranks this one class. */
+.panel,
+.navbar,
+.card,
+.bubble {
+  background: var(--surface);
+}
+
 .appShell {
   display: flex;
   height: 100vh;
