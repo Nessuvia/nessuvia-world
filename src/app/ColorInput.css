@@ -2,37 +2,34 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* The popover anchors to the control, not to whichever row it sits in. */
+  position: relative;
 }
 
 .colorInput .swatch {
   position: relative;
   display: inline-flex;
-}
-
-/* Unset reads as a white swatch otherwise. The native input can't show text, so cover it with an
-   em-dash on the surface color. Anchored to .swatch, not the row — module CSS moves the input. */
-.colorInput.unset .swatch::after {
-  content: '—';
-  position: absolute;
-  inset: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--textMuted);
-  pointer-events: none;
+  /* Behind the swatch, so a color carrying alpha reads as partly transparent instead of as a
+     darker shade of the surface. An opaque color covers it. */
+  background-image:
+    linear-gradient(45deg, var(--border) 25%, transparent 25%, transparent 75%, var(--border) 75%),
+    linear-gradient(45deg, var(--border) 25%, var(--surface) 25%, var(--surface) 75%, var(--border) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
 }
 
-/* #root beats each module's generic `.characters input` / `.prompts input` etc., whose padding
-   and background collapse the native swatch to a dash. This shared control owns its swatch. */
-#root .colorInput input[type='color'] {
+/* #root beats each module's generic `.characters input` / `.prompts input` etc., whose padding and
+   background collapse the swatch to a dash. This shared control owns its swatch. */
+#root .colorInput .swatchButton {
   width: 40px;
   height: 28px;
-  padding: 2px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  color: var(--textMuted);
+  cursor: pointer;
 }
 
 /* Dense rows: the clear sits in the swatch corner so a set/unset swatch takes the same width and
@@ -48,4 +45,84 @@
   background: var(--surfaceRaised);
   color: var(--textMuted);
   cursor: pointer;
+}
+
+.colorPopover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surfaceRaised);
+  box-shadow: 0 6px 16px var(--overlay);
+}
+
+/* Compact swatches sit at the right edge of their row, so the popover hangs left of them. */
+.colorInput.compact .colorPopover {
+  left: auto;
+  right: 0;
+}
+
+/* The drag surface. react-colorful sets touch-action on its own handles; this covers the padding
+   around them, where a drag would otherwise reach the page and pull it into a refresh. */
+.pickerSurface {
+  touch-action: none;
+}
+
+#root .pickerSurface .react-colorful {
+  width: 200px;
+  height: 160px;
+}
+
+.hexField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--textMuted);
+}
+
+/* 16px or larger, or iOS Safari and Chrome zoom the page when the field takes focus. #root for the
+   same reason as the swatch: module stylesheets set their own input font size. */
+#root .hexField input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 16px;
+}
+
+/* Touch targets. The swatch and the Clear button grow to 48px on a touch screen, which is also
+   where the rows have room to get taller. */
+@media (pointer: coarse) {
+  #root .colorInput .swatchButton {
+    width: 48px;
+    height: 48px;
+  }
+
+  #root .colorInput > button {
+    min-height: 48px;
+  }
+
+  /* The corner clear can't grow without covering the swatch, so it keeps its size and takes a
+     48x48 hit area instead. */
+  #root .colorInput.compact .clearSwatch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 48px;
+    height: 48px;
+    transform: translate(-50%, -50%);
+  }
 }

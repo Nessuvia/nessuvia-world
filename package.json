@@ -22,6 +22,7 @@
     "dexie": "^4.4.4",
     "gpt-tokenizer": "^3.4.0",
     "react": "^19.2.8",
+    "react-colorful": "^5.8.0",
     "react-dom": "^19.2.8",
     "react-image-crop": "^11.1.2",
     "react-router-dom": "^7.18.2",
