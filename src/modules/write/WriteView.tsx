@@ -393,6 +393,71 @@ const contextLabels: Record<BlockContext, string> = {
 // BlockRegion → BlockHead, none of which have anything else to say about tabs.
 const JumpToPlot = createContext<(chapterId: number, beatId: string) => void>(() => {})
 
+// Regen with instructions. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. The
+// target sits here because a rewrite is the moment the Author notices the beat came out too short.
+function RegenDialog({
+  label,
+  targetWords,
+  onClose,
+  onRegen,
+}: {
+  label: string
+  targetWords: number
+  onClose: () => void
+  onRegen: (instruction: string, targetWords: number) => void
+}) {
+  const [instruction, setInstruction] = useState('')
+  const [target, setTarget] = useState(targetWords)
+
+  return (
+    <div className="dialogBackdrop" onClick={onClose}>
+      <div className="dialog regenDialog" onClick={(e) => e.stopPropagation()}>
+        <h3>Regen with instructions</h3>
+        <p className="hint">{label}</p>
+        <textarea
+          rows={8}
+          autoFocus
+          value={instruction}
+          placeholder="What should change?"
+          onChange={(e) => setInstruction(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && instruction.trim()) {
+              e.preventDefault()
+              onRegen(instruction.trim(), target)
+            }
+          }}
+        />
+        <div className="regenTarget">
+          <label>
+            Target words
+            <input
+              type="number"
+              min={0}
+              step={50}
+              value={target || ''}
+              placeholder="0"
+              onChange={(e) => setTarget(Math.max(0, Number(e.target.value) || 0))}
+            />
+          </label>
+          {[-100, -50, 50, 100].map((d) => (
+            <button key={d} type="button" onClick={() => setTarget(Math.max(0, target + d))}>
+              {d > 0 ? `+${d}` : d}
+            </button>
+          ))}
+        </div>
+        <div className="dialogActions">
+          <button type="button" className="secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" disabled={!instruction.trim()} onClick={() => onRegen(instruction.trim(), target)}>
+            Regen
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // The header above a beat Block: its plan line, and every control that acts on the Block. A free
 // stretch gets none of this — see BlockRegion.
 function BlockHead({
@@ -411,7 +476,8 @@ function BlockHead({
   chapterId: number
   chapterIndex: number
   beatIndex: number
-  onPatch: (patch: Partial<Block>) => void
+  // Returns the store write, so the regen dialog can land a target change before it asks for prose.
+  onPatch: (patch: Partial<Block>) => void | Promise<void>
   onRemove: () => void
   preview: boolean
   onPreview: (on: boolean) => void
@@ -426,6 +492,7 @@ function BlockHead({
   const swipeBlock = useWrite((s) => s.swipeBlock)
   const deleteSwipe = useWrite((s) => s.deleteSwipe)
   const [menu, setMenu] = useState(false)
+  const [regenOpen, setRegen] = useState(false)
   // null while showing the plan line; the beat's text while editing it in place.
   const [draft, setDraft] = useState<string | null>(null)
   const menuRef = useCloseOnOutside<HTMLDivElement>(menu, () => setMenu(false))
@@ -435,10 +502,12 @@ function BlockHead({
   const at = swipeIndex(block)
   const label = `Chapter ${chapterIndex + 1} - Beat ${beatIndex + 1}: ${block.beat.trim() || 'Empty beat'}`
 
-  function regen() {
-    setMenu(false)
-    const instruction = prompt('What should change?')?.trim()
-    if (instruction) regenBlock(chapterId, block.id, instruction)
+  async function regen(instruction: string, targetWords: number) {
+    setRegen(false)
+    // The target is read off the stored Block when the prompt is built, so the patch has to land
+    // first — onPatch returns the store write for exactly this.
+    if (targetWords !== block.targetWords) await onPatch({ targetWords })
+    regenBlock(chapterId, block.id, instruction)
   }
 
   return (
@@ -556,7 +625,14 @@ function BlockHead({
         </button>
         {menu && (
           <div className="blockMenuPop panel">
-            <button type="button" disabled={streaming} onClick={regen}>
+            <button
+              type="button"
+              disabled={streaming}
+              onClick={() => {
+                setMenu(false)
+                setRegen(true)
+              }}
+            >
               Regen with instructions
             </button>
             <label>
@@ -634,6 +710,15 @@ function BlockHead({
         )}
       </div>
       </div>
+
+      {regenOpen && (
+        <RegenDialog
+          label={label}
+          targetWords={block.targetWords}
+          onClose={() => setRegen(false)}
+          onRegen={regen}
+        />
+      )}
     </div>
   )
 }
@@ -668,7 +753,7 @@ function BlockRegion({
   chapterIndex: number
   beatIndex: number
   first: boolean
-  onPatch: (patch: Partial<Block>) => void
+  onPatch: (patch: Partial<Block>) => void | Promise<void>
   onRemove: () => void
   onMakeBeat: () => void
 }) {

@@ -1195,3 +1195,32 @@ h3.storyPreviewTitle {
 .storyExportRow button {
   flex: 1;
 }
+
+/* Regen with instructions. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. */
+.regenDialog {
+  width: min(620px, 100%);
+}
+
+.regenDialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.regenTarget {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.regenTarget label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 0.4rem;
+}
+
+.regenTarget input {
+  width: 6rem;
+}
