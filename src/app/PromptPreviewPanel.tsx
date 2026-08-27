@@ -35,7 +35,7 @@ export default function PromptPreviewPanel({
 
   return (
     <div className="promptPanel">
-      {notes}
+      <div className="promptNotes">{notes}</div>
 
       <label className="rawToggle">
         <input type="checkbox" checked={raw} onChange={(e) => setRaw(e.target.checked)} />

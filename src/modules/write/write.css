@@ -187,20 +187,134 @@ h3.storyPreviewTitle {
   font-size: 0.85rem;
 }
 
+/* The Story's facts as a marquee plaque: rules top and bottom, letterspaced billing labels, and a
+   dotted leader carrying each label across to its value. Presentation only — the markup stays a
+   plain `dl`. */
 .storyPreviewFacts {
   margin: 0;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  padding: 0.9rem 1rem;
+  background: var(--surfaceSunken);
+  border-radius: var(--radius);
+  border-top: 3px double var(--borderStrong);
+  border-bottom: 3px double var(--borderStrong);
 }
 
 .storyPreviewFacts dt {
-  color: var(--textMuted);
+  color: var(--textDim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* The dt column is `auto`, so it is as wide as the longest label and every shorter one has slack
+     left over. The filler grows into that slack and draws the leader across it. */
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.storyPreviewFacts dt::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px dotted var(--border);
+  transform: translateY(-0.25em);
 }
 
 .storyPreviewFacts dd {
   margin: 0;
-  color: var(--text);
+  color: var(--textBright);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Words is the headline number, the way a poster bills its lead. */
+.storyPreviewFacts dd:first-of-type {
+  font-size: 1.35rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+/* The cast is billed across the full width of the plaque rather than squeezed into the value
+   column: chips in a single file row, scrolling sideways when the cast outgrows the panel. */
+.storyPreviewFacts .storyCastLabel,
+.storyPreviewFacts .storyCast {
+  grid-column: 1 / -1;
+}
+
+.storyPreviewFacts .storyCastLabel {
+  margin-top: 0.35rem;
+}
+
+.storyPreviewFacts .storyCast {
+  display: flex;
+  gap: 0.4rem;
+  text-align: left;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borderStrong) transparent;
+  padding-bottom: 0.25rem;
+}
+
+.storyCastChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  max-width: 11rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--textSoft);
+  font-size: 0.75rem;
+}
+
+.storyCastName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storyCastAvatar {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surfaceRaised);
+  color: var(--textMuted);
+  font-size: 0.7rem;
+}
+
+/* The cropped variant positions its image against this box. */
+.storyCastAvatar.cropped {
+  position: relative;
+}
+
+.storyCastAvatar.cropped img {
+  position: absolute;
+  max-width: none;
+}
+
+.storyCastEmpty {
+  color: var(--textDim);
+}
+
+.storyExportLabel {
+  margin: 1.75rem 0 0.5rem;
+  color: var(--textMuted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 /* The editor: the document column, with the Story rail in the app sidebar beside it. */

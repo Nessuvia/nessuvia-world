@@ -7,10 +7,29 @@
   font-size: 12px;
 }
 
+/* The notes the caller passes sit in their own block so the token counts read as a summary of the
+   list rather than as one more line above it. Callers pass a fragment, so the panel wraps them. */
+.promptNotes:empty {
+  display: none;
+}
+
+.promptNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surfaceSunken);
+}
+
 .promptPanel .rawToggle {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: 6px;
+  color: var(--textMuted);
+  cursor: pointer;
 }
 
 .promptList {
@@ -23,40 +42,80 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 8px;
-  background: var(--bg);
+  background: var(--surface);
 }
 
+/* Trimmed turns read as excluded rather than merely faint: the dashed edge survives a palette that
+   leaves little contrast between surface and background. */
 .promptMessage.dropped {
-  opacity: 0.5;
+  opacity: 0.6;
+  border-style: dashed;
+  background: none;
 }
 
 .promptMessageHeader {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
 }
 
 .promptRole {
-  color: var(--textMuted);
-  font-size: 11px;
+  color: var(--textSoft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .promptMessage pre,
 .promptRaw pre {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   max-height: 220px;
   overflow-y: auto;
   overflow-x: hidden;
   white-space: pre-wrap;
   word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
+  line-height: 1.5;
+  tab-size: 2;
   color: var(--textMuted);
+}
+
+/* A long turn scrolls inside its own card, and a thin gutter keeps that from crowding the text. */
+.promptMessage pre,
+.promptRaw pre {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borderStrong) transparent;
+}
+
+.promptMessage pre::-webkit-scrollbar,
+.promptRaw pre::-webkit-scrollbar {
+  width: 6px;
+}
+
+.promptMessage pre::-webkit-scrollbar-thumb,
+.promptRaw pre::-webkit-scrollbar-thumb {
+  background: var(--borderStrong);
+  border-radius: 3px;
 }
 
 .promptRaw {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 8px;
-  background: var(--bg);
+  background: var(--codeBg);
+}
+
+.promptRaw pre {
+  color: var(--codeText);
+  max-height: 420px;
+}
+
+.promptRaw > button {
+  padding: 2px 8px;
+  font-size: 11px;
 }

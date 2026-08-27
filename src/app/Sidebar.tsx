@@ -256,7 +256,19 @@ export default function Sidebar() {
       ) : (
         <>
           <div className="sidebar-title">
-            {title}
+            {/* The title doubles as the collapse target — same action as the button beside it. */}
+            <button
+              type="button"
+              className="sidebarTitleButton"
+              title={phone ? 'Close menu' : 'Collapse sidebar'}
+              onClick={() => {
+                if (phone) { setOpen(false); return }
+                setCollapsed(true)
+                localStorage.setItem('nessuTavern.sidebarCollapsed', '1')
+              }}
+            >
+              {title}
+            </button>
             {/* A phone has no collapsed rail to go to, so the same slot closes the drawer. */}
             {phone ? (
               <button
@@ -333,6 +345,16 @@ export default function Sidebar() {
           {debugMode && <div className="debugBadge">DEBUG ON</div>}
 
           <div className="sidebarBackup">
+            {personasModule && (
+              <div className="sidebarPersona">
+                <PersonaSwitcher />
+                <NavLink to={personasModule.route} className="sidebar-item">
+                  {personasModule.label}
+                </NavLink>
+              </div>
+            )}
+
+            <div className="sidebarBackupRow">
             {/* File inputs can't be styled; the label is the button. */}
             <label className="sidebar-item">
               <RiUploadLine size={18} />
@@ -368,15 +390,7 @@ export default function Sidebar() {
               <RiDownloadLine size={18} />
               Export
             </button>
-
-            {personasModule && (
-              <div className="sidebarPersona">
-                <PersonaSwitcher />
-                <NavLink to={personasModule.route} className="sidebar-item">
-                  {personasModule.label}
-                </NavLink>
-              </div>
-            )}
+            </div>
 
             {syncModule && (
               <NavLink to={syncModule.route} className="sidebar-item">

@@ -43,6 +43,7 @@ import PlotLayout from './PlotLayout'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { useSideDrawer } from '../../app/useSideDrawer'
 import { CollapseButton } from '../../app/CollapseButton'
+import { Avatar } from '../../app/Avatar'
 import '../../app/sideDrawer.css'
 
 // Landing screen: the grid of Story cover cards, plus the preview panel for the picked Story.
@@ -212,13 +213,15 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
     }
   }, [story.id, wordCount])
 
-  const nameOf = (entry: CastEntry) => {
+  // Name and avatar together: the cast list bills each member with their picture, and a deleted
+  // record still gets a row so the Story's cast doesn't silently shrink.
+  const memberOf = (entry: CastEntry) => {
     if (entry.kind === 'character') {
       const c = characters.find((x) => x.id === entry.id)
-      return c ? displayName(c) : '(deleted character)'
+      return { name: c ? displayName(c) : '(deleted character)', of: c }
     }
     const p = personas.find((x) => x.id === entry.id)
-    return p ? p.name : '(deleted persona)'
+    return { name: p ? p.name : '(deleted persona)', of: p }
   }
 
   return (
@@ -314,16 +317,30 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
       <dl className="storyPreviewFacts">
         <dt>Words</dt>
         <dd>{words == null ? '…' : words.toLocaleString()}</dd>
-        <dt>Characters</dt>
-        <dd>
-          {story.cast.length === 0 ? 'None' : story.cast.map(nameOf).join(', ')}
-        </dd>
         <dt>Created</dt>
         <dd>{stamp(story.createdAt)}</dd>
         <dt>Last edit</dt>
         <dd>{stamp(story.updatedAt)}</dd>
+
+        <dt className="storyCastLabel">Cast</dt>
+        <dd className="storyCast">
+          {story.cast.length === 0 ? (
+            <span className="storyCastEmpty">None</span>
+          ) : (
+            story.cast.map((entry) => {
+              const member = memberOf(entry)
+              return (
+                <span className="storyCastChip" key={`${entry.kind}:${entry.id}`} title={member.name}>
+                  <Avatar of={member.of} name={member.name} className="storyCastAvatar" />
+                  <span className="storyCastName">{member.name}</span>
+                </span>
+              )
+            })
+          )}
+        </dd>
       </dl>
 
+      <h4 className="storyExportLabel">Export</h4>
       <div className="storyExportRow">
         {/* Chapters are fetched per click rather than held in state: the shelf never loads them,
             and an export is rare enough that one read on demand is cheaper than keeping them. */}
@@ -340,9 +357,6 @@ function StoryPreview({ story, onClose }: { story: Story; onClose: () => void })
           HTML
         </button>
       </div>
-      <p className="hint">
-        Export. JSON keeps beats and reasoning. Text is prose only. HTML is a styled page.
-      </p>
 
       <div className="storyPreviewActions">
         <button type="button" onClick={() => duplicate(story.id!)}>
