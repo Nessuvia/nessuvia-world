@@ -10,7 +10,7 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-/** Public values, from .env (dev) or .env.release. Not secrets — the anon key is meant to ship in
+/** Public values, from .env. Not secrets — the anon key is meant to ship in
  *  the bundle, and it grants nothing but Realtime. */
 const url = import.meta.env.VITE_SUPABASE_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY

@@ -228,12 +228,10 @@ This is about user-visible text only. Code comments explain reasoning and can br
 
 ## Builds
 
-`npx pnpm build` builds against `.env`; `npx pnpm build:release` builds `--mode release` against
-`.env.release`. Both files are committed and hold only public values — the Supabase URL and anon
-key, which are designed to ship in a client bundle. Nothing secret goes in either.
+`npx pnpm build` builds against `.env`, which is committed and holds only public values — the
+Supabase URL and anon key, which are designed to ship in a client bundle. Nothing secret goes in it.
 
-`wrangler.jsonc` (dev) and `wrangler.release.jsonc` (live) deploy the built `dist`. Neither holds a
-binding beyond `ASSETS`.
+`wrangler.jsonc` deploys the built `dist`. It holds no binding beyond `ASSETS`.
 
 `pnpm-workspace.yaml` pins which install scripts may run and explains the `packageManager` pin in
 `package.json`; pnpm 10 rejects that file outright.
