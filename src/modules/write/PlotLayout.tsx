@@ -16,6 +16,7 @@ import { newBlock, useWrite } from '../../core/stores/writeStore'
 import { beatBlocks, chapterProse, chapterState, hasProse } from '../../core/prompt/chapterGuide'
 import { beatText, emptyBeat, storedBeat, withBeats } from './beatSlots'
 import { parseBulkBeats, type BulkBeat } from './bulkBeats'
+import { OutlineDialog } from './OutlineDialog'
 import { useDragReorder } from '../../app/useDragReorder'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { edgeState, type EdgeState } from './tabScroll'
@@ -475,7 +476,9 @@ export default function PlotLayout({
   const setPremise = useWrite((s) => s.setPremise)
   const setEnding = useWrite((s) => s.setEnding)
   const setCapsCollapsed = useWrite((s) => s.setCapsCollapsed)
+  const streaming = useWrite((s) => s.streaming)
   const phone = useMediaQuery('(max-width: 700px)')
+  const [outlineOpen, setOutlineOpen] = useState(false)
 
   const [selectedId, setSelectedId] = useState<number | null>(
     () => focusBeat?.chapterId ?? activeChapterId ?? chapters[0]?.id ?? null,
@@ -639,8 +642,14 @@ export default function PlotLayout({
 
       <div className="plotCapsRow">
         {capsToggle}
+        <button type="button" className="plotOutline" disabled={streaming} onClick={() => setOutlineOpen(true)}>
+          <RiListCheck size={16} />
+          Generate outline
+        </button>
         {!collapsed && <p className="hint">Premise and Ending are not sent to the model yet.</p>}
       </div>
+
+      {outlineOpen && <OutlineDialog onClose={() => setOutlineOpen(false)} />}
 
       {!phone && selected && editorFor(selected, selectedIndex)}
     </div>

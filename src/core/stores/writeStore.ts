@@ -16,7 +16,13 @@ import { resolveParams } from '../settings/resolveParams'
 import { useStacks } from './stacksStore'
 import { useCharacters } from './charactersStore'
 import { usePersonas } from './personasStore'
-import { maxTokensOf } from '../params/connectionParams'
+import { maxTokensOf, withParam } from '../params/connectionParams'
+import {
+  buildOutlineMessages,
+  parseOutlineReply,
+  splitTargets,
+  type OutlineRequest,
+} from '../prompt/outline'
 
 function newStory(title: string): Story {
   return {
@@ -188,6 +194,16 @@ interface WriteState {
   setBlockText(chapterId: number, blockId: string, content: string): Promise<void>
   /** Add / toggle / remove a cast member on the open Story. */
   setCast(cast: CastEntry[]): Promise<void>
+  /**
+   * Ask the model for a whole plan and write it into the open Story as Chapters and beats.
+   *
+   * Replaces every Chapter the Story has. The prose goes with them, which is why the dialog says so
+   * and why nothing is deleted until the reply has parsed.
+   *
+   * Throws on failure rather than only setting `error`, so the dialog can stay open and show what
+   * went wrong next to the fields that produced it.
+   */
+  generateOutline(req: OutlineRequest): Promise<void>
   /**
    * Stream prose for one Block. The result lands as a new swipe and becomes the selected one, so
    * every generation is undoable by swiping back — there are no spans to splice or validate.
@@ -484,6 +500,88 @@ export const useWrite = create<WriteState>()((set, get) => ({
     const next = { ...story, cast, updatedAt: Date.now() }
     await storage.put('stories', next as unknown as StoredRecord)
     set({ story: next })
+  },
+
+  generateOutline: async (req) => {
+    const { story, chapters, streaming } = get()
+    if (!story || streaming) return
+    const base = activeConnection()
+    if (!base) throw new Error('No active connection - pick one in Settings.')
+    const connection = resolveParams(base, undefined, story)
+
+    const controller = new AbortController()
+    abort = controller
+    // The same flag `writeBlock` holds, so Stop works and neither can start while the other runs.
+    // No streamingBlockId: nothing renders this as it arrives, it lands as Chapters when it is done.
+    set({ streaming: true, streamingStoryId: story.id ?? null, error: '' })
+
+    let reply = ''
+    let finishReason = ''
+    try {
+      const stack = await useStacks.getState().ensureActive('story')
+      const messages = buildOutlineMessages(req, stack.miscPrompts)
+      // An outline for a long Story runs well past a 512-token default, and an object cut off
+      // halfway parses as nothing at all — so this request gets its own floor, like generatePalette.
+      const wide = withParam(connection, 'max_tokens', Math.max(maxTokensOf(connection), 2000))
+      for await (const chunk of sendMessage(messages, wide, controller.signal)) {
+        if (chunk.content) reply += chunk.content
+        if (chunk.finishReason) finishReason = chunk.finishReason
+      }
+    } catch (err) {
+      set({ streaming: false, streamingStoryId: null })
+      abort = null
+      if (controller.signal.aborted) return
+      throw err
+    }
+    abort = null
+
+    let outline
+    try {
+      outline = parseOutlineReply(reply)
+    } catch (err) {
+      set({ streaming: false, streamingStoryId: null })
+      // A truncation reads as a parse error otherwise, which points at the reply instead of at the
+      // token limit that cut it.
+      throw finishReason === 'length'
+        ? new Error(
+            `The reply was cut off at the ${maxTokensOf(connection)} token limit before the outline ended. Raise Max tokens in the connection, or ask for fewer chapters.`,
+          )
+        : err
+    }
+
+    // Past here the reply is good, so the Story's existing plan can go. Nothing before this point
+    // has written anything.
+    for (const chapter of chapters) {
+      if (chapter.id !== undefined) await storage.remove('chapters', chapter.id)
+    }
+
+    const written: Chapter[] = []
+    for (const [i, entry] of outline.entries()) {
+      const targets = splitTargets(req.wordsPerChapter, entry.beats.length)
+      const seeded = newChapter(story.id!, i, entry.title || `Chapter ${i + 1}`)
+      const chapter: Chapter = {
+        ...seeded,
+        summary: entry.summary,
+        // The beats first, then the free Block newChapter seeds, so there is somewhere to type
+        // after the plan runs out.
+        blocks: [
+          ...entry.beats.map((beat, k) => ({ ...newBlock(beat), targetWords: targets[k] })),
+          ...seeded.blocks,
+        ],
+      }
+      const id = await storage.put('chapters', chapter as unknown as StoredRecord)
+      written.push({ ...chapter, id })
+    }
+
+    // persistOrder puts the array in state; the orders already match, so it writes nothing again.
+    await persistOrder(written, set)
+    set({
+      streaming: false,
+      streamingStoryId: null,
+      activeChapterId: written[0]?.id ?? null,
+      activeBlockId: null,
+    })
+    await touchStory(get, set)
   },
 
   writeBlock: async (chapterId, blockId, direction, replaces) => {

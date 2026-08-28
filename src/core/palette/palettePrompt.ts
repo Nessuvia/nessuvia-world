@@ -169,8 +169,10 @@ export function parsePaletteReply(text: string, base: Palette): Palette {
   return next
 }
 
-/** The first balanced `{…}` in the text, ignoring braces inside strings. */
-function firstJsonObject(text: string): string {
+/** The first balanced `{…}` in the text, ignoring braces inside strings. Exported because every
+ *  one-shot JSON request has the same problem — a model that fences the object or wraps it in a
+ *  sentence — and one scanner is enough. `core/prompt/outline.ts` is the other caller. */
+export function firstJsonObject(text: string): string {
   const start = text.indexOf('{')
   if (start === -1) return ''
   let depth = 0

@@ -55,6 +55,30 @@ export const miscPromptDefs: MiscPromptDef[] = [
     kind: 'chat',
   },
   {
+    id: 'outline',
+    label: 'Outline',
+    hint: 'Sent by Generate outline on the Plot Layout tab.',
+    text: `You are outlining a story. Reply with one JSON object and nothing else. No prose, no explanation, no code fence.
+
+The object has one field, "chapters": an array of {{chapters}} objects, in order. Each holds:
+- title: the chapter title.
+- summary: two or three sentences on what happens in it.
+- beats: an array of strings. {{beats}}
+
+A beat is one line naming what a stretch of the chapter covers. Write beats as plans, not prose.
+{{words}}
+The premise:
+
+{{premise}}`,
+    slots: [
+      { token: 'premise', hint: 'The premise typed into the dialog.' },
+      { token: 'chapters', hint: 'How many chapters to write.' },
+      { token: 'beats', hint: 'The sentence asking for a beat count, or for the model to choose.' },
+      { token: 'words', hint: 'The sentence naming the per-chapter word target. Empty when unset.' },
+    ],
+    kind: 'story',
+  },
+  {
     id: 'nextSpeaker',
     label: 'Next speaker',
     hint: 'The trailing turn naming who is up. Group chats and sessions only.',

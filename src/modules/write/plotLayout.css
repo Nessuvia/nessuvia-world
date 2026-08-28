@@ -371,6 +371,53 @@
   color: var(--textDim);
 }
 
+.plotOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Generate outline. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. */
+.outlineDialog {
+  width: min(560px, 100%);
+}
+
+.outlineField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.outlineField > span:first-child {
+  color: var(--textSoft);
+  font-size: 13px;
+}
+
+.outlineField .hint {
+  margin: 0;
+}
+
+.outlineField textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.outlineNumbers {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.outlineNumbers .outlineField {
+  flex: 1 1 10rem;
+}
+
+.outlineNumbers input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .plotAddChapter {
   align-self: flex-end;
 }
