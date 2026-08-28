@@ -4,7 +4,6 @@ import { Link, NavLink, useMatch } from 'react-router-dom'
 import { RiArrowLeftLine, RiArrowRightSLine, RiCloseLine, RiGithubFill, RiMenuFoldLine, RiMenuLine, RiRedditFill } from '@remixicon/react'
 import { useSettings } from '../core/stores/settingsStore'
 import { lockedHint, usePaletteEditor } from '../core/stores/palettesStore'
-import { useChats } from '../core/stores/chatStore'
 import { usePersonas } from '../core/stores/personasStore'
 import { isEnabled, modules } from './moduleRegistry'
 import { useMediaQuery } from './useMediaQuery'
@@ -29,11 +28,9 @@ export default function Sidebar() {
   const chatId = useMatch('/chat/:chatId')?.params.chatId
   // A Story takes the rail over the same way an open chat does.
   const storyId = useMatch('/write/s/:storyId')?.params.storyId
-  // Back to the character this chat belongs to, not the picker. Until the chat has loaded there's
-  // no character to go to, so the picker is the fallback.
-  const chat = useChats((s) => s.chat)
-  const back =
-    chat && String(chat.id) === chatId ? `/chat/c/${chat.characterId}` : '/chat'
+  // Back to the character list, not the character's own page — leaving a chat means leaving the
+  // character, and getting to the list from the character page was the extra step people hit.
+  const back = '/chat'
 
   // Title follows the active persona unless turned off in Settings > Miscellaneous.
   const personaTitleOff = useSettings((s) => s.personaTitleOff)
