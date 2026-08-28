@@ -2,8 +2,74 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RiStarFill, RiStarLine } from '@remixicon/react'
 import { useChats } from '../../core/stores/chatStore'
-import type { Character } from '../../core/storage/types'
+import { displayName, useCharacters } from '../../core/stores/charactersStore'
+import { usePersonas } from '../../core/stores/personasStore'
+import { useSettings } from '../../core/stores/settingsStore'
+import { usePalette } from '../../core/stores/palettesStore'
+import type { Character, Chat } from '../../core/storage/types'
 import { CollapseButton } from '../../app/CollapseButton'
+import { useCloseOnOutside } from '../../app/useCloseOnOutside'
+import {
+  buildTranscript,
+  exportChatHtml,
+  exportChatJson,
+  exportChatTxt,
+  type Names,
+} from './exportChat'
+
+/**
+ * The three transcript formats for one chat row. Messages are read per click rather than held in
+ * state: the list never loads message bodies, and an export is rare enough that one read on demand
+ * is cheaper than keeping every chat's history around.
+ */
+function ExportMenu({ chat, character }: { chat: Chat; character: Character }) {
+  const [open, setOpen] = useState(false)
+  const ref = useCloseOnOutside<HTMLDivElement>(open, () => setOpen(false))
+  const messagesOf = useChats((s) => s.messagesOf)
+  const characters = useCharacters((s) => s.characters)
+  const personas = usePersonas((s) => s.personas)
+  const activePersonaId = useSettings((s) => s.activePersonaId)
+  const tagRules = useSettings((s) => s.appearance.tagRules)
+  const palette = usePalette()
+
+  // The same credits ChatView shows, resolved once for the whole transcript.
+  const names: Names = {
+    speakers: new Map(characters.filter((c) => c.id !== undefined).map((c) => [c.id!, displayName(c)])),
+    characterName: displayName(character),
+    personaName: personas.find((p) => p.id === activePersonaId)?.name,
+  }
+
+  const run = (format: 'json' | 'txt' | 'html') => {
+    setOpen(false)
+    messagesOf(chat.id!).then((messages) => {
+      if (format === 'json') return exportChatJson(chat, messages)
+      const transcript = buildTranscript(chat, messages, names, tagRules)
+      if (format === 'txt') exportChatTxt(transcript)
+      else exportChatHtml(transcript, palette)
+    })
+  }
+
+  return (
+    <div className="chatExport" ref={ref}>
+      <button type="button" onClick={() => setOpen(!open)}>
+        Export
+      </button>
+      {open && (
+        <div className="chatExportMenu">
+          <button type="button" onClick={() => run('json')}>
+            JSON
+          </button>
+          <button type="button" onClick={() => run('txt')}>
+            Text
+          </button>
+          <button type="button" onClick={() => run('html')}>
+            HTML
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ChatList({
   character,
@@ -147,6 +213,7 @@ export default function ChatList({
             >
               {c.bookmarked ? <RiStarFill size={16} /> : <RiStarLine size={16} />}
             </button>
+            <ExportMenu chat={c} character={character} />
             <button
               type="button"
               onClick={() => {

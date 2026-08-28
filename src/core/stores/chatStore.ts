@@ -157,6 +157,8 @@ interface ChatState {
   loadSummaries(): Promise<void>
   /** The character's most recent chat, for the stack editor's preview. Doesn't touch chat state. */
   load(chatId: number): Promise<void>
+  /** A chat's messages in order, without opening it — what the chat list's export reads. */
+  messagesOf(chatId: number): Promise<Message[]>
   createChat(characterId: number): Promise<number>
   renameChat(id: number, title: string): Promise<void>
   /** Write straight to the open chat: the settings panel debounces, there's no dirty state. */
@@ -255,6 +257,11 @@ export const useChats = create<ChatState>()((set, get) => ({
     // mean an async lookup per message row.
     const miscPrompts = chat ? (await stackFor(chat)).miscPrompts : undefined
     set({ chat: chat ?? null, messages: rows.sort(byTime), trimmedCount: 0, miscPrompts })
+  },
+
+  messagesOf: async (chatId) => {
+    const rows = (await storage.find('messages', 'chatId', chatId)) as unknown as Message[]
+    return rows.sort(byTime)
   },
 
   createChat: async (characterId) => {

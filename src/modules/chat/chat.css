@@ -456,6 +456,41 @@
   text-decoration: underline;
 }
 
+/* Export dropdown in a chat row. The wrapper is the outside-click boundary, so it holds both the
+   trigger and the menu. */
+.chatExport {
+  position: relative;
+}
+
+/* The menu overhangs the rows below it, and a z-index inside the row can't reach them: the glass
+   skin gives .card a backdrop-filter, which makes every row its own stacking context. So the row
+   holding an open menu is what gets lifted, in the list's stacking context where the later rows
+   actually are. */
+.chatRow:has(.chatExportMenu) {
+  position: relative;
+  z-index: 3;
+}
+
+.chatExportMenu {
+  position: absolute;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 16px var(--overlay);
+}
+
+.chatExportMenu button {
+  width: 100%;
+  text-align: left;
+}
+
 /* Star toggle in a chat row and in the sidebar bookmark list. */
 .starButton {
   display: flex;

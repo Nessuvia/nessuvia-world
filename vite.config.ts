@@ -55,6 +55,11 @@ export default defineConfig({
       output: {
         // Framework in its own chunk so app edits don't re-hash it.
         manualChunks(id: string) {
+          // react-dom's server renderer is not framework-on-every-page: only the chat's HTML
+          // export imports it, dynamically, and folding it into vendor would put 57 kB gzipped
+          // in front of every visitor. Left out so it keeps the chunk of its own that the
+          // dynamic import earns it. See modules/chat/exportChat.ts.
+          if (/node_modules[\/]react-dom[\/].*server/.test(id)) return
           if (/node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler|dexie|zustand)[\/]/.test(id)) {
             return 'vendor'
           }
