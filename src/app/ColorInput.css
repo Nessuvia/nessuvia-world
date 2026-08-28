@@ -51,6 +51,9 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
+  /* Drift: 30 is inside the band reserved for the phone drawer stack (see index.css). The picker
+     opens inside panels that can be drawers, so raising it may have been deliberate — check in the
+     browser before moving it to var(--zFlyout). */
   z-index: 30;
   display: flex;
   flex-direction: column;

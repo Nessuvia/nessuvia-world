@@ -1,0 +1,358 @@
+# CSS conventions
+
+Read this before writing or editing any `.css` file or any `className` in this repo. It is the long
+form of the Style section in CLAUDE.md — that section is the summary, this is the rulebook.
+
+Every rule is a pair. The failure this file exists to stop is **drift**: values that are each
+defensible on their own and wrong next to their neighbours. A 7px gap in a wall of 8px, a
+`font-size: 13px` on an element that should have inherited, a fresh `z-index: 40` in a stack that
+already had a place for it. None of it looks broken in isolation, all of it has to be corrected by
+hand.
+
+The house rule underneath all of the below: **read the neighbouring rules before adding one.** If a
+value in this file disagrees with a value already in the file you are editing, match the file and
+say so.
+
+---
+
+## 1. Reuse before you write
+
+Check for an existing component or an existing class before opening a stylesheet at all.
+
+Shared components live in `/app` with their own `.css` and are imported by modules: `CollapseButton`,
+`Avatar`, `ColorInput`, `ColorStack`, `EntityPicker`, `TwoColumn`, `PageLoader`,
+`PromptPreviewPanel`. Hooks: `useCloseOnOutside` (every button dropdown uses it), `useDragReorder`,
+`useHashTab`, `useMediaQuery`.
+
+- **No:** a new `.myThingChevron` rule that rotates an SVG on open.
+- **Yes:** `<CollapseButton>`, which already does it and already matches every other rail in the app.
+
+Second copy of a pattern is a nudge, third is the cue to hoist it into `/app`.
+
+A module `.css` holds only what is specific to that tab. Anything two tabs share belongs in the
+shared component's stylesheet.
+
+---
+
+## 2. Colors
+
+Every color is a CSS var declared in `:root` in `index.css`. The active palette overwrites those vars
+at runtime (`palette/useApplyPalette.ts`), so a hardcoded color is a value that stops following the
+user's theme the moment they change it.
+
+- **No:** `color: #a0a0ac;` · `background: rgba(255, 255, 255, 0.06);` · `border: 1px solid #2a2a33;`
+- **Yes:** `color: var(--textMuted);` · `background: var(--surfaceHover);` ·
+  `border: 1px solid var(--border);`
+
+The vars, by role:
+
+| Surfaces | Text | Lines | Other |
+| --- | --- | --- | --- |
+| `--bg` page | `--textBright` | `--border` | `--accent` |
+| `--surfaceSunken` wells, inputs | `--text` body | `--borderStrong` | `--danger` |
+| `--surface` panels, cards | `--textSoft` | `--borderAccent` | `--success` |
+| `--surfaceRaised` | `--textMuted` labels, hints | | `--overlay` backdrops |
+| `--surfaceHover` | `--textDim` disabled | | `--codeBg` / `--codeText` |
+| `--surfaceActive`, `--surfaceSelected` | | | |
+
+Need a tint of an existing var rather than a new one? Use `color-mix`, do not invent a hex:
+
+```css
+/* No */  background: #1e1e28;
+/* Yes */ background: color-mix(in srgb, var(--surface) 80%, var(--accent));
+```
+
+**The only standing exceptions**, all of which are already in the tree — do not add a sixth without
+a comment saying why:
+
+- `#000` inside a `mask` / `-webkit-mask` gradient (`chat.css`), where the value is an alpha channel
+  and not a color anyone sees.
+- `#000` inside a shadow `color-mix` in `skins/glass.css`.
+- `#000` on the splash screen, which paints before any palette has loaded.
+
+`--success` is deliberately not palette-driven and holds steady across themes. `--codeBg` /
+`--codeText` are fixed for the same reason: code has to stay readable against its own background
+whatever the palette's prose colors are.
+
+---
+
+## 3. Spacing
+
+The scale is **2 · 4 · 6 · 8 · 12 · 16 · 24**, in px, for `padding`, `margin` and `gap`. 8 and 12
+carry most of the app; 4 and 6 are the tight end; 16 and 24 are for page-level padding.
+
+- **No:** `padding: 7px 9px;` · `gap: 5px;` · `margin-bottom: 14px;`
+- **Yes:** `padding: 6px 8px;` · `gap: 4px;` · `margin-bottom: 12px;`
+
+If the design genuinely needs a value off the scale, it is optical correction and it takes a comment
+saying what it is correcting.
+
+```css
+/* The icon's glyph sits 1px high in the font, so the row needs uneven padding to look centred. */
+padding: 7px 8px 6px;
+```
+
+Some off-scale values already exist (28 uses of `7px`, some `3px`, `5px`, `14px`). Leave them; do not
+reformat a file to the scale as a side quest. The rule governs what you *add*.
+
+There are no spacing tokens and none are wanted. Literal px from the scale is the convention.
+
+---
+
+## 4. Type
+
+**Default to not setting `font-size` at all.** Inheritance is the correct answer far more often than
+a number is, and every unnecessary declaration is a place for drift.
+
+- **No:** `font-size: 13px;` on a `<span>` inside a panel that is already 13px.
+- **Yes:** nothing. Let it inherit.
+
+When a size genuinely has to differ from its parent, take it from **11 · 12 · 13 · 14** px.
+
+| Size | Used for |
+| --- | --- |
+| `11px` | badges, counts, dense metadata |
+| `12px` | hints, labels, secondary rows |
+| `13px` | the app's default UI text |
+| `14px` | emphasis inside a panel, small headings |
+
+Anything larger is a heading and belongs to the small set already in use (`15px`, `18px`, `22px`,
+`28px`) — pick one of those, do not add a new one.
+
+Units: **px for chrome.** `rem` and `em` appear in ~40 rules and are correct in exactly two places —
+inside message and story content, where the user's own font scaling should apply, and where an `em`
+is deliberately relative to the parent (`0.85em` on a nested label). Do not sprinkle `rem` through UI
+chrome for tidiness.
+
+`font-weight` follows the same default: leave it alone unless the element is genuinely a heading or
+genuinely de-emphasised. `:root` sets `font-weight: var(--textWeight, 400)` as a palette knob, and
+anything with a weight of its own opts out of it.
+
+---
+
+## 5. Radius
+
+One var, `--radius` (6px), plus documented steps off it.
+
+- **No:** `border-radius: 5px;` · `border-radius: 4px;` · `border-radius: 6px;`
+- **Yes:** `border-radius: var(--radius);`
+
+Larger surfaces step up, nested elements step down, always as `calc` so they follow the var:
+
+```css
+border-radius: calc(var(--radius) + 2px);   /* cards, popovers, menus */
+border-radius: calc(var(--radius) + 4px);   /* full panels */
+border-radius: calc(var(--radius) - 2px);   /* a chip inside a card */
+```
+
+`50%` for circles and `999px` for pills are fine as literals — they are shapes, not sizes.
+
+---
+
+## 6. Layering
+
+Every `z-index` comes from the ladder in `index.css`. Do not invent a number.
+
+| Var | Value | For |
+| --- | --- | --- |
+| `--zBackground` | 0 | `.pageBackgroundLayer`, behind all content |
+| `--zContent` | 1 | app content, the desktop sidebar, sticky toolbars |
+| `--zDropdown` | 5 | a menu anchored to the control that opened it |
+| `--zFlyout` | 20 | menus that escape their container: context menus, the collapsed-rail flyout |
+| `--zModal` | 50 | dialog backdrops and dialogs |
+| `--zSplash` | 100 | the boot splash |
+
+- **No:** `z-index: 40;` because 30 was not enough.
+- **Yes:** `z-index: var(--zFlyout);` — and if nothing on the ladder fits, that is a design question
+  to raise, not a number to pick.
+
+**27–30 is reserved** for the phone drawer stack: `drawerOpenButtons` 27, `.sideDrawer` 28,
+`.sidebarOpenButton` 29, `.sidebar.sideDrawer` 30. Four ordered values, each commented where it
+lives, because the navbar must never end up behind a panel. Do not take a number in that range for
+anything else and do not renumber them.
+
+A small `z-index` used purely to order siblings inside one container (the 2/3 pair on
+`.chatExportMenu` in `chat.css`) is not a tier and does not use a var. It gets a comment saying what
+it is ordering against.
+
+**Known drift** — each is marked with a comment where it lives. Fix deliberately, with the browser
+open, not in passing:
+
+- `.quickActionsMenu` (`chat.css`) and `.modelOptions` (`settings.css`) sit at `10`; both are
+  dropdowns and belong at `--zDropdown`.
+- `.dialogBackdrop` (`chat.css`) sits at `200`; it is a modal and belongs at `--zModal`.
+- `.colorPopover` (`ColorInput.css`) sits at `30`, inside the reserved drawer band.
+
+---
+
+## 7. Selectors
+
+**Give every element you style its own class.** No bare-tag descendant selectors in new work.
+
+```css
+/* No — catches any button that ever lands inside .prompts, including shared components */
+.prompts button { padding: 6px 10px; }
+
+/* Yes */
+.promptsActionButton { padding: 6px 8px; }
+```
+
+This is not a style preference. `characters.css` carries this comment:
+
+> `#root` because the chat module styles every `.chatView button`, and this one is the component's,
+
+That is the cost, in full: a module's generic selector reached a shared component, and the fix was a
+specificity escape hatch that now has to be maintained. Nine `#root` prefixes exist in the tree and
+every one of them is a descendant selector that overreached.
+
+There are 297 existing descendant selectors. They stay. Do not convert them wholesale — but when you
+touch a rule that uses one and it is fighting you, adding the class is the fix.
+
+**`#root` is the last resort, not a tool.** It is for a shared rule in `/app` that has to beat a
+module's generic selector. It always carries a comment saying which selector it is beating and why,
+because stylesheet order is not something to rely on:
+
+```css
+/* #root to beat .formPage label, which stacks label content in a column. A checkbox belongs on
+   one line with its text. */
+#root .debugToggle { … }
+```
+
+Never reach for `#root` to win a fight against a rule you just wrote. Fix the selector.
+
+---
+
+## 8. Class names
+
+camelCase, prefixed with the module or component that owns it. All CSS here is global — no CSS
+Modules, no scoping — so a name is a claim on the whole app.
+
+- **No:** `.row` · `.editorActions` · `.sidebar-item` (kebab-case) · `.libraryRow` in two modules
+- **Yes:** `.chatComposerRow` · `.promptsEditorActions` · `.sidebarItem` · `.paramsLibraryRow`
+
+**Grep before you name.** `grep -rn '\.yourName' src --include='*.css'`. A name that already exists
+in another file is a collision, and it will apply to both.
+
+Eleven names are currently defined in two files each: `.chatView`, `.editorActions`,
+`.characterList`, `.characterName`, `.chatBottomBar`, `.personaEditor`, `.personaEditorDescription`,
+`.libraryRow`, `.lorebookRow`, `.lobbyDeny`, `.plotAddChapter`. Treat those as bugs waiting to bite,
+not as precedent. If you are editing one and its two definitions disagree, say so rather than
+guessing which is live.
+
+Two kebab-case strays exist (`.sidebar-item`, `.sidebar-title`) plus `.react-colorful`, which belongs
+to the library. Do not add to the first group.
+
+---
+
+## 9. Responsive
+
+`max-width: 700px` is the breakpoint. Desktop-first: write the desktop rule, then override inside the
+query.
+
+```css
+/* No */  @media (max-width: 640px) { … }
+/* Yes */ @media (max-width: 700px) { … }
+```
+
+A different width needs a comment saying what breaks at that width:
+
+```css
+/* The three-column swatch grid loses its middle column below this and the rows go ragged. */
+@media (max-width: 900px) { … }
+```
+
+Four other widths already exist (560, 720, 900, 1200). They stay, but do not copy one just because it
+is nearby.
+
+CSS handles anything a stylesheet can say on its own. Reach for `useMediaQuery('(max-width: 700px)')`
+only where the layout changes **shape** rather than style — a panel becoming a drawer, a list
+becoming a picker. Never to change a color or a size.
+
+`prefers-reduced-motion: reduce` is honoured in four places. Any transition you add that moves an
+element, rather than fading it, belongs in one of those blocks.
+
+---
+
+## 10. Bans
+
+**`!important` — never.** Zero uses across 33 files, and it stays zero. A specificity problem is
+fixed at the selector: add the class, or use the documented `#root` prefix with its comment.
+
+**Native CSS nesting (`&`) — never.** Zero uses, and it stays zero. Every selector in this codebase
+can be found by grepping for its full name, and nesting breaks that.
+
+```css
+/* No */
+.chatRow {
+  padding: 8px;
+  & .chatRowLabel { color: var(--textMuted); }
+}
+
+/* Yes */
+.chatRow { padding: 8px; }
+.chatRowLabel { color: var(--textMuted); }
+```
+
+**Transitions and animations you were not asked for — never.** CLAUDE.md's "keep styling light until
+the polishing phase" applies here first. A screen that works and looks plain is done. No fade-ins on
+mount, no hover lifts, no easing on a thing that was static a moment ago. The exceptions already in
+the tree are deliberate and commented: the palette-swap fade, the drawer slide, the collapse chevron.
+
+**Emoji or unicode glyphs standing in for icons — never.** Icons come from `@remixicon/react`.
+Typography characters (`…`, `·`, `→`) in text are fine.
+
+**`dangerouslySetInnerHTML` — never**, for any reason, anywhere. This origin holds API keys in
+localStorage. User markup has exactly one vetted route: `palette/sanitizeHtml.ts` attached with
+`replaceChildren` in `PageBackground.tsx`, and `palette/scopeCss.ts` for user CSS.
+
+### Inline `style={{}}` — allowed, but narrowly
+
+Thirteen uses exist and all are values a stylesheet cannot know: a palette swatch's color, a slider
+thumb's `left: %`, a computed row count. That is the bar.
+
+```tsx
+/* No — this belongs in the stylesheet */
+<div style={{ marginTop: 8, border: 'none' }}>
+
+/* Yes — the value is computed */
+<span className="paletteSwatch" style={{ background: c }} />
+
+/* Better, when several properties depend on one computed value: set a var, style in CSS */
+<ul className="entityPickerList" style={{ '--pickerRows': rows } as CSSProperties}>
+```
+
+---
+
+## 11. Skins
+
+A skin is the structural half of a palette: `data-skin` on the root, and a stylesheet of
+`[data-skin='x'] #root .panel { … }` rules. Four classes are the whole contract — `panel`, `navbar`,
+`card`, `bubble`.
+
+A skin may only change **how a surface is painted**: background, border, shadow, filter. Radius,
+padding and spacing stay in the base stylesheet. A skin can therefore look wrong but can never break
+layout, and that property is worth more than any effect it would buy.
+
+- **No:** `[data-skin='glass'] #root .card { padding: 12px; border-radius: 12px; }`
+- **Yes:** `[data-skin='glass'] #root .card { background: …; backdrop-filter: …; }`
+
+A new skin is a file in `app/skins`, a line in `app/skins/index.ts`, and an entry in `skins.ts`.
+
+---
+
+## 12. Before you hand off
+
+Run through this on any diff that touches CSS:
+
+- [ ] No hex, `rgb()` or `hsl()` outside `index.css`.
+- [ ] Every spacing value is on the scale, or carries a comment.
+- [ ] Every `font-size` you added is actually needed, and is on the scale.
+- [ ] Every `z-index` is a `--z*` var.
+- [ ] Every new class has a module prefix and is not already defined elsewhere (grep it).
+- [ ] No bare-tag descendant selectors in new rules.
+- [ ] No `!important`, no `&` nesting, no unrequested motion.
+- [ ] Media queries are `max-width: 700px`, or commented.
+- [ ] Anything two tabs now share moved to `/app` rather than being copied.
+
+Then `npx pnpm build` and the `check*` scripts, and **stop**. The user drives Chrome and tests in the
+browser personally. Report that the build is clean and say what is ready to look at.

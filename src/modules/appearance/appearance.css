@@ -496,7 +496,7 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  z-index: 5;
+  z-index: var(--zDropdown);
   display: flex;
   flex-direction: column;
   min-width: 100%;

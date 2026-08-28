@@ -705,7 +705,7 @@ h3.storyPreviewTitle {
   position: absolute;
   right: 0;
   top: 100%;
-  z-index: 5;
+  z-index: var(--zDropdown);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;

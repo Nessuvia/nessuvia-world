@@ -177,30 +177,26 @@ intent, leave a comment naming the level and the upgrade path (e.g. per-chat ove
 ## Style
 
 Keep styling light until the polishing phase — a screen that works and looks plain is done; pixel
-work waits. But build the pieces so polish is cheap later:
+work waits. But build the pieces so polish is cheap later.
 
-- All colors are CSS vars in `:root` in `index.css`. Never hardcode a hex in a module stylesheet.
-  The active palette overwrites those vars at runtime (`palette/useApplyPalette.ts`), so a
-  hardcoded color is a value that stops following the user's theme.
-- Shared UI patterns live in `/app` with their own `.css`, and modules import them: `CollapseButton`
-  (chevron and rail), `Avatar`, `ColorInput`, `ColorStack`, `EntityPicker`, `TwoColumn`,
-  `PageLoader`, `PromptPreviewPanel`, and the hooks `useCloseOnOutside` (every button dropdown uses
-  it), `useDragReorder`, `useHashTab`, `useMediaQuery`. Second copy of a pattern is a nudge; third is
-  the cue to hoist it — small component, obvious props, room to grow.
-- Skins are the structural half of a palette: a `data-skin` attribute on the root and a stylesheet of
-  `[data-skin='x'] #root .panel { … }` rules. Four classes are the whole contract — `panel`,
-  `navbar`, `card`, `bubble`. A skin may only change how a surface is painted (background, border,
-  shadow, filter); radius, padding and spacing stay in the base stylesheet, so a skin can look wrong
-  but never break layout. A new skin is a file, a line in `app/skins/index.ts`, and an entry in
-  `skins.ts`.
-- Mobile: CSS handles anything a stylesheet can say on its own. Reach for
-  `useMediaQuery('(max-width: 700px)')` only where the layout changes shape rather than style.
-- Icons come from `@remixicon/react`. Never stand in an emoji or a unicode glyph for an icon.
-  Typography characters (`…`, `·`, `→`) are fine.
-- Module `.css` files hold only what's specific to that tab. Anything two tabs share belongs in the
-  shared component's stylesheet.
-- A shared rule that has to beat a module's generic selector (`.prompts button`) gets a `#root`
-  prefix and a comment saying why — stylesheet order isn't something to rely on.
+**Before writing or editing any `.css` file or any `className`, read
+[`.claude/cssConventions.md`](.claude/cssConventions.md).** It is the full rulebook and the rules
+live there and nowhere else: the color vars, the spacing and type scales, the `z-index` ladder, the
+selector and class-naming rules, the breakpoint, the bans, and the skin contract. Its last section
+is a checklist to run against any diff that touches CSS.
+
+The headline, so the shape is in mind before you open it: no hardcoded colors, no invented spacing
+values, no invented `z-index` numbers, a class on every element you style, and nothing shared
+between two tabs living in a module stylesheet.
+
+Icons come from `@remixicon/react`. Never stand in an emoji or a unicode glyph for an icon.
+Typography characters (`…`, `·`, `→`) are fine.
+
+Shared UI patterns live in `/app` with their own `.css`, and modules import them: `CollapseButton`
+(chevron and rail), `Avatar`, `ColorInput`, `ColorStack`, `EntityPicker`, `TwoColumn`, `PageLoader`,
+`PromptPreviewPanel`, and the hooks `useCloseOnOutside` (every button dropdown uses it),
+`useDragReorder`, `useHashTab`, `useMediaQuery`. Second copy of a pattern is a nudge; third is the
+cue to hoist it — small component, obvious props, room to grow.
 
 ## UI copy
 

@@ -146,7 +146,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  z-index: 5;
+  z-index: var(--zDropdown);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -286,7 +286,7 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  z-index: 5;
+  z-index: var(--zDropdown);
   display: flex;
   flex-direction: column;
   min-width: 160px;
@@ -540,6 +540,8 @@
 .dialogBackdrop {
   position: fixed;
   inset: 0;
+  /* Drift: this is a modal and belongs at var(--zModal). Left at 200 until someone checks it in the
+     browser against the drawer stack. */
   z-index: 200;
   background: var(--overlay);
   display: flex;
@@ -1059,6 +1061,8 @@
 .quickActionsMenu {
   position: absolute;
   right: 0;
+  /* Drift: a dropdown, so this belongs at var(--zDropdown). Left at 10 until checked in the
+     browser — it may have been raised to clear something specific. */
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -1145,7 +1149,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 2px);
-  z-index: 5;
+  z-index: var(--zDropdown);
 }
 
 .commandRow {
@@ -1506,7 +1510,7 @@
 
 .tagContextMenu {
   position: fixed;
-  z-index: 20;
+  z-index: var(--zFlyout);
   width: 220px;
   padding: 8px;
   background: var(--surface);

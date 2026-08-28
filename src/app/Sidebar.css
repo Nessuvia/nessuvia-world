@@ -2,7 +2,7 @@
 .sidebar {
   position: relative;
   /* Above .pageBackgroundLayer, which now runs the full width of the shell. */
-  z-index: 1;
+  z-index: var(--zContent);
   width: var(--sidebarWidth, 280px);
   flex: 0 0 var(--sidebarWidth, 280px);
   overflow: hidden;
@@ -100,7 +100,7 @@
    picks it up again rather than starting over from the nav item. */
 .sidebarFlyout {
   position: fixed;
-  z-index: 20;
+  z-index: var(--zFlyout);
   display: flex;
   flex-direction: column;
   min-width: 160px;

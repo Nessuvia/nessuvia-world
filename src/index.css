@@ -14,6 +14,19 @@
   /* The general panel/button corner. Larger surfaces use calc(var(--radius) + 2px|4px). */
   --radius: 6px;
 
+  /* The layering ladder. Every z-index in the app comes from here — a literal number in a module
+     stylesheet is a mistake unless it's ordering siblings inside one container. The gaps are room
+     for a tier to land between two of these rather than on top of the stack.
+     27-30 is reserved for the phone drawer stack (sideDrawer.css, Sidebar.css): open buttons 27,
+     drawer 28, navbar button 29, navbar 30. Ordered by hand, since the navbar is the way out of
+     any screen and must never sit behind a panel. See .claude/cssConventions.md. */
+  --zBackground: 0;
+  --zContent: 1;
+  --zDropdown: 5;
+  --zFlyout: 20;
+  --zModal: 50;
+  --zSplash: 100;
+
   --bg: #101014;
   --surfaceSunken: #131318;
   --surface: #16161c;
@@ -109,7 +122,7 @@ body {
   overflow: hidden;
   padding: 24px;
   position: relative;
-  z-index: 1;
+  z-index: var(--zContent);
 }
 
 /* The background layer. Sized to the window: the sidebar sits over it rather than beside it, so a
@@ -125,7 +138,7 @@ body {
 .pageBackgroundLayer {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--zBackground);
   overflow: hidden;
   contain: layout paint;
   pointer-events: none;
@@ -173,7 +186,7 @@ body {
 
 .appContentInner {
   position: relative;
-  z-index: 1;
+  z-index: var(--zContent);
   height: 100%;
   display: flex;
   flex-direction: column;
