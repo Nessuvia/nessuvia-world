@@ -1,11 +1,31 @@
-// The wording of every re-roll instruction, in one place so it's tunable in one place.
+// The wording of every re-roll instruction now lives in `miscPrompts.ts`, where a stack can
+// override it. What's left here is the shaping each one needs — trimming, the transcript, and the
+// rule that says when there's nothing to send at all.
 // Extension-ful imports on purpose: checkPrompt.ts runs this under `node --experimental-strip-types`.
 import type { Message } from '../storage/types'
+import { fillSlots, miscPrompt } from './miscPrompts.ts'
+import type { MiscPrompts } from './miscPrompts.ts'
 
 /** What the user's instruction turns into. The original is quoted so the model has something to
  *  work from even when the budget trimmed the message out of history. */
-export function rewritePrompt(original: string, instruction: string): string {
-  return `Your previous reply was:\n\n${original}\n\nWrite that reply again, following this instruction: ${instruction.trim()}\n\nReply with the rewritten message only.`
+export function rewritePrompt(
+  original: string,
+  instruction: string,
+  prompts?: MiscPrompts,
+): string {
+  return fillSlots(miscPrompt('rewrite', prompts), {
+    reply: original,
+    instruction: instruction.trim(),
+  })
+}
+
+/**
+ * What `/continue` sends. The partial reply rides along as a trailing assistant turn for the model
+ * to carry on from, so this only has to say not to restart it — endpoints that ignore the prefill
+ * are the reason it says so at all.
+ */
+export function continuePrompt(prompts?: MiscPrompts): string {
+  return miscPrompt('continue', prompts)
 }
 
 function speaker(message: Message, characterName: string): string {
@@ -20,10 +40,16 @@ function speaker(message: Message, characterName: string): string {
  * conversation ended there. Quoting what follows is the whole point — it costs tokens and the
  * budget counts them like anything else.
  *
- * `later` empty (the message *is* the last one) returns '' — nothing to warn about.
+ * `later` empty (the message *is* the last one) returns '' — nothing to warn about. That stays a
+ * rule here rather than something the wording has to express: an override can't make an
+ * instruction appear where there is nothing to instruct about.
  */
-export function oldMessageInstruction(later: Message[], characterName: string): string {
+export function oldMessageInstruction(
+  later: Message[],
+  characterName: string,
+  prompts?: MiscPrompts,
+): string {
   if (!later.length) return ''
   const transcript = later.map((m) => `${speaker(m, characterName)}: ${m.content}`).join('\n\n')
-  return `You are rewriting an earlier message in this conversation, not the latest one. What was said after it:\n\n${transcript}\n\nRewrite the message so that what follows still makes sense.`
+  return fillSlots(miscPrompt('oldMessage', prompts), { transcript })
 }

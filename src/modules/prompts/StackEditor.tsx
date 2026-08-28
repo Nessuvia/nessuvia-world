@@ -24,6 +24,8 @@ import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import BlockModal from './BlockModal'
+import MiscPromptsPanel from './MiscPromptsPanel'
+import { useHashTab } from '../../app/useHashTab'
 import { exportStack, parseStack } from './stackFile'
 import PromptPreview from './PromptPreview'
 import './prompts.css'
@@ -50,6 +52,9 @@ export default function StackEditor() {
   // choice; the active stack of each kind lives in settings. `?kind=story` is how the Story
   // sidebar's edit link lands on the right builder.
   const [params] = useSearchParams()
+  // Blocks or the utility prompts. Both edit the same open stack, so the picker row above stays put
+  // and only the body swaps.
+  const [tab] = useHashTab(['stacks', 'misc'] as const)
   const writeEnabled = useSettings((s) => s.writeEnabled)
   const multiplayerEnabled = useSettings((s) => s.multiplayerEnabled)
   const [kind, setKind] = useState<StackKind>(
@@ -463,17 +468,23 @@ export default function StackEditor() {
 
       {nestError && <p className="error">{nestError}</p>}
 
-      <div className="screenBody zones">
-        {renderZone(
-          'Active stack',
-          'Assembled top to bottom. “+” on a block nests another inside it.',
-        )}
-        <PromptPreview
-          stack={draft}
-          collapsed={!!collapsed.preview}
-          onToggleCollapsed={() => toggleZone('preview')}
-        />
-      </div>
+      {tab === 'misc' ? (
+        <div className="screenBody">
+          <MiscPromptsPanel stack={draft} onChange={change} />
+        </div>
+      ) : (
+        <div className="screenBody zones">
+          {renderZone(
+            'Active stack',
+            'Assembled top to bottom. “+” on a block nests another inside it.',
+          )}
+          <PromptPreview
+            stack={draft}
+            collapsed={!!collapsed.preview}
+            onToggleCollapsed={() => toggleZone('preview')}
+          />
+        </div>
+      )}
 
       {editing && (
         <BlockModal

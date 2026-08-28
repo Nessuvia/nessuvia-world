@@ -1,7 +1,7 @@
 // Run: node --experimental-strip-types src/core/stores/checkSwipes.ts
 import assert from 'node:assert'
 import type { Message } from '../storage/types'
-import { deletedSwipes, reasoningFor, regenerated, selectSwipe, snapshotFor, swipeCount, swipeIndex } from './swipes.ts'
+import { continued, deletedSwipes, reasoningFor, regenerated, selectSwipe, snapshotFor, swipeCount, swipeIndex } from './swipes.ts'
 
 const reply = (id: number, content: string): Message => ({
   id,
@@ -163,6 +163,41 @@ function mirrors(m: Message) {
   const single = deletedSwipes(reply(3, 'only'), [1])!
   assert.deepStrictEqual(single.swipes, ['only'])
   assert.strictEqual(swipeCount(single), 1)
+}
+
+// --- continuing writes in place, and never adds a swipe -------------------
+{
+  // A message that was never re-rolled: still one swipe afterwards.
+  const once = continued(reply(1, 'half a sen'), 'half a sentence')!
+  assert.deepStrictEqual(once.swipes, ['half a sentence'])
+  assert.strictEqual(swipeCount(once), 1)
+  assert.strictEqual(once.swipeIndex, 0)
+  mirrors(once)
+
+  // Three swipes, sitting on the middle one: only that one changes.
+  let m = regenerated(reply(1, 'one'), 'two', '{"b":2}', 'r2')!
+  m = regenerated(m, 'three', '{"c":3}', 'r3')!
+  const on = continued(selectSwipe(m, 1), 'two and more', '{"d":4}', 'r4')!
+  assert.deepStrictEqual(on.swipes, ['one', 'two and more', 'three'])
+  assert.strictEqual(swipeCount(on), 3)
+  assert.strictEqual(swipeIndex(on), 1)
+  mirrors(on)
+  // The continuation's request is what produced the text as it now stands; reasoning accumulates.
+  assert.strictEqual(snapshotFor(on), '{"d":4}')
+  assert.strictEqual(reasoningFor(on), 'r2\n\nr4')
+  // Its neighbours are untouched.
+  assert.strictEqual(snapshotFor(selectSwipe(on, 2)), '{"c":3}')
+  assert.strictEqual(reasoningFor(selectSwipe(on, 2)), 'r3')
+
+  // A continuation that produced nothing changes nothing.
+  const before = JSON.stringify(m)
+  assert.strictEqual(continued(m, ''), null)
+  assert.strictEqual(JSON.stringify(m), before)
+
+  // No snapshot and no reasoning leave what was already there alone.
+  const bare = continued(selectSwipe(m, 1), 'two and more')!
+  assert.strictEqual(snapshotFor(bare), '{"b":2}')
+  assert.strictEqual(reasoningFor(bare), 'r2')
 }
 
 console.log('ok')

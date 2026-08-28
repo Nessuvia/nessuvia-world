@@ -607,10 +607,13 @@ export const useWrite = create<WriteState>()((set, get) => ({
     // The chat's re-roll wording, unchanged: quote what it said, then the instruction. An empty
     // Block has nothing to rewrite, so the instruction steers a first draft instead. Either way the
     // beat still arrives through {{beat}}, so it is not repeated here.
+    // The Story stack's own override, if it set one — `writeBlock` resolves the same stack again to
+    // build the prompt, so both halves of this request read the same row.
+    const stack = await useStacks.getState().ensureActive('story')
     await get().writeBlock(
       chapterId,
       blockId,
-      block.content.trim() ? rewritePrompt(block.content, instruction) : instruction,
+      block.content.trim() ? rewritePrompt(block.content, instruction, stack.miscPrompts) : instruction,
       true,
     )
   },

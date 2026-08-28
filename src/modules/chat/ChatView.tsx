@@ -31,6 +31,7 @@ export default function ChatView() {
     streamingChatId,
     error,
     trimmedCount,
+    miscPrompts,
     regeneratingId,
     speakingName,
     speakingId,
@@ -177,7 +178,11 @@ export default function ChatView() {
             streamingText={regeneratingId === m.id ? streamingText : null}
             streamingReasoning={regeneratingId === m.id ? streamingReasoning : ''}
             defaultInstruction={() =>
-              oldMessageInstruction(messages.slice(i + 1), m.speakerName ?? character.name)
+              oldMessageInstruction(
+                messages.slice(i + 1),
+                m.speakerName ?? character.name,
+                miscPrompts,
+              )
             }
             rewriting={rewritingId === m.id}
             onRewriteOpen={(open) => setRewritingId(open ? m.id! : null)}

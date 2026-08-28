@@ -56,6 +56,35 @@ export function regenerated<T extends Swipeable>(
   return { ...message, swipes, swipeIndex: swipes.length - 1, content: text, requestSnapshots, reasonings }
 }
 
+/**
+ * A finished continuation: `text` is the whole reply — the partial plus what the model just added —
+ * and it replaces the selected swipe in place. A continuation is not a new take on the message, so
+ * it must not become a swipe of its own; re-rolling still does that.
+ *
+ * The snapshot for that swipe becomes the continuation's request, which is the one that produced the
+ * text as it now stands. Reasoning accumulates instead of replacing: both passes really happened.
+ */
+export function continued<T extends Swipeable>(
+  message: T,
+  text: string,
+  snapshot?: string,
+  reasoning?: string,
+): T | null {
+  if (!text) return null
+  const swipes = seeded(message)
+  const at = Math.min(swipeIndex(message), swipes.length - 1)
+  swipes[at] = text
+  const requestSnapshots = [...(message.requestSnapshots ?? [])]
+  const reasonings = [...(message.reasonings ?? [])]
+  // Pad to the swipe count first: an older message's arrays can be shorter than its swipes, and
+  // assigning past the end would leave holes anywhere but the slot being written.
+  requestSnapshots.length = swipes.length
+  reasonings.length = swipes.length
+  if (snapshot) requestSnapshots[at] = snapshot
+  if (reasoning) reasonings[at] = reasonings[at] ? `${reasonings[at]}\n\n${reasoning}` : reasoning
+  return { ...message, swipes, swipeIndex: at, content: text, requestSnapshots, reasonings }
+}
+
 /** The request that produced the currently selected swipe, if it was kept. */
 export function snapshotFor(message: Swipeable): string | undefined {
   return message.requestSnapshots?.[swipeIndex(message)]

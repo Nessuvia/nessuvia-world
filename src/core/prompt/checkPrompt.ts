@@ -786,6 +786,39 @@ for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
   assert.deepStrictEqual(blank.messages, plain.messages)
 }
 
+// --- appendAssistant is the prefill: last turn, after appendSystem --------
+{
+  const built = buildPrompt({
+    stack: stack([block({ content: 'sys' }), block({ source: 'chatHistory' })]),
+    character: damien,
+    persona: dom,
+    messages,
+    appendSystem: 'carry on',
+    appendAssistant: 'half a sen',
+  })
+  // Last, and its own turn — a prefill the model continues only works as the final message.
+  assert.deepStrictEqual(built.messages.at(-1), { role: 'assistant', content: 'half a sen' })
+  assert.deepStrictEqual(built.messages.at(-2), { role: 'system', content: 'carry on' })
+  const plain = buildPrompt({
+    stack: stack([block({ content: 'sys' }), block({ source: 'chatHistory' })]),
+    character: damien,
+    persona: dom,
+    messages,
+    appendSystem: 'carry on',
+  })
+  assert.ok(built.tokensUsed > plain.tokensUsed, 'the partial costs tokens')
+  // Blank is no prefill at all — not a blank assistant turn.
+  const blank = buildPrompt({
+    stack: stack([block({ content: 'sys' }), block({ source: 'chatHistory' })]),
+    character: damien,
+    persona: dom,
+    messages,
+    appendSystem: 'carry on',
+    appendAssistant: '  ',
+  })
+  assert.deepStrictEqual(blank.messages, plain.messages)
+}
+
 // --- rewrite instructions -------------------------------------------------
 {
   assert.ok(rewritePrompt('old text', '  shorter  ').includes('old text'))

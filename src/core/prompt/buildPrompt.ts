@@ -9,6 +9,8 @@ import { chatTokens, swapBlockVals, swapTokens } from './swapTokens.ts'
 import { promptConditions, resolveConditions } from './conditions.ts'
 import type { Budget } from './budget.ts'
 import { countMessages, countTokens, perMessageOverhead, trimHistory } from './budget.ts'
+import { fillSlots, miscPrompt } from './miscPrompts.ts'
+import type { MiscPrompts } from './miscPrompts.ts'
 
 /**
  * The card's text, or the block's own content when the card has none — which is the spec's
@@ -142,9 +144,10 @@ export function stripDepthTags(content: string, distance: number, rules?: TagRul
   return out.replace(/\n{3,}/g, '\n\n').trim()
 }
 
-/** The trailing turn naming who speaks next. One string, tunable in one place. */
-export function nextSpeakerHint(name: string): string {
-  return `Write the next message as ${name}.`
+/** The trailing turn naming who speaks next. Wording lives in `miscPrompts`, so a stack can
+ *  override it; this only fills the slot. */
+export function nextSpeakerHint(name: string, prompts?: MiscPrompts): string {
+  return fillSlots(miscPrompt('nextSpeaker', prompts), { char: name })
 }
 
 export interface BuildPromptArgs {
@@ -162,6 +165,10 @@ export interface BuildPromptArgs {
   /** A system turn appended after everything else — the rewrite instruction. Counted against
    *  the budget like any other text, never exempted. */
   appendSystem?: string
+  /** A partial reply left as the last turn for the model to carry on from — what `/continue` sends.
+   *  Goes after `appendSystem` because a prefill only works while it is the final turn. Counted
+   *  against the budget like any other text. */
+  appendAssistant?: string
   /** Display-only: indent nested block content for the preview. Never set on the send path. */
   indent?: boolean
   /** Tag rules with a `depth` strip their block from older history turns. Absent = nothing stripped. */
@@ -211,6 +218,7 @@ export function buildPrompt(
     chat,
     worldInfo,
     appendSystem,
+    appendAssistant,
     indent,
     tagRules,
     nameSpeakers,
@@ -296,7 +304,7 @@ export function buildPrompt(
   // is up, then any rewrite instruction narrows what they should write. Neither overwrites the
   // other, and the more specific one has the last word.
   if (group) {
-    const hint = nextSpeakerHint(who.name)
+    const hint = nextSpeakerHint(who.name, stack.miscPrompts)
     resolved.push({ role: 'system', content: hint })
     fixedTokens += countTokens(hint) + perMessageOverhead
   }
@@ -307,6 +315,13 @@ export function buildPrompt(
   if (appendSystem?.trim()) {
     resolved.push({ role: 'system', content: appendSystem })
     fixedTokens += countTokens(appendSystem) + perMessageOverhead
+  }
+
+  // Last, and after the merge below it stays last: a prefill the model is meant to continue only
+  // works as the final turn. Not swapped — it is transcript the model already wrote.
+  if (appendAssistant?.trim()) {
+    resolved.push({ role: 'assistant', content: appendAssistant })
+    fixedTokens += countTokens(appendAssistant) + perMessageOverhead
   }
 
   const trimmed = budget

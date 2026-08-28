@@ -3,6 +3,7 @@
 import type { PromptBlock, PromptStack } from '../../core/storage/types'
 import { currentOwnerId } from '../../core/storage/storageInterface'
 import { stackKind } from './stackKinds'
+import { coerceMiscPrompts } from '../../core/prompt/miscPrompts'
 
 interface StackFile {
   format: 'nessu-prompt-stack'
@@ -10,6 +11,8 @@ interface StackFile {
   name: string
   kind: 'chat' | 'story'
   active: PromptBlock[]
+  /** Overrides for the utility prompts. Part of how the stack prompts, so it travels with it. */
+  miscPrompts?: Record<string, string>
   /** Written by older builds, when blocks could be parked out of the stack. Read, never written. */
   inactive?: PromptBlock[]
 }
@@ -24,6 +27,7 @@ export function exportStack(stack: PromptStack) {
     name: stack.name,
     kind: stackKind(stack),
     active: stack.active,
+    ...(stack.miscPrompts ? { miscPrompts: stack.miscPrompts } : {}),
   }
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }),
@@ -57,10 +61,12 @@ export function parseStack(text: string): PromptStack {
   if (!Array.isArray(file.active)) throw new Error('The stack file is missing its blocks.')
   // An older file's parked blocks import as disabled ones rather than being dropped.
   const parked = Array.isArray(file.inactive) ? file.inactive.map((b) => ({ ...b, disabled: true })) : []
+  const misc = coerceMiscPrompts(file.miscPrompts)
   return {
     ownerId: currentOwnerId(),
     name: typeof file.name === 'string' && file.name ? file.name : 'Imported stack',
     kind: file.kind === 'story' ? 'story' : 'chat',
     active: reid([...file.active, ...parked]),
+    ...(misc ? { miscPrompts: misc } : {}),
   }
 }

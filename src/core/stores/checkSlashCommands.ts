@@ -21,6 +21,11 @@ assert.deepEqual(parseCommand('/noreply hi there', names), { name: 'noreply', te
 assert.deepEqual(parseCommand('/noreply', names), { name: 'noreply', text: '' })
 assert.deepEqual(parseCommand('/NoReply hi', names), { name: 'noreply', text: 'hi' })
 
+// /continue takes no argument at all: anything typed after it is ignored by the caller, not
+// parsed as a target.
+assert.deepEqual(parseCommand('/continue', names), { name: 'continue', text: '' })
+assert.deepEqual(parseCommand('/continue please', names), { name: 'continue', text: 'please' })
+
 // The longest matching roster name wins, so a two-word name is not cut in half by the one-word
 // name it starts with.
 assert.deepEqual(parseCommand('/sendas Anna Belle waves.', names), {
@@ -59,7 +64,13 @@ assert.equal(menuFor('//x', roster), null)
 
 const all = menuFor('/', roster)
 assert.equal(all?.kind, 'commands')
-assert.equal(all?.items.length, 2, 'a bare slash lists everything')
+assert.equal(all?.items.length, 3, 'a bare slash lists everything')
+
+const continues = menuFor('/c', roster)
+assert.deepEqual(
+  continues?.kind === 'commands' ? continues.items.map((c) => c.name) : [],
+  ['continue'],
+)
 
 const narrowed = menuFor('/n', roster)
 assert.equal(narrowed?.kind, 'commands')

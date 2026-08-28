@@ -14,10 +14,10 @@ import { displayName, useCharacters } from './charactersStore'
 import { usePersonas } from './personasStore'
 import { useStacks } from './stacksStore'
 import { chatTitle } from './chatTitle'
-import { deletedSwipes, regenerated, selectSwipe } from './swipes'
+import { continued, deletedSwipes, regenerated, selectSwipe } from './swipes'
 import { autoTurns, nextSpeakerIndex, participants } from './roster'
 import { parseCommand, stripEscape } from './slashCommands'
-import { oldMessageInstruction, rewritePrompt } from '../prompt/rewrite'
+import { continuePrompt, oldMessageInstruction, rewritePrompt } from '../prompt/rewrite'
 import { isEnabled, modules } from '../../app/moduleRegistry'
 import { chatTokens, swapTokens } from '../prompt/swapTokens'
 import { worldInfoText } from '../prompt/worldInfo'
@@ -137,6 +137,9 @@ interface ChatState {
   error: string
   /** History messages the budget dropped on the last send — normal operation, not an error. */
   trimmedCount: number
+  /** The open chat's stack's utility-prompt overrides, for views that show one before it is sent.
+   *  The send path re-reads them off the stack it loads rather than trusting this copy. */
+  miscPrompts: Record<string, string> | undefined
   /** The message being re-rolled, so the stream renders in place instead of at the bottom. */
   regeneratingId: number | null
   /** Whose reply is streaming, for the placeholder header. Empty when nothing is streaming. */
@@ -172,6 +175,8 @@ interface ChatState {
   retryLast(character: Character): Promise<void>
   /** Re-roll any assistant message into a new swipe. With an instruction, it's a rewrite. */
   regenerate(character: Character, messageId: number, instruction?: string): Promise<void>
+  /** Carry the last reply on from where it stopped, into the swipe that's showing. */
+  continueLast(character: Character): Promise<void>
   /** Pick an alternate. No generation. */
   swipeTo(messageId: number, index: number): Promise<void>
   /** Drop alternates by index. Deleting the last one deletes the message. */
@@ -196,6 +201,7 @@ export const useChats = create<ChatState>()((set, get) => ({
   setViewing: (chatId) => set({ viewingChatId: chatId }),
   error: '',
   trimmedCount: 0,
+  miscPrompts: undefined,
   regeneratingId: null,
   speakingName: '',
   speakingId: null,
@@ -244,7 +250,11 @@ export const useChats = create<ChatState>()((set, get) => ({
   load: async (chatId) => {
     const chat = (await storage.get('chats', chatId)) as unknown as Chat | undefined
     const rows = (await storage.find('messages', 'chatId', chatId)) as unknown as Message[]
-    set({ chat: chat ?? null, messages: rows.sort(byTime), trimmedCount: 0 })
+    // Resolved here so the view can show the same wording the send path will use — the rewrite box
+    // prefills with the old-message instruction, and reading it off the stack in a component would
+    // mean an async lookup per message row.
+    const miscPrompts = chat ? (await stackFor(chat)).miscPrompts : undefined
+    set({ chat: chat ?? null, messages: rows.sort(byTime), trimmedCount: 0, miscPrompts })
   },
 
   createChat: async (characterId) => {
@@ -369,6 +379,12 @@ export const useChats = create<ChatState>()((set, get) => ({
       // rather than handing them the next turn too.
       await get().patchChat({ lastSpeakerIndex: roster.indexOf(speaker.id!) })
       await get().load(chat.id!)
+      return
+    }
+
+    // Nothing of yours is posted: `/continue` is a second pass at the reply that's already there.
+    if (command?.name === 'continue') {
+      await get().continueLast(character)
       return
     }
 
@@ -675,20 +691,22 @@ export const useChats = create<ChatState>()((set, get) => ({
       speakingName: target.speakerName ?? speaker.name,
     })
 
+    // Loaded before the instruction is built, not inside the try below: both re-roll wordings are
+    // the stack's to override, so the stack has to be in hand first.
+    const stack = await stackFor(chat)
     // Your instruction if you gave one; otherwise, on an old message, the default that tells the
     // model what came after it. Re-rolling the last message appends nothing, exactly as Phase 1.
     // Only your half is token-swapped: the quoted message and transcript stay verbatim.
     const rewriteTokens = chatTokens(speaker, await usePersonas.getState().ensureActive())
     const appendSystem = instruction?.trim()
-      ? rewritePrompt(target.content, swapTokens(instruction, rewriteTokens))
-      : oldMessageInstruction(get().messages.slice(at + 1), speaker.name)
+      ? rewritePrompt(target.content, swapTokens(instruction, rewriteTokens), stack.miscPrompts)
+      : oldMessageInstruction(get().messages.slice(at + 1), speaker.name, stack.miscPrompts)
 
     let text = ''
     let reasoning = ''
     let finishReason = ''
     let snapshot: string | undefined
     try {
-      const stack = await stackFor(chat)
       const persona = await usePersonas.getState().ensureActive()
       await loadTokenizer()
       // As if this message didn't exist yet: history is everything before it. Anything after it
@@ -753,6 +771,127 @@ export const useChats = create<ChatState>()((set, get) => ({
     if (updated) {
       await storage.put('messages', updated as unknown as StoredRecord)
       // Same as retry: don't reload if you've moved to another chat mid-stream — blip instead.
+      if (get().chat?.id === chat.id) await get().load(chat.id!)
+      if (get().viewingChatId !== chat.id) {
+        useBlips.getState().mark(target.speakerId ?? chat.characterId)
+      }
+    }
+  },
+
+  continueLast: async (character) => {
+    const chat = get().chat
+    if (!chat) return
+    const target = get().messages.at(-1)
+    if (!target || target.role !== 'assistant') {
+      set({ error: 'Nothing to continue — the last message is not a reply.' })
+      return
+    }
+    // Trailing whitespace is not part of what was said, and some endpoints reject a prefill that
+    // ends in it. Trimmed once here so the text sent and the text appended to are the same string.
+    const prefix = target.content.replace(/\s+$/, '')
+    if (!prefix) {
+      set({ error: 'Nothing to continue — the last reply is empty.' })
+      return
+    }
+
+    // Continued as whoever said it, like a re-roll: same voice, card and params.
+    const speaker =
+      useCharacters.getState().characters.find((c) => c.id === target.speakerId) ?? character
+    const connection = resolvedConnection(speaker, chat)
+    if (!connection) {
+      set({ error: 'No active connection — pick one in Settings.' })
+      return
+    }
+
+    const controller = new AbortController()
+    abort = controller
+    set({
+      streaming: true,
+      streamingChatId: chat.id ?? null,
+      // The bubble renders streamingText in place of the message, so it carries the partial too —
+      // otherwise the reply would appear to vanish and regrow from the join.
+      streamingText: prefix,
+      streamingReasoning: '',
+      error: '',
+      failed: null,
+      regeneratingId: target.id ?? null,
+      speakingName: target.speakerName ?? speaker.name,
+    })
+
+    let added = ''
+    let reasoning = ''
+    let finishReason = ''
+    let snapshot: string | undefined
+    try {
+      const stack = await stackFor(chat)
+      const persona = await usePersonas.getState().ensureActive()
+      await loadTokenizer()
+      // History is everything before this message; the message itself goes in as the prefill, so
+      // it appears once rather than twice. Deliberately unlabelled in a group chat, where history
+      // turns carry a `Name:` prefix — the continuation should come back as bare text.
+      const prompt = buildPrompt(
+        {
+          stack,
+          character,
+          persona,
+          chat,
+          speaker,
+          messages: get().messages.slice(0, -1),
+          worldInfo: await worldInfoFor(speaker, get().messages.slice(0, -1)),
+          appendSystem: continuePrompt(stack.miscPrompts),
+          appendAssistant: prefix,
+          tagRules: useSettings.getState().appearance.tagRules,
+          cast: _sessionCast,
+          personas: _sessionPersonas,
+        },
+        budgetOf(connection),
+      )
+      set({ trimmedCount: prompt.droppedCount })
+      snapshot = snapshotOf(prompt.messages, connection)
+      for await (const chunk of sendMessage(prompt.messages, connection, controller.signal)) {
+        if (chunk.reasoning) {
+          reasoning += chunk.reasoning
+          set({ streamingReasoning: reasoning })
+        }
+        if (chunk.content) {
+          added += chunk.content
+          set({ streamingText: prefix + added })
+        }
+        if (chunk.finishReason) finishReason = chunk.finishReason
+      }
+    } catch (err) {
+      // A deliberate stop keeps what arrived; a real failure leaves the message as it was. `failed`
+      // stays null on purpose: the error bar's Retry re-rolls, and a re-roll is the opposite of
+      // this. Run `/continue` again instead. Upgrade path is a kind on `failed`.
+      if (!controller.signal.aborted) {
+        set({
+          streaming: false,
+          streamingChatId: null,
+          streamingText: '',
+          regeneratingId: null,
+          speakingName: '',
+          error: (err as Error).message,
+        })
+        return
+      }
+    } finally {
+      abort = null
+    }
+
+    set({
+      streaming: false,
+      streamingChatId: null,
+      streamingText: '',
+      regeneratingId: null,
+      speakingName: '',
+      // A continuation can hit the limit as readily as the reply did, and then it can be continued
+      // again — the notice is the same one either way.
+      error: finishReason === 'length' ? lengthNotice(maxTokensOf(connection)) : '',
+    })
+    // Joined raw. What the model sent is what's stored, and it decides its own leading space.
+    const updated = added ? continued(target, prefix + added, snapshot, reasoning) : null
+    if (updated) {
+      await storage.put('messages', updated as unknown as StoredRecord)
       if (get().chat?.id === chat.id) await get().load(chat.id!)
       if (get().viewingChatId !== chat.id) {
         useBlips.getState().mark(target.speakerId ?? chat.characterId)

@@ -385,6 +385,10 @@ export interface PromptStack {
    *  for rows written before the field existed. */
   kind?: 'chat' | 'story'
   active: PromptBlock[] // order = array order
+  /** Overrides for the small utility prompts (`core/prompt/miscPrompts.ts`), keyed by def id.
+   *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned — a plain
+   *  field, so an older row simply has none. */
+  miscPrompts?: Record<string, string>
 }
 
 /**

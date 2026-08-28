@@ -19,6 +19,12 @@ export const slashCommands: SlashCommand[] = [
     takesCharacter: true,
   },
   {
+    name: 'continue',
+    hint: 'Carry on the last reply from where it stopped.',
+    usage: '/continue',
+    takesCharacter: false,
+  },
+  {
     name: 'noreply',
     hint: 'Post your message without a reply.',
     usage: '/noreply <text>',

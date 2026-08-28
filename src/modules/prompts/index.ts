@@ -7,5 +7,9 @@ registerModule({
   label: 'Prompts',
   icon: RiStackLine,
   route: '/prompts',
+  tabs: [
+    ['stacks', 'Stacks'],
+    ['misc', 'Misc Prompts'],
+  ],
   component: lazy(() => import('./StackEditor')),
 })
