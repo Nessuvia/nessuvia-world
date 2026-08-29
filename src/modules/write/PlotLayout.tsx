@@ -22,7 +22,7 @@ import { useMediaQuery } from '../../app/useMediaQuery'
 import { edgeState, type EdgeState } from './tabScroll'
 import './plotLayout.css'
 
-/** Words in a blob of prose. A display number — it does not have to agree with any other counter
+/** Words in a blob of prose. A display number, it does not have to agree with any other counter
  *  in the app, and nothing budgets against it. */
 export function countWords(text: string): number {
   const trimmed = text.trim()
@@ -41,7 +41,7 @@ const sendLabels: Record<GuideSend, string> = {
 }
 
 // A cap (Premise or Ending) holds its own draft and writes to the Story when typing pauses, the
-// same 500ms the Author's note uses — a keystroke is not a database write.
+// same 500ms the Author's note uses, a keystroke is not a database write.
 function Cap({
   label,
   hint,
@@ -113,7 +113,7 @@ function BulkAddBeats({ onAdd, onClose }: { onAdd: (beats: BulkBeat[]) => void; 
           {beats.map((b, i) => (
             <li key={i}>
               <span>{b.beat.trim() || 'Empty beat'}</span>
-              <span className="bulkBeatsWords">{b.targetWords > 0 ? `${b.targetWords} words` : '—'}</span>
+              <span className="bulkBeatsWords">{b.targetWords > 0 ? `${b.targetWords} words` : '--'}</span>
             </li>
           ))}
         </ul>
@@ -137,7 +137,7 @@ function BeatText({ value, onSave }: { value: string; onSave: (text: string) => 
   const [draft, setDraft] = useState(value)
   const timer = useRef<number | undefined>(undefined)
 
-  // Only take an outside change when it isn't what we already have — a reorder or an undo, not the
+  // Only take an outside change when it isn't what we already have, a reorder or an undo, not the
   // echo of our own save coming back.
   useEffect(() => {
     if (value !== draft) setDraft(value)
@@ -166,7 +166,7 @@ function BeatText({ value, onSave }: { value: string; onSave: (text: string) => 
   )
 }
 
-// One block on the chain: what the Chapter is planned to do, at a glance. Select-only — clicking it
+// One block on the chain: what the Chapter is planned to do, at a glance. Select-only, clicking it
 // opens it in the editor and nothing else. Beats are truncated to a row each; the summary is a
 // recap and would crowd out the plan, so it stays in the editor.
 function PlotBlock({
@@ -286,7 +286,7 @@ function ChapterEditor({
       <header className="plotEditorHead">
         <h3>
           Chapter {index + 1}
-          {chapter.title.trim() ? ` — ${chapter.title.trim()}` : ''}
+          {chapter.title.trim() ? `, ${chapter.title.trim()}` : ''}
         </h3>
         <button type="button" title="Move up" disabled={index === 0} onClick={() => moveChapter(id, -1)}>
           <RiArrowUpLine size={21} />
@@ -325,7 +325,7 @@ function ChapterEditor({
         />
       </label>
       <p className="hint">
-        Summary — what happened in this chapter. Sent in place of the beats when the guide runs short
+        Summary, what happened in this chapter. Sent in place of the beats when the guide runs short
         of room.
       </p>
 
@@ -456,7 +456,7 @@ function ChapterEditor({
  * Chapter is selected.
  *
  * Selection is local to this tab and is not persisted. Clicking a block must not move where the
- * next Direct writes — the Story tab's caret owns that. The one thing here that sets the active
+ * next Direct writes, the Story tab's caret owns that. The one thing here that sets the active
  * Chapter is the beat Write button, which is an explicit "write here".
  */
 export default function PlotLayout({
@@ -484,8 +484,8 @@ export default function PlotLayout({
     () => focusBeat?.chapterId ?? activeChapterId ?? chapters[0]?.id ?? null,
   )
 
-  // The strip scrolls sideways. Same two problems the character editor's tab bar has — .appShell
-  // stops the browser panning it, and the navbar swipe would grab the gesture — and the same two
+  // The strip scrolls sideways. Same two problems the character editor's tab bar has, .appShell
+  // stops the browser panning it, and the navbar swipe would grab the gesture, and the same two
   // answers: data-noSwipe, and driving scrollLeft from the touch deltas.
   const stripRef = useRef<HTMLDivElement>(null)
   const [edges, setEdges] = useState<EdgeState>({ atStart: true, atEnd: true, scrollable: false })
@@ -594,7 +594,7 @@ export default function PlotLayout({
 
   return (
     <div className="plotLayout">
-      <p className="hint">Plot Layout — chapters and beats sent to the model as the plan.</p>
+      <p className="hint">Plot Layout, chapters and beats sent to the model as the plan.</p>
 
       {phone ? (
         <div className="plotStack">

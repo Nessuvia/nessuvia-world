@@ -14,7 +14,7 @@ import './modules/prompts'
 import './modules/appearance'
 import './modules/settings'
 import './modules/bodyMap' // a plugin: off until enabled in Settings > Miscellaneous
-// Sits under Import/Export in the rail, not in the main nav — Sidebar guards its two sync entries
+// Sits under Import/Export in the rail, not in the main nav, Sidebar guards its two sync entries
 // with `syncModule &&`, so commenting this line out is still the whole off switch.
 import './modules/sync'
 

@@ -25,7 +25,7 @@ export default function DeleteRangeDialog({
     end >= start &&
     end <= messages.length
   const selected = valid ? messages.slice(start - 1, end) : []
-  // Preview only the ends of the run — a 1–50 range shouldn't render 50 rows. Confirm still
+  // Preview only the ends of the run, a 1–50 range shouldn't render 50 rows. Confirm still
   // deletes the whole slice.
   const preview =
     selected.length > 2

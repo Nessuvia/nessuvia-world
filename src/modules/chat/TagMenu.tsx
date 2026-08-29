@@ -9,7 +9,7 @@ import type { TagMode } from './tags'
  * into tag management. Three separate header buttons put tag housekeeping at the same weight as
  * New character, which it is not.
  *
- * State stays in CharacterPicker — this is chrome, not a store.
+ * State stays in CharacterPicker, this is chrome, not a store.
  */
 export default function TagMenu({
   tags,

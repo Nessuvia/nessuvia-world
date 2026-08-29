@@ -17,7 +17,7 @@ export default function TagRulesPanel() {
       <h3>Tags</h3>
       <p className="hint">
         Text between the two markers is hidden or shown in a collapsed block. Markers are matched
-        exactly and can be anything — <code>&lt;think&gt;</code>…<code>&lt;/think&gt;</code> or{' '}
+        exactly and can be anything, <code>&lt;think&gt;</code>…<code>&lt;/think&gt;</code> or{' '}
         <code>[</code>…<code>]</code>. Depth stops sending the block to the model once its message is older than that many
         turns; the block stays stored and on screen.
       </p>

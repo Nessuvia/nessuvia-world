@@ -95,7 +95,7 @@ export default function ChatView() {
 
   if (!chat || !character) return <p className="placeholder">Loading…</p>
 
-  /** The card a message was written by, when it's still around — for the avatar and the re-roll. */
+  /** The card a message was written by, when it's still around, for the avatar and the re-roll. */
   const speakerOf = (speakerId?: number) =>
     speakerId === undefined ? character : characters.find((c) => c.id === speakerId)
 
@@ -149,7 +149,7 @@ export default function ChatView() {
           stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60
         }}
       >
-        {/* `who` on a user turn is the name recorded at send time — a deleted persona still gets credited. */}
+        {/* `who` on a user turn is the name recorded at send time, a deleted persona still gets credited. */}
         {messages.map((m, i) => (
           <MessageBubble
             key={m.id}
@@ -284,7 +284,7 @@ export default function ChatView() {
 
       <Composer
         streaming={streaming}
-        disabledReason={connection ? '' : 'No active connection — set one up in Settings.'}
+        disabledReason={connection ? '' : 'No active connection, set one up in Settings.'}
         commandTargets={participants(chat)
           .map((id) => characters.find((c) => c.id === id))
           .filter((c) => !!c)

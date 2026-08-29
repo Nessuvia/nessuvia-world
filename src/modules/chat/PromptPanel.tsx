@@ -18,10 +18,10 @@ import { budgetOf, maxTokensOf } from '../../core/params/connectionParams'
 
 /**
  * What the next send would contain, rendered in the sidebar next to the chat's other settings.
- * It calls `buildPrompt` and `buildRequestBody` — the same two functions the send path calls — so
+ * It calls `buildPrompt` and `buildRequestBody`, the same two functions the send path calls, so
  * what it shows and what goes over the wire can't diverge.
  *
- * debounced full rebuild, no incremental diffing — profile before optimising.
+ * debounced full rebuild, no incremental diffing, profile before optimising.
  */
 export default function PromptPanel() {
   const chat = useChats((s) => s.chat)
@@ -35,7 +35,7 @@ export default function PromptPanel() {
   // Subscribed to only so edits in Settings re-render this; the value comes from the store helper
   // below, which is the one place override precedence is applied.
   const activeConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
-  // The chat's own stack wins, as it does on the send path — otherwise the preview would show a
+  // The chat's own stack wins, as it does on the send path, otherwise the preview would show a
   // prompt built from a stack the send never uses.
   const stack = useStacks((s) => s.stacks.find((x) => x.id === (chat?.stackId ?? activeStackId)))
   const draftText = useDraft((s) => s.text)
@@ -82,7 +82,7 @@ export default function PromptPanel() {
   const persona = personas.find((p) => p.id === activePersonaId) ?? personas[0]
   if (!chat || !character || !persona || !stack) return null
 
-  // The preview is of the *next* turn, so it resolves against whoever is up — card, labels, params.
+  // The preview is of the *next* turn, so it resolves against whoever is up, card, labels, params.
   const speaker = characters.find((c) => c.id === nextSpeakerId(chat)) ?? character
   const connection = activeConnection && resolvedConnection(speaker, chat)
 

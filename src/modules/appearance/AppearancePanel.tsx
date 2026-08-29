@@ -23,10 +23,10 @@ export const colorField: Record<MarkerKind, 'emphasisColor' | 'boldColor' | 'quo
 }
 
 /** Font, size and the chat marker colors, all read from and written to the active palette.
- *  `colors` off drops the chat color list, leaving the font and size — the Story rail has its own
+ *  `colors` off drops the chat color list, leaving the font and size, the Story rail has its own
  *  colors and the chat's do nothing there. `heading` off is for the palette editor, where the
  *  collapsible container already names the section. `font` off drops the webfont picker (and its
- *  Fontsource credit) — the chat/write rails keep the quick settings light, font choice lives in the
+ *  Fontsource credit), the chat/write rails keep the quick settings light, font choice lives in the
  *  main appearance editor. */
 export default function AppearancePanel({
   colors = true,

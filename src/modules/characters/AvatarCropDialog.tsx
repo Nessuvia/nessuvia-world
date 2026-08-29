@@ -28,7 +28,7 @@ function centerCrop(width: number, height: number, aspect: number): Crop {
 
 /**
  * Crop an uploaded image to a fixed aspect ratio (square by default). react-image-crop draws the
- * movable/resizable box (aspect locked); the export to a data URL is our own canvas draw — the
+ * movable/resizable box (aspect locked); the export to a data URL is our own canvas draw, the
  * library doesn't produce the cropped image.
  */
 export default function AvatarCropDialog({

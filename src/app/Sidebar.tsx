@@ -28,7 +28,7 @@ export default function Sidebar() {
   const chatId = useMatch('/chat/:chatId')?.params.chatId
   // A Story takes the rail over the same way an open chat does.
   const storyId = useMatch('/write/s/:storyId')?.params.storyId
-  // Back to the character list, not the character's own page — leaving a chat means leaving the
+  // Back to the character list, not the character's own page, leaving a chat means leaving the
   // character, and getting to the list from the character page was the extra step people hit.
   const back = '/chat'
 
@@ -52,7 +52,7 @@ export default function Sidebar() {
   const sidebarWidth = phone ? 0 : palette.sidebarWidth
   const rail = useRef<HTMLElement>(null)
   // narrow screens start collapsed, once, until the user picks a side. Read at mount
-  // only — rotating the phone won't re-collapse it.
+  // only, rotating the phone won't re-collapse it.
   const [collapsedPref, setCollapsed] = useState(() => {
     const saved = localStorage.getItem('nessuTavern.sidebarCollapsed')
     return saved ? saved === '1' : window.innerWidth < 700
@@ -65,7 +65,7 @@ export default function Sidebar() {
   const [open, setOpen] = useState(false)
   const drawer = useSideDrawer({ side: 'left', enabled: phone, open, setOpen })
 
-  // The rail's real width on <html>, for anything laid out outside the flex row that needs it — the
+  // The rail's real width on <html>, for anything laid out outside the flex row that needs it, the
   // background layer, which spans the shell and can be told to start after the rail (see index.css).
   // Observed rather than read off palette.sidebarWidth: that is unset until the first drag, and the
   // defaults differ per rail state.
@@ -73,7 +73,7 @@ export default function Sidebar() {
     const el = rail.current
     if (!el) return
     const obs = new ResizeObserver(() => {
-      // The phone drawer is fixed and full-screen, so its measured width is the whole window —
+      // The phone drawer is fixed and full-screen, so its measured width is the whole window
       // which would push an excludeNav background layer off screen entirely. It sits over the
       // content rather than beside it, so as far as layout goes it takes no width at all.
       const width = window.matchMedia('(max-width: 700px)').matches
@@ -136,7 +136,7 @@ export default function Sidebar() {
     }
     const stop = () => {
       handle.removeEventListener('pointermove', move)
-      // A click that never moved is not a resize — no need to write the width it already has.
+      // A click that never moved is not a resize, no need to write the width it already has.
       if (Math.round(width) !== Math.round(startW)) patch({ sidebarWidth: Math.round(width) })
     }
 
@@ -174,7 +174,7 @@ export default function Sidebar() {
       className={`navbar sidebar ${drawer.className}${chatId || storyId ? ' inChat' : ''}${collapsed ? ' collapsed' : ''}`}
       style={railStyle}
       // Going somewhere closes the drawer, so the destination isn't hidden behind it. One handler
-      // rather than an onClick per link — the rail's links come from four different places. Links
+      // rather than an onClick per link, the rail's links come from four different places. Links
       // that open a new tab are left alone: the drawer is still where you were.
       onClick={(e) => {
         if (!phone) return
@@ -255,7 +255,7 @@ export default function Sidebar() {
       ) : (
         <>
           <div className="sidebar-title">
-            {/* The title doubles as the collapse target — same action as the button beside it. */}
+            {/* The title doubles as the collapse target, same action as the button beside it. */}
             <button
               type="button"
               className="sidebarTitleButton"

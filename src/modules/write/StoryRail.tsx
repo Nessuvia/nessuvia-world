@@ -124,7 +124,7 @@ function CastSection() {
  * The whole Story's beats, one `<details>` per Chapter. The active Chapter opens; the rest stay
  * closed and the open/closed state is view-only, so nothing is persisted for it.
  *
- * Every row can be written, not just the active Chapter's — a beat two Chapters out is reachable
+ * Every row can be written, not just the active Chapter's, a beat two Chapters out is reachable
  * without moving the cursor there first. Ticking a beat here is the same write the box in the
  * document makes: one `blocks` patch, one meaning.
  *
@@ -303,7 +303,7 @@ function DirectionSection() {
   )
 }
 
-// The Story color field each marker kind edits — the Write-mode twin of AppearancePanel's table.
+// The Story color field each marker kind edits, the Write-mode twin of AppearancePanel's table.
 const storyColorField: Record<MarkerKind, 'storyEmphasisColor' | 'storyBoldColor' | 'storyQuoteColor'> = {
   emphasis: 'storyEmphasisColor',
   bold: 'storyBoldColor',
@@ -370,7 +370,7 @@ function PromptStackSection() {
 }
 
 // Per Story, not per Chapter and not global: sampling is a property of the work being written.
-// The cast is deliberately not a layer — see Story.paramOverrides.
+// The cast is deliberately not a layer, see Story.paramOverrides.
 function ParametersSection() {
   const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
@@ -402,7 +402,7 @@ function AppearanceSection() {
 
   return (
     <>
-      {/* Per Story, like the chat's width is per chat — the rail is only here while a Story is
+      {/* Per Story, like the chat's width is per chat, the rail is only here while a Story is
           open, so the scope is the Story on screen. The palette's Story width is the default
           every Story that has none of its own uses. */}
       <label className="storyWidth">
@@ -530,7 +530,7 @@ function RailSection({
  * section is a sibling, so the prompt toggles and the beat list can be open at the same time;
  * pinning moves a section to the top of the list.
  *
- * Pin and open state are global rather than per Story — how the rail is arranged is a working
+ * Pin and open state are global rather than per Story, how the rail is arranged is a working
  * habit, not a property of a Story. Per Story is the upgrade path.
  */
 export default function StoryRail() {

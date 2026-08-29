@@ -116,7 +116,7 @@ export default function ChatList({
     return out
   }, [inside, query, searchMessages])
 
-  // A title hit still counts when searching inside — the extra results are the point of the box,
+  // A title hit still counts when searching inside, the extra results are the point of the box,
   // not a replacement for the ones it already found.
   const shown = chats.filter(
     (c) => c.title.toLowerCase().includes(query) || (c.id !== undefined && counts[c.id] > 0),
@@ -133,7 +133,7 @@ export default function ChatList({
       </div>
 
       {/* The sheet sits this list above the card's sections, so its chrome costs the sections
-          screen space. Under a handful of chats you can see them all anyway — the search and the
+          screen space. Under a handful of chats you can see them all anyway, the search and the
           delete toggle only earn their rows once the list is long enough to need them. */}
       {showTools && (
         <>

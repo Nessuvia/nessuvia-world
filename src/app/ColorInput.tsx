@@ -6,14 +6,14 @@ import { normalizeHex, sanitizeHexText } from './hexColor'
 import './ColorInput.css'
 
 /** Color swatch plus a Clear control that sets the value back to '' (no color). The label wrapping
- *  stays at the call site — callers word it differently.
+ *  stays at the call site, callers word it differently.
  *
  *  The swatch opens a popover picker rather than the platform one: Android's native
  *  `<input type="color">` is a hue strip with no hex field and no alpha, and it takes over the
  *  screen. This is a saturation square, a hue slider, an alpha slider where the field carries
  *  alpha, and a hex field for typing a value in.
  *
- *  `compact` swaps the "Clear" text button for an icon shown only when a color is set — for rows
+ *  `compact` swaps the "Clear" text button for an icon shown only when a color is set, for rows
  *  packing several swatches, where the text buttons don't fit. */
 export function ColorInput({
   value,
@@ -24,7 +24,7 @@ export function ColorInput({
 }: {
   value: string
   onChange: (color: string) => void
-  /** Tooltip on the swatch — used where several sit in a row without their own labels. */
+  /** Tooltip on the swatch, used where several sit in a row without their own labels. */
   title?: string
   compact?: boolean
   /** Adds the alpha slider and stores `#RRGGBBAA`. Off by default: most fields are opaque colors
@@ -68,7 +68,7 @@ export function ColorInput({
           style={value ? { background: value } : undefined}
           onClick={() => setOpen(!open)}
         >
-          {!value && '—'}
+          {!value && '--'}
         </button>
         {compact && value && (
           <button type="button" className="clearSwatch" title="Clear" onClick={() => onChange('')}>
@@ -82,8 +82,8 @@ export function ColorInput({
         </button>
       )}
       {open && (
-        // Several callers wrap the whole control in a <label>. A click on the picker — a plain div,
-        // not a control of its own — would activate that label, which forwards to the swatch button
+        // Several callers wrap the whole control in a <label>. A click on the picker, a plain div,
+        // not a control of its own, would activate that label, which forwards to the swatch button
         // and closes the popover on the first drag. The click stops here instead.
         <div className="colorPopover" onClick={(e) => e.stopPropagation()}>
           {/* touch-action: none on the wrapper as well as react-colorful's own handle: a drag that

@@ -9,7 +9,7 @@ export default function RewriteBox({
   onSubmit,
   onCancel,
 }: {
-  /** Prefilled text — the old-message default. Editing it changes only what gets sent this time;
+  /** Prefilled text, the old-message default. Editing it changes only what gets sent this time;
    *  it isn't saved anywhere. */
   initial: string
   onSubmit: (instruction: string) => void

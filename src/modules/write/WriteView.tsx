@@ -145,14 +145,14 @@ function Shelf() {
 }
 
 function stamp(ms: number): string {
-  if (!ms) return '—'
+  if (!ms) return '--'
   return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 // Shelf preview panel: a bigger cover and what the Story holds, with Continue to open the editor.
 //
 // On a phone it is a drawer on the right edge rather than a column beside the grid. Picking a
-// cover is what opens it, so a swipe from closed is not eligible — there would be nothing in it.
+// cover is what opens it, so a swipe from closed is not eligible, there would be nothing in it.
 // A swipe right, or the close button, sends it back out; the Story it was showing is dropped once
 // it has finished leaving, so the slide out isn't cut short by the panel unmounting mid-move.
 function StoryPreview({ story, onClose }: { story: Story; onClose: () => void }) {
@@ -471,7 +471,7 @@ function RegenDialog({
 }
 
 // The header above a beat Block: its plan line, and every control that acts on the Block. A free
-// stretch gets none of this — see BlockRegion.
+// stretch gets none of this, see BlockRegion.
 function BlockHead({
   block,
   chapterId,
@@ -508,7 +508,7 @@ function BlockHead({
   const menuRef = useCloseOnOutside<HTMLDivElement>(menu, () => setMenu(false))
   const jumpToPlot = useContext(JumpToPlot)
 
-  // The beat field is always a textarea — there is no read mode to swap out of, which is what used
+  // The beat field is always a textarea, there is no read mode to swap out of, which is what used
   // to reflow the text on click. Local draft with a debounced save, the same reason PlotLayout's
   // BeatText keeps one: onPatch awaits a Dexie write, so a controlled value lands a render late
   // and React puts the caret back at the end of the line.
@@ -557,7 +557,7 @@ function BlockHead({
   async function regen(instruction: string, targetWords: number) {
     setRegen(false)
     // The target is read off the stored Block when the prompt is built, so the patch has to land
-    // first — onPatch returns the store write for exactly this.
+    // first, onPatch returns the store write for exactly this.
     if (targetWords !== block.targetWords) await onPatch({ targetWords })
     regenBlock(chapterId, block.id, instruction)
   }
@@ -583,7 +583,7 @@ function BlockHead({
         placeholder="What happens in this beat"
         onChange={(e) => editBeat(e.target.value)}
         onBlur={flushBeat}
-        // A beat is one line in the Chapter guide — storedBeat collapses newlines anyway, so
+        // A beat is one line in the Chapter guide, storedBeat collapses newlines anyway, so
         // Enter saves instead of inserting one the field would lose.
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
@@ -766,16 +766,16 @@ function BlockHead({
   )
 }
 
-// One Block's region: a contenteditable holding that Block's raw prose. Uncontrolled — the DOM is
+// One Block's region: a contenteditable holding that Block's raw prose. Uncontrolled, the DOM is
 // the source of truth for typing; React only re-syncs it when the Block's rev changes (open,
 // generation, swipe), so a keystroke never triggers a re-render that would move the caret.
 //
 // Inline markers (italics/bold/quotes) are decorated in place by proseMarkup, never by React. The
 // markers stay in the DOM as their own spans and are only hidden with CSS, so reading the prose back
-// out still yields exactly what the Author typed — the Block never loses an asterisk. Toggle
+// out still yields exactly what the Author typed, the Block never loses an asterisk. Toggle
 // Styling flips a class; it doesn't re-parse.
 //
-// Decoration runs on the same debounced tick as the save rather than per keystroke — rebuilding the
+// Decoration runs on the same debounced tick as the save rather than per keystroke, rebuilding the
 // DOM under a live caret is the fragile part, and doing it while typing has paused keeps the caret
 // restore to one predictable moment.
 //
@@ -830,11 +830,11 @@ function BlockRegion({
   const history = useRef<{ text: string; caret: number }[]>([])
   const histIndex = useRef(-1)
   const beat = isBeat(block)
-  // Preview Word Count: per-beat and deliberately not persisted — it's a ruler you hold up while
+  // Preview Word Count: per-beat and deliberately not persisted, it's a ruler you hold up while
   // setting a target, not a property of the beat. a Block field is the upgrade path if
   // Authors want it to survive a reload.
   const [preview, setPreview] = useState(false)
-  // Display only, not persisted — see writeStore.collapsedBeats. It lives in the store rather than
+  // Display only, not persisted, see writeStore.collapsedBeats. It lives in the store rather than
   // here so the rail's beat list can show the same state and fold them in bulk.
   const collapsedBeats = useWrite((s) => s.collapsedBeats)
   const collapsed = collapsedBeats.includes(id)
@@ -851,13 +851,13 @@ function BlockRegion({
     [preview, empty, block.targetWords],
   )
 
-  // Re-sync the DOM only on out-of-band changes (open, generation, swipe) — not on every keystroke.
+  // Re-sync the DOM only on out-of-band changes (open, generation, swipe), not on every keystroke.
   useLayoutEffect(() => {
     if (ref.current && readProse(ref.current) !== block.content) {
       decorateProse(ref.current, block.content, colorOrder)
       decorated.current = block.content
     }
-    // Open or an out-of-band commit reseeds history — undo doesn't cross those boundaries.
+    // Open or an out-of-band commit reseeds history, undo doesn't cross those boundaries.
     history.current = [{ text: block.content, caret: 0 }]
     histIndex.current = 0
     // A commit or a swipe hands over where the caret should land; the rebuild above would otherwise
@@ -904,7 +904,7 @@ function BlockRegion({
     if (!el) return
     timer.current = window.setTimeout(() => {
       timer.current = undefined
-      // Read at fire time, not when the timer was set — an IME commit or a paste can land between.
+      // Read at fire time, not when the timer was set, an IME commit or a paste can land between.
       const text = readProse(el)
       saveBlockText(chapterId, id, text)
       if (text === decorated.current) return
@@ -1029,7 +1029,7 @@ function BlockRegion({
   )
 }
 
-// The thin strip between two Blocks. Hidden until hovered (write.css) — it sits in the middle of a
+// The thin strip between two Blocks. Hidden until hovered (write.css), it sits in the middle of a
 // document being read.
 function BlockGap({ onAdd }: { onAdd: (beat: boolean) => void }) {
   return (
@@ -1044,8 +1044,8 @@ function BlockGap({ onAdd }: { onAdd: (beat: boolean) => void }) {
   )
 }
 
-// One Chapter: its divider, then its Blocks in order. The Chapter itself holds no prose — a Block
-// does — so this is a mapper plus the structural edits that act on the `blocks` array.
+// One Chapter: its divider, then its Blocks in order. The Chapter itself holds no prose, a Block
+// does, so this is a mapper plus the structural edits that act on the `blocks` array.
 function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) {
   const id = chapter.id!
   const updateChapter = useWrite((s) => s.updateChapter)
@@ -1108,7 +1108,7 @@ function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) 
 }
 
 // The document: one region per Chapter, stacked, dividers drawn between them. It reads as one
-// continuous page — prose, a rule carrying the Chapter title, more prose.
+// continuous page, prose, a rule carrying the Chapter title, more prose.
 function StoryDocument() {
   const chapters = useWrite((s) => s.chapters)
   const streaming = useWrite(streamingHere)
@@ -1117,7 +1117,7 @@ function StoryDocument() {
   const palette = usePalette()
   const streamingBlockId = useWrite((s) => s.streamingBlockId)
 
-  // Follow the block being written, not the end of the document — a beat generated mid-Story used
+  // Follow the block being written, not the end of the document, a beat generated mid-Story used
   // to scroll the Author to the bottom. Only nudge when the block's tail has slipped just below the
   // fold; if it is further off than a screen the Author has scrolled away on purpose, so leave it.
   useEffect(() => {
@@ -1151,7 +1151,7 @@ function StoryDocument() {
   )
 }
 
-// The Chapter rail above the prose: where in the Story the cursor is, and a way to jump. Compact —
+// The Chapter rail above the prose: where in the Story the cursor is, and a way to jump. Compact
 // no beats; the plan is the Plot Layout tab's job. One slot, one job.
 //
 // The collapsed state is global rather than per Story: whether the rail shows is a working
@@ -1237,7 +1237,7 @@ function StoryEditor() {
     return () => closeStory()
   }, [id, openStory, closeStory])
 
-  // Escape cancels wherever you are — the Stop buttons only exist next to the beat and on the
+  // Escape cancels wherever you are, the Stop buttons only exist next to the beat and on the
   // rail's beat row, and generation can be started from a tab that shows neither.
   useEffect(() => {
     if (!streaming) return

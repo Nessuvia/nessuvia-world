@@ -7,7 +7,7 @@ import { Avatar } from './Avatar'
 import './personaSwitcher.css'
 
 function avatarNode(p: Persona, onClick?: () => void) {
-  const title = p.description ? `${p.name || 'Unnamed'} — ${p.description}` : p.name || 'Unnamed'
+  const title = p.description ? `${p.name || 'Unnamed'}, ${p.description}` : p.name || 'Unnamed'
   return (
     <Avatar
       of={p}
@@ -21,7 +21,7 @@ function avatarNode(p: Persona, onClick?: () => void) {
 }
 
 // Avatar quick-switch for the active persona; clicking opens the others as icons.
-// The active persona is a global default (settingsStore), not per-chat — switching here
+// The active persona is a global default (settingsStore), not per-chat, switching here
 // changes who you are everywhere. Per-chat override would be the upgrade path.
 export default function PersonaSwitcher() {
   const personas = usePersonas((s) => s.personas)

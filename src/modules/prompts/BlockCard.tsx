@@ -48,7 +48,7 @@ export default function BlockCard({
       data-block-id={block.id}
       onKeyDown={(e) => {
         const dir = arrowDir[e.key]
-        // Only when the card itself is focused — arrows inside the select/checkbox behave normally.
+        // Only when the card itself is focused, arrows inside the select/checkbox behave normally.
         if (!dir || e.target !== e.currentTarget) return
         e.preventDefault()
         onMove(dir)

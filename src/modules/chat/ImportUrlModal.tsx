@@ -43,7 +43,7 @@ export default function ImportUrlModal({
   const truncated =
     preview && preview.description.length > 24
       ? preview.description.slice(0, 24) + '…'
-      : preview?.description || '—'
+      : preview?.description || '--'
 
   return (
     <div className="dialogBackdrop" onClick={onClose}>

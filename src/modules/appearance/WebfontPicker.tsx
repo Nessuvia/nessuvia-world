@@ -60,7 +60,7 @@ export default function WebfontPicker({
   /** Optional rewind control rendered after the row, used by PalettesPanel. */
   rewind?: React.ReactNode
   /** Chat rail mode: no Webfont toggle, no preview, no per-row font loading. Either the four
-   *  stacks or — when the palette already names a webfont — just the search box and list. */
+   *  stacks or, when the palette already names a webfont, just the search box and list. */
   compact?: boolean
   /** Which set of palette fields this picker edits: the chat/story font or the app font. */
   keys?: FontKeys
@@ -73,9 +73,9 @@ export default function WebfontPicker({
   const setWebfont = (f: FontsourceFont) =>
     patch({ [keys.webfont]: f.family, [keys.webfontId]: f.id, [keys.use]: true })
   // A picker preference, not a palette value: whether result rows load their own font as they scroll
-  // into view. Local state, so it resets per mount — it doesn't belong on the stored palette.
+  // into view. Local state, so it resets per mount, it doesn't belong on the stored palette.
   const [loadFonts, setLoadFonts] = useState(false)
-  // Editable sample text — a scratch space to try a font, seeded with a pangram on each pick and on
+  // Editable sample text, a scratch space to try a font, seeded with a pangram on each pick and on
   // open when the palette already has a webfont, so a set font shows rather than looking unset. Local
   // state, not stored: it's the digital pen-test scribble, not a palette value.
   const [sample, setSample] = useState(webfont ? pangram : '')
@@ -189,7 +189,7 @@ function WebfontSearch({
   loadFonts: boolean
   onPick: (f: FontsourceFont) => void
 }) {
-  // Seeded with the current family so the box names the font in use. Initial value only — picking a
+  // Seeded with the current family so the box names the font in use. Initial value only, picking a
   // result must not overwrite what the user has typed.
   const [query, setQuery] = useState(family)
   const [page, setPage] = useState(0)
@@ -202,7 +202,7 @@ function WebfontSearch({
   const root = useRef<HTMLUListElement | null>(null)
 
   // Load the selected family's CSS so the preview renders in the font itself, not the system
-  // default. This is the picker's own concern — useApplyWebfont loads the active palette's font for
+  // default. This is the picker's own concern, useApplyWebfont loads the active palette's font for
   // the chat surfaces, but the picker needs the font regardless of which palette is active.
   useEffect(() => {
     const linkId = `webfontPreview-${slot}`
@@ -230,7 +230,7 @@ function WebfontSearch({
   }, [query])
 
   // Load a page. Runs on query change (page reset to 0 by the effect above) and on each page bump.
-  // `loading` is deliberately not a dep — it's set inside, so including it cancelled the
+  // `loading` is deliberately not a dep, it's set inside, so including it cancelled the
   // fetch and re-entered on the guard, leaving the list stuck on "Loading…".
   useEffect(() => {
     let cancelled = false

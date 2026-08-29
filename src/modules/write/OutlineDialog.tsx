@@ -24,7 +24,7 @@ export function OutlineDialog({ onClose }: { onClose: () => void }) {
     setBusy(true)
     setError('')
     try {
-      // The Author typed the premise here, so it becomes the Story's — this is the same field the
+      // The Author typed the premise here, so it becomes the Story's, this is the same field the
       // Plot Layout's Premise cap edits, not a copy that lives only in the dialog.
       if (premise !== (story?.premise ?? '')) await setPremise(premise)
       await generateOutline({
@@ -82,7 +82,7 @@ export function OutlineDialog({ onClose }: { onClose: () => void }) {
 
         <label className="outlineField">
           <span>
-            Words per chapter — {words > 0 ? words : 'not set'}
+            Words per chapter, {words > 0 ? words : 'not set'}
           </span>
           <input
             type="range"

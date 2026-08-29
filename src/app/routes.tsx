@@ -9,7 +9,7 @@ export default function AppRoutes() {
   const multiplayerEnabled = useSettings((s) => s.multiplayerEnabled)
   const enabledPlugins = useSettings((s) => s.enabledPlugins)
 
-  // set during render rather than in an effect — document.title isn't React state and
+  // set during render rather than in an effect, document.title isn't React state and
   // nothing reads it back. Per-record titles (chat name, story name) would need the module to
   // report its own title instead.
   const { pathname } = useLocation()

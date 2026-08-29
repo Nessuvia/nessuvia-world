@@ -6,13 +6,13 @@ import { Avatar } from '../../app/Avatar'
 import { participants } from '../../core/stores/roster'
 import { displayName } from '../../core/stores/charactersStore'
 import { isNarrator, narratorId, narratorName } from '../../core/multiplayer/narrator'
-// Reuses the persona switcher's avatar-menu look — same layout, different source.
+// Reuses the persona switcher's avatar-menu look, same layout, different source.
 import '../../app/personaSwitcher.css'
 
 /**
  * Pins one participant as the responder: only they reply to your messages until cleared. An open
  * circle means nobody's pinned (round robin); the pinned character's avatar shows once one is set.
- * Clicking a roster avatar still triggers anyone manually — this only steers the automatic reply.
+ * Clicking a roster avatar still triggers anyone manually, this only steers the automatic reply.
  */
 export default function ResponderPicker({
   chat,
@@ -33,7 +33,7 @@ export default function ResponderPicker({
   const memberIds = participants(chat)
   // The Narrator is deliberately not in participantIds, so the membership check has to allow it.
   const narratorPinned = withNarrator === true && isNarrator(chat.respondWith)
-  // Only a current member counts as pinned — a dropped-out responder reads as cleared.
+  // Only a current member counts as pinned, a dropped-out responder reads as cleared.
   const isPinnedMember = chat.respondWith !== undefined && memberIds.includes(chat.respondWith)
   const pinned = isPinnedMember ? characters.find((c) => c.id === chat.respondWith) : undefined
 
@@ -60,7 +60,7 @@ export default function ResponderPicker({
             <button
               type="button"
               className="personaSwitchAvatar responderEmpty"
-              title="Clear — everyone takes turns"
+              title="Clear, everyone takes turns"
               onClick={() => {
                 onPick(undefined)
                 setOpen(false)
@@ -92,7 +92,7 @@ export default function ResponderPicker({
         <button
           type="button"
           className="personaSwitchAvatar responderEmpty"
-          title={`${narratorName} responds — click to change`}
+          title={`${narratorName} responds, click to change`}
           onClick={() => setOpen((v) => !v)}
         >
           <RiRobot2Line size={18} />
@@ -102,7 +102,7 @@ export default function ResponderPicker({
           of={pinned}
           name={displayName(pinned)}
           className="personaSwitchAvatar"
-          title={`${displayName(pinned)} responds — click to change`}
+          title={`${displayName(pinned)} responds, click to change`}
           onClick={() => setOpen((v) => !v)}
         />
       ) : (

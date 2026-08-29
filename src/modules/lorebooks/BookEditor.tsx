@@ -8,7 +8,7 @@ import EntryRows from './EntryRows'
 
 /**
  * One book: its own fields, then its entries. Book fields commit on blur, the same way the entry
- * rows do — nothing here is worth a write per keystroke.
+ * rows do, nothing here is worth a write per keystroke.
  */
 export default function BookEditor({ book }: { book: Lorebook }) {
   const save = useLorebooks((s) => s.save)

@@ -12,7 +12,7 @@ import { exportCardJson, exportCardPng } from '../characters/exportCard'
 import ChatList from './ChatList'
 
 /**
- * One character, read and edited on the same page — `/chat/c/:characterId`, or `/chat/c/new`.
+ * One character, read and edited on the same page, `/chat/c/:characterId`, or `/chat/c/new`.
  *
  * The description used to be kept off the read view on the grounds that it's the model's view of
  * the character rather than the reader's. That split cost more than it bought: the card system
@@ -44,7 +44,7 @@ export default function CharacterSheet() {
   // Still loading an existing character. `/chat/c/new` has no id and drops straight through.
   if (id !== null && !character) return <p className="placeholder">Loading…</p>
 
-  // Read at export time rather than held in state — nothing else on this page needs them. A card
+  // Read at export time rather than held in state, nothing else on this page needs them. A card
   // carries one `character_book`, so the export takes the character's first attached lorebook and
   // leaves any others out.
   const exportBook = async () => {

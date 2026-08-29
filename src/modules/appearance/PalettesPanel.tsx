@@ -73,7 +73,7 @@ export default function PalettesPanel() {
   const setActive = useSettings((s) => s.setActivePalette)
   const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
   const palette = usePalette()
-  // No row matches the active id — every palette deleted, or a stale id. Nothing to write to.
+  // No row matches the active id, every palette deleted, or a stale id. Nothing to write to.
   const locked = palette.id === undefined
   const [ask, setAsk] = useState('')
   const [editingPrompt, setEditingPrompt] = useState(false)
@@ -403,7 +403,7 @@ export default function PalettesPanel() {
                 <label
                   key={knob.name}
                   className="skinKnob"
-                  title={`${knob.name} — double-click to reset`}
+                  title={`${knob.name}, double-click to reset`}
                 >
                   <span className="skinKnobLabel">{knob.label}</span>
                   <div className="skinKnobControls">
@@ -414,7 +414,7 @@ export default function PalettesPanel() {
                       step={knob.step}
                       value={value}
                       // Dropping the key restores the skin's own default, the same as never having
-                      // touched it — matches the sidebar width handle.
+                      // touched it, matches the sidebar width handle.
                       onDoubleClick={() => {
                         const { [knob.name]: _dropped, ...rest } = palette.skinVars
                         patch({ skinVars: rest })

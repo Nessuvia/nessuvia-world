@@ -38,7 +38,7 @@ export default function GrammarHammerPanel() {
     return previewStrips(preview, gh.rules, 'assistant')
   }, [preview, gh.rules, gh.enabled])
 
-  // The actual text a message would render — repaired, with removals gone and replacements in place.
+  // The actual text a message would render, repaired, with removals gone and replacements in place.
   const resultText = useMemo(() => {
     if (!preview.trim() || !gh.enabled) return null
     return stripText(preview, gh.rules, 'assistant').text

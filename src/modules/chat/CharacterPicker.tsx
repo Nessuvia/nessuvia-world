@@ -19,7 +19,7 @@ import TagMenu from './TagMenu'
 import { useLongPress } from './useLongPress'
 import { allTags, groupByPrimaryTag, matchesTags, type TagMode } from './tags'
 
-// Which of Any/All the filter uses. A UI preference, so localStorage rather than a store — it is
+// Which of Any/All the filter uses. A UI preference, so localStorage rather than a store, it is
 // deliberately outside backup and sync.
 const MODE_KEY = 'nessuTavern.tagFilterMode'
 const storedMode = (): TagMode => (localStorage.getItem(MODE_KEY) === 'all' ? 'all' : 'any')
@@ -261,7 +261,7 @@ export default function CharacterPicker() {
       {error && <p className="error">{error}</p>}
       {loading && characters.length === 0 && <p className="placeholder">Loading…</p>}
       {!loading && characters.length === 0 && (
-        <p className="placeholder">No characters yet — import or create one first.</p>
+        <p className="placeholder">No characters yet, import or create one first.</p>
       )}
       {characters.length > 0 && sorted.length === 0 && <p className="placeholder">No matches.</p>}
 
@@ -304,7 +304,7 @@ export default function CharacterPicker() {
  * The avatar resumes the last chat and the name opens the character; both are one click and
  * neither is behind a menu. Two hit zones on one card is only learnable if they look like two, so
  * the avatar carries a play overlay on hover and focus. Without a chat to resume it does what the
- * rest of the card does — there's nothing there to mislearn.
+ * rest of the card does, there's nothing there to mislearn.
  */
 function PickerCard({
   character,

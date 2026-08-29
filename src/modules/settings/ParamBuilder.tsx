@@ -13,7 +13,7 @@ import './paramBuilder.css'
  * right is the rest of the library. Dragging moves a param between the two, and the + and × do
  * the same thing for anyone not using a mouse.
  *
- * Only what's on the left is sent. A param dragged off is not set to its default — it stops being
+ * Only what's on the left is sent. A param dragged off is not set to its default, it stops being
  * in the request at all, which is what lets a backend apply its own and keeps a strict endpoint
  * from rejecting a key it doesn't know.
  */

@@ -76,7 +76,7 @@ export default function ConnectionEditor({ connection, onSave, onClose }: Props)
     setTestResult('')
     try {
       // A real non-streaming request with the connection's own params: the raw body shows exactly
-      // what the backend sends back — an error message, an empty reply, or where the text lives.
+      // what the backend sends back, an error message, an empty reply, or where the text lives.
       const res = await fetch(completionUrl(draft.endpointUrl, draft.type), {
         method: 'POST',
         headers: requestHeaders(draft),
@@ -93,14 +93,14 @@ export default function ConnectionEditor({ connection, onSave, onClose }: Props)
         // A text-completion reply puts the text on the choice, with no message object.
         message = choice?.message ?? (typeof choice?.text === 'string' ? { content: choice.text } : undefined)
       } catch {
-        setTestResult(`OK — ${res.status}, but the response is not JSON:\n${body.slice(0, 800)}`)
+        setTestResult(`OK, ${res.status}, but the response is not JSON:\n${body.slice(0, 800)}`)
         return
       }
       const content = message?.content ?? ''
       const reasoning = message?.reasoning_content ?? message?.reasoning ?? ''
-      const lines = [`OK — ${res.status}`]
+      const lines = [`OK, ${res.status}`]
       if (content) lines.push(`Reply: ${content.slice(0, 200)}`)
-      else if (reasoning) lines.push('Reply was empty — the model returned only reasoning.')
+      else if (reasoning) lines.push('Reply was empty, the model returned only reasoning.')
       else lines.push(`No reply text found. Raw response:\n${body.slice(0, 500)}`)
 
       // The chat uses streaming, so test that too: capture the raw stream and run it through the
@@ -137,7 +137,7 @@ export default function ConnectionEditor({ connection, onSave, onClose }: Props)
 
   return (
     <div className="panel connectionEditor">
-      {/* <details> for the section toggles — native, and no state to persist. */}
+      {/* <details> for the section toggles, native, and no state to persist. */}
       <details className="editorSection" open>
         <summary>Connection</summary>
         <div className="connectionGrid">

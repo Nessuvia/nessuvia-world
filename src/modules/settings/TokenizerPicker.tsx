@@ -68,7 +68,7 @@ export default function TokenizerPicker({ connection, onChange }: Props) {
           value={connection.tokenizer ?? 'auto'}
           onChange={(e) => onChange(e.target.value as TokenizerId)}
         >
-          <option value="auto">Auto — {tokenizerDef(tokenizerFor({ ...connection, tokenizer: 'auto' })).label}</option>
+          <option value="auto">Auto, {tokenizerDef(tokenizerFor({ ...connection, tokenizer: 'auto' })).label}</option>
           {tokenizerDefs.map((t) => (
             <option key={t.id} value={t.id}>
               {t.label}

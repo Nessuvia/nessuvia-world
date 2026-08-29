@@ -5,7 +5,7 @@ import RangeSlider from './RangeSlider'
 const roles: PromptBlock['role'][] = ['system', 'user', 'assistant']
 
 /** The {{tokens}} each kind of stack understands, as [token, what it stands for]. Chat's come from
- *  `swapTokens`, Story's from `storyTokens` — keep both lists in step with those files. */
+ *  `swapTokens`, Story's from `storyTokens`, keep both lists in step with those files. */
 const tokenGuide: Record<StackKind, [string, string][]> = {
   chat: [
     ['{{char}}', "The character's name"],
@@ -56,7 +56,7 @@ export default function BlockModal({
   onDelete: () => void
   onClose: () => void
 }) {
-  // Controlled by the stack draft above — no local copy to keep in sync.
+  // Controlled by the stack draft above, no local copy to keep in sync.
   const draft = block
   const set = (patch: Partial<PromptBlock>) => onChange({ ...draft, ...patch })
   const hasChildren = !!draft.children

@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import type { BlockInput } from '../../core/storage/types'
 
 /**
- * The two-ended slider a scroll block is edited with — one thumb per end, dragged separately.
+ * The two-ended slider a scroll block is edited with, one thumb per end, dragged separately.
  * Native `<input type="range">` only carries one value, so the track and thumbs are drawn here and
  * driven by pointer events.
  */
@@ -15,7 +15,7 @@ export default function RangeSlider({
 }) {
   const track = useRef<HTMLDivElement>(null)
 
-  // One value, one thumb — the native control already does all of this.
+  // One value, one thumb, the native control already does all of this.
   if (input.value2 === undefined) {
     return (
       <div className="rangeSlider">

@@ -4,14 +4,14 @@
  * Multiplayer is the one feature that sends anything outside the browser other than model requests.
  * Frames go through a relay: Supabase Realtime, which the developer operates, or a server the host
  * runs (`resources/self-hosted-relay.md`). Either way the relay carries plaintext, and that is a
- * fact the user should accept rather than discover — so it gates the feature instead of sitting in
+ * fact the user should accept rather than discover, so it gates the feature instead of sitting in
  * a settings page.
  *
  * The host accepts before picking a relay, so the host's copy covers both. A guest's link already
  * says which relay the room is on, so the guest's copy names it.
  *
  * Acceptance is persisted for hosts only. `multiplayerStore.ts` holds a guest's tab to writing
- * nothing to localStorage and nothing to Dexie, and one convenience flag is not worth breaking it —
+ * nothing to localStorage and nothing to Dexie, and one convenience flag is not worth breaking it
  * so `JoinView` keeps the accepted state in React and shows the notice again next session.
  */
 import type { JSX } from 'react'

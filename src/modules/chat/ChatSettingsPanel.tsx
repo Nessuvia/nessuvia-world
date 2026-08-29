@@ -22,7 +22,7 @@ const clampWidth = (n: number) => Math.min(100, Math.max(1, n || 100))
  * The open chat's settings, rendered in the sidebar. It reads its own state rather than taking
  * props, save for one presentational flag: the sidebar knows a chat is open, not what's in it.
  *
- * No save button and no dirty state — edits land in the chat record 600ms after the last
+ * No save button and no dirty state, edits land in the chat record 600ms after the last
  * keystroke. The sidebar keys this on the chat id, so the draft never needs resetting in place.
  */
 export default function ChatSettingsPanel({
@@ -95,7 +95,7 @@ export default function ChatSettingsPanel({
         </select>
       </label>
 
-      {/* <details> for the section toggles — native, and no state to persist. */}
+      {/* <details> for the section toggles, native, and no state to persist. */}
       <details>
         <summary>Author's Note</summary>
         <label>
@@ -169,7 +169,7 @@ export default function ChatSettingsPanel({
       </details>
 
       {/* Palette-driven display: these write to the active palette (chat width can carry a per-chat
-          override). Distinct from user-level appearance — see the split into Palette vs Appearance. */}
+          override). Distinct from user-level appearance, see the split into Palette vs Appearance. */}
       <details>
         <summary>Palette</summary>
         <label className="chatWidth">
@@ -195,14 +195,14 @@ export default function ChatSettingsPanel({
         <AppearancePanel colors={false} font="compact" />
       </details>
 
-      {/* Single-chat counterpart to Group Settings — a chat is single or group, never both. Holds the
+      {/* Single-chat counterpart to Group Settings, a chat is single or group, never both. Holds the
           one character's colors (written to the character record, so palette-agnostic). */}
       {!isGroup(value) && (
       <details>
         <summary>Chat Settings</summary>
         <label
           className="checkboxRow"
-          title="Hides the reasoning collapsible block on assistant messages. Visual only — the reasoning is still stored and sent to the model."
+          title="Hides the reasoning collapsible block on assistant messages. Visual only, the reasoning is still stored and sent to the model."
         >
           <input
             type="checkbox"
@@ -214,7 +214,7 @@ export default function ChatSettingsPanel({
         <SpeakerColors chat={value} />
 
         {/* writes the global grammarHammer settings, same records the Settings panel
-            edits — flipping a rule here affects every chat. Per-chat override: add a
+            edits, flipping a rule here affects every chat. Per-chat override: add a
             grammarHammer field to the Chat record and merge it in stripText's callers. */}
         <label className="checkboxRow">
           <input

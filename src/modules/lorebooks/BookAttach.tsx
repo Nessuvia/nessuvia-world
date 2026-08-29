@@ -5,7 +5,7 @@ import { newBook, useLorebooks } from '../../core/stores/lorebooksStore'
 import EntityPicker from '../../app/EntityPicker'
 
 /**
- * Attach and detach lorebooks on whatever holds a list of ids — a character or a chat. The list of
+ * Attach and detach lorebooks on whatever holds a list of ids, a character or a chat. The list of
  * attached books, and a picker to add one.
  *
  * The same control in both places on purpose: the two levels differ in which record they write to,
@@ -35,7 +35,7 @@ export default function BookAttach({
 
   const attached = ids.map((id) => books.find((b) => b.id === id)).filter((b) => !!b)
 
-  // An id with no book left behind it — a book deleted in an older build, or one that never came
+  // An id with no book left behind it, a book deleted in an older build, or one that never came
   // back from a restore. Write the list back without it, so the count matches the rows.
   useEffect(() => {
     if (ready && attached.length !== ids.length) onChange(attached.map((b) => b.id!))

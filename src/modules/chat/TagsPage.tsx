@@ -9,7 +9,7 @@ import { allTags, renameTag, tagCounts } from './tags'
 /**
  * Rename, delete and reassign tags across the roster. Tags are only strings on characters, so
  * there is no tag record to edit: every action here is a sweep over the characters that carry it,
- * and a tag nobody carries stops existing. Hence the draft row for a new tag — it has nowhere to
+ * and a tag nobody carries stops existing. Hence the draft row for a new tag, it has nowhere to
  * live until a character is checked.
  */
 export default function TagsPage() {
@@ -32,7 +32,7 @@ export default function TagsPage() {
   async function applyRename() {
     const to = rename.trim()
     if (active === null || !to || to === active) return
-    // A draft has no members to sweep — renaming it is just retitling the unsaved row.
+    // A draft has no members to sweep, renaming it is just retitling the unsaved row.
     if (draft === active) {
       setDraft(to)
       setSelected(to)

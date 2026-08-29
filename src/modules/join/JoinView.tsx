@@ -62,12 +62,12 @@ function handleHostEvent(event: MultiplayerEvent) {
       store.setPhase('ended', 'The host ended the session.')
       closeChannel()
       break
-    // 'hello', 'say' and 'bye' are other guests' broadcasts, visible on the same channel — not this
+    // 'hello', 'say' and 'bye' are other guests' broadcasts, visible on the same channel, not this
     // client's business.
   }
 }
 
-/** Sends the current guest's `say`. Called from the room, not from `chatStore` — guests never
+/** Sends the current guest's `say`. Called from the room, not from `chatStore`, guests never
  *  generate. A no-op when there is no open channel. */
 export function guestSay(text: string, responderId: number): void {
   const meId = useMultiplayer.getState().meId
@@ -75,7 +75,7 @@ export function guestSay(text: string, responderId: number): void {
   channel.send({ v: protocolVersion, type: 'say', guestId: meId, text, responderId })
 }
 
-/** Sends a persona rewrite. The host decides whether it is allowed and when it takes effect — this
+/** Sends a persona rewrite. The host decides whether it is allowed and when it takes effect, this
  *  side only asks. A no-op when there is no open channel. */
 export function guestChangePersona(persona: Omit<GuestPersona, 'guestId'>): void {
   const meId = useMultiplayer.getState().meId
@@ -135,7 +135,7 @@ export default function JoinView(): JSX.Element {
   const { sessionId } = useParams<{ sessionId: string }>()
   const [params] = useSearchParams()
   // The link says which relay the room is on. Undefined means it said something that is not a
-  // usable relay URL — untrusted input, so it is refused rather than handed to a client.
+  // usable relay URL, untrusted input, so it is refused rather than handed to a client.
   const relay = relayFromLink(params.get('r'))
   const phase = useMultiplayer((s) => s.phase)
   const reason = useMultiplayer((s) => s.reason)

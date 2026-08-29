@@ -16,7 +16,7 @@ import { hasSource } from './stackKinds'
 
 const defaultUserLine = 'Hello there.'
 
-// Example inputs for the Story-stack preview — never persisted, editable, reset on reload.
+// Example inputs for the Story-stack preview, never persisted, editable, reset on reload.
 const exampleStory = 'The tavern had emptied hours ago. Nessu wiped the last glass and set it down.'
 const exampleDirection = 'Write a short paragraph continuing the scene.'
 const exampleCast = 'Name: Nessuvia\nNessu is the Development Team Lead.'
@@ -45,7 +45,7 @@ const exampleTokens = storyTokens({
   blockId: 'b',
 })
 const exampleGuide =
-  'Chapter 1 — Closing Time [writing now]\n  Nessu shuts the tavern.\n  Beats:\n    · the last glass\nChapter 2 — The Letter [not yet written]\n  A letter arrives with no name on it.'
+  'Chapter 1, Closing Time [writing now]\n  Nessu shuts the tavern.\n  Beats:\n    · the last glass\nChapter 2, The Letter [not yet written]\n  A letter arrives with no name on it.'
 
 export default function PromptPreview({
   stack,
@@ -94,7 +94,7 @@ function budgetFor(connection?: Connection) {
 }
 
 // A Story stack has no character and no chat history: the Co-Writer takes a Story-context blob and
-// a Direction, so the preview mirrors that — example prose + an example Direction, nothing else.
+// a Direction, so the preview mirrors that, example prose + an example Direction, nothing else.
 function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: React.ReactNode; ready: boolean }) {
   const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
   const [storyText, setStoryText] = useState(exampleStory)
@@ -127,7 +127,7 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
         </label>
       </div>
 
-      {!connection && <p className="hint">No active connection — token limits unknown.</p>}
+      {!connection && <p className="hint">No active connection, token limits unknown.</p>}
       {!ready && <p className="hint">Loading tokenizer…</p>}
 
       {built.droppedChars > 0 && (
@@ -173,7 +173,7 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
 
   const persona = personas.find((p) => p.id === activePersonaId) ?? personas[0]
 
-  // example lines only, never persisted — reload resets them.
+  // example lines only, never persisted, reload resets them.
   const history: Message[] = [
     {
       ownerId: 'local',
@@ -187,7 +187,7 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
 
   // No chat here, so the books in play are the character's plus every global one. Matched against
   // the example lines above, so a key typed into the user line shows its entry appearing.
-  // Deps are the values `history` is built from — the array itself is new on every render.
+  // Deps are the values `history` is built from, the array itself is new on every render.
   useEffect(() => {
     if (!character) return setWorldInfo(emptyWorldInfo)
     let live = true
@@ -208,7 +208,7 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
     )
   }
 
-  // The same call the send path makes — the preview can't drift from what gets sent. Counts and
+  // The same call the send path makes, the preview can't drift from what gets sent. Counts and
   // warnings read from this one, so indentation never touches the numbers.
   const built = buildPrompt({ stack, character, persona, messages: history, worldInfo }, budgetOf(connection))
   // A second, display-only pass with nested content indented. Same inputs, so its messages line up
@@ -252,13 +252,13 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
         </label>
       </div>
 
-      {!connection && <p className="hint">No active connection — token limits unknown.</p>}
+      {!connection && <p className="hint">No active connection, token limits unknown.</p>}
       {!ready && <p className="hint">Loading tokenizer…</p>}
 
       {built.overflow && (
         <p className="error">
           The context limit can't fit the fixed blocks plus the reply reserve. No history is being
-          sent — raise contextLimit or lower maxTokens.
+          sent, raise contextLimit or lower maxTokens.
         </p>
       )}
 
@@ -277,7 +277,7 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
 
       {worldInfo.atDepth.length > 0 && !hasSource(stack, 'worldInfoDepth') && (
         <p className="hint">
-          Entries positioned at a depth are going in as system turns. Add a World info — at depth
+          Entries positioned at a depth are going in as system turns. Add a World info, at depth
           block to set their role.
         </p>
       )}

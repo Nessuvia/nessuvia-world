@@ -29,7 +29,7 @@ export default function SyncView() {
   const palette = usePalette()
   return (
     <div className="sync screenFrame">
-      {/* The frame stays put and this one child scrolls — the setup disclosure makes the page
+      {/* The frame stays put and this one child scrolls, the setup disclosure makes the page
           taller than the viewport as soon as it opens. */}
       <div className="syncFormal screenBody">
         {/* Follows the palette's chat width, the same var chat reads. Global rather than per-page:
@@ -232,7 +232,7 @@ function R2Section() {
 }
 
 /** R2's endpoint is its account ID in a fixed hostname and its region is always `auto`, so those
- *  two fields are filled in rather than asked for. The stored BucketConfig is the same either way —
+ *  two fields are filled in rather than asked for. The stored BucketConfig is the same either way
  *  nothing below this component knows which form wrote it. */
 function R2Form({
   bucket,
@@ -320,7 +320,7 @@ function SetupSteps() {
           bucket only.
         </li>
         <li>
-          Paste the account ID, the bucket name, and both halves of the token — the access key ID
+          Paste the account ID, the bucket name, and both halves of the token, the access key ID
           and the secret access key.
         </li>
         <li>Add this CORS policy to the bucket:</li>
@@ -458,7 +458,7 @@ function BucketForm({
 }
 
 /**
- * The per-table decision list. A table changed on both sides has no suggestion and no default —
+ * The per-table decision list. A table changed on both sides has no suggestion and no default
  * `apply` refuses until every one of them has a direction, so this is where that gets answered.
  */
 function ComparisonTable({

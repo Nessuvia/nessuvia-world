@@ -7,7 +7,7 @@ const kinds: ParamKind[] = ['number', 'slider', 'text', 'bool', 'select', 'strin
 
 /**
  * Adds a form element to the library, or edits one already in it. For a new one the input is a
- * line of JSON — the same line the backend's docs show — and everything under it is the shape
+ * line of JSON, the same line the backend's docs show, and everything under it is the shape
  * inferred from it. Editing skips that step and opens on the fields directly.
  *
  * A built-in is edited in place rather than forked: two defs cannot share a key, since the key is

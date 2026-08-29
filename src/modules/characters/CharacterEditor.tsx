@@ -25,7 +25,7 @@ import { hasSource } from '../prompts/stackKinds'
 const sectionIds = ['Identity', 'Openings', 'Media', 'Lorebook', 'Prompt', 'Metadata'] as const
 type SectionId = (typeof sectionIds)[number]
 
-// Not persisted — which sections are open is a glance-level choice, not a setting. Everything
+// Not persisted, which sections are open is a glance-level choice, not a setting. Everything
 // starts shut: with a summary on every header the collapsed strip is the table of contents, and
 // it only fits under the chat list while it stays six rows tall.
 const allShut: Record<SectionId, boolean> = {
@@ -43,7 +43,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 const railCount = (summary: string | undefined) => summary?.split(' ')[0] ?? ''
 
 /**
- * `characterId` null means a brand new character — it's written on the first autosave, and
+ * `characterId` null means a brand new character, it's written on the first autosave, and
  * `onCreated` hands back its new id. Edits autosave 1s after the last keystroke; there is no
  * Save button.
  *
@@ -109,7 +109,7 @@ export default function CharacterEditor({
   }, [characterId, draft, characters])
 
   // The one write path: the debounce below and Ctrl+S both go through it. An unnamed character is
-  // never written — otherwise opening the New form and typing nothing would leave a blank record.
+  // never written, otherwise opening the New form and typing nothing would leave a blank record.
   async function persist() {
     if (!draft || !draft.name.trim()) return
     const id = await save(draft)
@@ -141,7 +141,7 @@ export default function CharacterEditor({
   }
 
   // The default stacks carry neither block, so text typed above goes nowhere until someone adds
-  // one. Say so rather than let it fail quietly. Silent only when the field is empty — a blank
+  // one. Say so rather than let it fail quietly. Silent only when the field is empty, a blank
   // field has nothing to drop.
   const missingBlock = (source: BlockSource, value: string | undefined) =>
     value?.trim() && activeStack && !hasSource(activeStack, source) ? (
@@ -152,7 +152,7 @@ export default function CharacterEditor({
     change({ ...draft!, [key]: value })
 
   // Load the picked file into the crop dialog. The ORIGINAL lands on `avatar` and the dialog's rect
-  // on `avatarCrop` — one copy of the pixels, and the Gallery shows the whole image.
+  // on `avatarCrop`, one copy of the pixels, and the Gallery shows the whole image.
   function readAvatar(file: File) {
     const reader = new FileReader()
     reader.onload = () => setCropSrc(String(reader.result))
@@ -170,7 +170,7 @@ export default function CharacterEditor({
     change({ ...draft!, avatar: url, avatarCrop: crop, gallery })
   }
 
-  // The URL field commits on blur/Enter rather than per keystroke — otherwise every character typed
+  // The URL field commits on blur/Enter rather than per keystroke, otherwise every character typed
   // would count as an avatar swap and drop a half-typed url into the gallery.
   function commitAvatarUrl() {
     if (urlDraft === null) return
@@ -194,7 +194,7 @@ export default function CharacterEditor({
   const gallery = draft.gallery
 
   // The avatar shows in the gallery as a derived tile. "Set as avatar" can point `avatar` at a
-  // url that's also a gallery entry, so drop that url from the gallery tiles — otherwise the same
+  // url that's also a gallery entry, so drop that url from the gallery tiles, otherwise the same
   // url renders twice with the same key and React leaves stale duplicates until a remount.
   const galleryTiles = [
     ...(draft.avatar ? [{ url: draft.avatar, avatar: true }] : []),
@@ -223,7 +223,7 @@ export default function CharacterEditor({
 
   // Every section says what it holds, open or shut. With all six shut on arrival these summaries
   // are the only thing telling you the card system is there at all, so an empty section says
-  // nothing rather than "0 of x" — a blank row reads as room, a zero reads as broken.
+  // nothing rather than "0 of x", a blank row reads as room, a zero reads as broken.
   const openings = greetings.length + (draft.firstMessage.trim() ? 1 : 0)
   const promptFields =
     (draft.systemPrompt?.trim() ? 1 : 0) +
@@ -284,7 +284,7 @@ export default function CharacterEditor({
   return (
     <div className="characters characterEditor screenFrame">
       <div className="editorLayout">
-        {/* Hidden below the breakpoint by CSS — the shut section headers are the table of
+        {/* Hidden below the breakpoint by CSS, the shut section headers are the table of
             contents on a phone. The counts make the rail a map of what this card holds rather
             than six identical words. */}
         <nav className="editorRail">
@@ -439,7 +439,7 @@ export default function CharacterEditor({
             <>
               {/* Same row layout as the descriptions above: a greeting is as long as a
                   description and was getting a quarter of the space. The rows aren't selectable
-                  here — every greeting becomes a swipe on the first message, so there's no
+                  here, every greeting becomes a swipe on the first message, so there's no
                   active one to pick. */}
               <div className="descriptionList openingsList">
                 <div className="descriptionRow">
@@ -536,7 +536,7 @@ export default function CharacterEditor({
                   {draft.avatar && (
                     <>
                       {/* Cropping re-bakes the pixels, which only works on the uploaded base64
-                          original — a URL avatar has no local copy to crop. */}
+                          original, a URL avatar has no local copy to crop. */}
                       {draft.avatar.startsWith('data:') && (
                         <button type="button" onClick={() => setCropSrc(draft.avatar)}>
                           Crop
@@ -619,7 +619,7 @@ export default function CharacterEditor({
                       ) : (
                         <span className="galleryTileActions">
                           {/* A gallery data URL carries its own bytes; a gallery URL becomes a URL
-                              avatar (crop is dropped — it framed a different image). */}
+                              avatar (crop is dropped, it framed a different image). */}
                           <button type="button" onClick={() => setAvatar(url)}>
                             <RiImageCircleLine size={14} />
                           </button>

@@ -101,7 +101,7 @@ export default function SettingsView() {
                     className={`card ${c.id === activeConnectionId ? 'active' : ''} ${
                       c.id === editing?.id ? 'editing' : ''
                     }`}
-                    // Whole row opens the editor, clicking the open row closes it — same as the
+                    // Whole row opens the editor, clicking the open row closes it, same as the
                     // persona list. The controls inside stop the click so they don't toggle too.
                     onClick={() => {
                       setIsNew(false)

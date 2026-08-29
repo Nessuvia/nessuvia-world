@@ -29,7 +29,7 @@ import './multiplayer.css'
 
 /**
  * The room. One shell for the host and for guests: the same three panels, the same message list,
- * the same composer. What differs is who may change things — the host admits, kicks and reorders
+ * the same composer. What differs is who may change things, the host admits, kicks and reorders
  * people and writes the Narrator prompt; guests read.
  */
 export default function SessionView(): JSX.Element {
@@ -57,7 +57,7 @@ function Room({ isHost }: { isHost: boolean }): JSX.Element {
   const shared = useMultiplayer((s) => s.appearance)
   const palette = usePalette()
   // Host-side reads. The first two mark who is speaking in the left panel; the last two are read
-  // only to subscribe — the host's messages live in chatStore, and without them the shell would not
+  // only to subscribe, the host's messages live in chatStore, and without them the shell would not
   // re-render on a new message, so the effect below would stop following the bottom.
   const streaming = useChats((s) => s.streaming)
   const speakingId = useChats((s) => s.speakingId)
@@ -68,7 +68,7 @@ function Room({ isHost }: { isHost: boolean }): JSX.Element {
   const [leftShut, setLeftShut] = useState(false)
   const [rightShut, setRightShut] = useState(false)
   // A phone gets the message column and nothing else; the two side panels become drawers on their
-  // own edges, opened by the buttons at the top right. One at a time — either one covers the
+  // own edges, opened by the buttons at the top right. One at a time, either one covers the
   // screen, so both open would only mean one of them is buried.
   //
   // Neither opens on a swipe: the navbar already owns the left-to-right swipe, and a room with two
@@ -304,7 +304,7 @@ function HostMessages({ look }: { look: RoomLook }): JSX.Element | null {
   const character = characters.find((c) => c.id === chat?.characterId)
   if (!chat || !character) return <p className="placeholder">Loading…</p>
 
-  /** The card a message was written by, when it's still around — for the avatar and the name. */
+  /** The card a message was written by, when it's still around, for the avatar and the name. */
   const speakerOf = (speakerId?: number) =>
     speakerId === undefined ? character : characters.find((c) => c.id === speakerId)
 
@@ -406,7 +406,7 @@ function HostBar(): JSX.Element | null {
 
       <Composer
         streaming={streaming}
-        disabledReason={connection ? '' : 'No active connection — set one up in Settings.'}
+        disabledReason={connection ? '' : 'No active connection, set one up in Settings.'}
         commandTargets={roster}
         // Through the session, not chatStore: the session broadcasts the turn and advances it.
         onSend={(text) => {
@@ -429,7 +429,7 @@ function GuestMessages({ look }: { look: RoomLook }): JSX.Element {
   const appearance = useAppearance()
 
   /** The roster character behind a stream/history name, for its avatar. Untrusted, so this is the
-   *  only path an avatar can reach the page through — never a raw string treated as a src. */
+   *  only path an avatar can reach the page through, never a raw string treated as a src. */
   const speakerAvatar = (name: string | undefined) => {
     const found = characters.find((c) => c.name === name)
     return found?.avatar ? { avatar: found.avatar } : null
@@ -526,7 +526,7 @@ function GuestBar(): JSX.Element {
   )
 }
 
-/** A guest's turn-holder pick. Rides in `say.responderId` — there is no `chat.respondWith` to
+/** A guest's turn-holder pick. Rides in `say.responderId`, there is no `chat.respondWith` to
  *  write on this side of the wire. */
 function GuestResponderPicker({
   characters,

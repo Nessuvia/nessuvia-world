@@ -2,10 +2,10 @@
 //
 // Out: ≡ menu → "Export all boards...". Save the .nbx over kanban/public/boards.nbx and commit.
 // In: the committed boards.nbx is loaded into localStorage before nullboard starts, on every
-// visit whose stored copy is behind the file. This is a public tracker, so the file wins —
+// visit whose stored copy is behind the file. This is a public tracker, so the file wins
 // anything typed into the board in a visitor's browser is overwritten by the next commit.
 //
-// .nbx is nullboard's own export format — plain JSON, either one board object or an array of
+// .nbx is nullboard's own export format, plain JSON, either one board object or an array of
 // them. We write the two localStorage keys the "old format" branch of Storage_Local.openInner()
 // looks for, and nullboard rebuilds meta on its own.
 
@@ -21,7 +21,7 @@ function seed() {
   try {
     req.send()
   } catch {
-    return // offline, or served from file:// — nullboard shows its empty state
+    return // offline, or served from file://, nullboard shows its empty state
   }
   if (req.status !== 200 && req.status !== 0) return
 
@@ -43,7 +43,7 @@ function seed() {
     }
     if (first === null) first = board.id
 
-    // Already holding this exact revision — leave it, along with whatever meta nullboard keeps
+    // Already holding this exact revision, leave it, along with whatever meta nullboard keeps
     // next to it. Anything else (never seen, or an older/edited copy) gets replaced.
     const key = prefix + 'board.' + board.id + '.' + board.revision
     if (localStorage.getItem(key) === JSON.stringify(board)) continue

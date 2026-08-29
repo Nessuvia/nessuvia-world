@@ -1,5 +1,5 @@
 // diagrams are divs and CSS, no chart library and no SVG authoring. If one of these
-// needs real geometry (curves, layout maths), that's the one to draw in SVG — not all of them.
+// needs real geometry (curves, layout maths), that's the one to draw in SVG, not all of them.
 //
 // Two kinds only, because they're the two that answered a question the prose couldn't:
 //   - "where does code live"      → boxes and arrows (FigLayers, FigLifetime, FigRegistry)
@@ -102,7 +102,7 @@ export function FigLifetime() {
         <span>Zustand store</span>
         <span className="figBarTag">gone</span>
       </div>
-      <div className="figRefresh">— refresh —</div>
+      <div className="figRefresh">-- refresh --</div>
       <div className="figBar figBar-kept">
         <span>localStorage</span>
         <span className="figBarTag">kept</span>
@@ -119,9 +119,9 @@ export function FigLifetime() {
 export function FigLayers() {
   return (
     <Fig title="One direction">
-      <Box>components — modules/</Box>
+      <Box>components, modules/</Box>
       <Down />
-      <Box>stores — core/stores</Box>
+      <Box>stores, core/stores</Box>
       <Down />
       <Box tone="accent">
         storage · connectors

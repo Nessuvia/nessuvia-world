@@ -1,5 +1,5 @@
 /**
- * The relay a multiplayer session runs over. Global default — the Multiplayer landing can pick the
+ * The relay a multiplayer session runs over. Global default, the Multiplayer landing can pick the
  * other relay for one session without changing what is set here.
  */
 import { useState } from 'react'

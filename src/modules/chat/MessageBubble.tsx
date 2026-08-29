@@ -22,7 +22,7 @@ import PromptInspector from '../../app/PromptInspector'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 
 // Per-message "show original" toggle state. Display-only, in-memory: survives re-renders within a
-// session but not a reload — fine for a view toggle. A Set of message ids the user has un-stripped.
+// session but not a reload, fine for a view toggle. A Set of message ids the user has un-stripped.
 const showOriginalIds = new Set<string>()
 
 /** Per-speaker color overrides as CSS vars. Only overridden fields are set: an empty '--textColor'
@@ -73,7 +73,7 @@ export default function MessageBubble({
   streamingText: string | null
   /** Reasoning so far for that re-roll; empty when there is none. */
   streamingReasoning: string
-  /** Called only when the rewrite box opens — building it quotes every later message. */
+  /** Called only when the rewrite box opens, building it quotes every later message. */
   defaultInstruction: () => string
   /** Owned by ChatView: an empty composer submit opens this on the last reply. */
   rewriting: boolean
@@ -93,7 +93,7 @@ export default function MessageBubble({
   const [draft, setDraft] = useState<string | null>(null)
   const [pickingSwipes, setPickingSwipes] = useState(false)
   // Quick actions is a <details>, but a bare <details> only closes when its own summary is clicked
-  // again — it sat open while the pointer went back to the message. Controlled so the standard
+  // again, it sat open while the pointer went back to the message. Controlled so the standard
   // dropdown dismissal applies: a click anywhere outside, or Escape.
   const [quickActions, setQuickActions] = useState(false)
   const quickRef = useCloseOnOutside<HTMLDetailsElement>(quickActions, () =>
@@ -112,15 +112,15 @@ export default function MessageBubble({
   const assistant = message.role === 'assistant'
   const count = swipeCount(message)
   const at = swipeIndex(message)
-  // The right arrow at the end re-rolls — the familiar behaviour. The greeting never re-rolls:
+  // The right arrow at the end re-rolls, the familiar behaviour. The greeting never re-rolls:
   // its arrows loop through the greeting options instead.
   const nextIsNew = !greeting && at >= count - 1
-  // The greeting has no model regeneration at all — arrows only cycle the seeded greetings.
+  // The greeting has no model regeneration at all, arrows only cycle the seeded greetings.
   const modelRegen = canRegenerate && !greeting
   // `who` already resolves the speaker's display name (or the stamped name for a deleted card).
   const name = who
 
-  // Grammar Hammer: strip is computed on the completed message only — never on `streamingText`, so
+  // Grammar Hammer: strip is computed on the completed message only, never on `streamingText`, so
   // a partial token stream doesn't produce garbage matches. The hammer icon toggles this message
   // between stripped and original; default is stripped when the feature is on and something matched.
   const strip = useMemo(() => {
@@ -383,7 +383,7 @@ export default function MessageBubble({
 }
 
 /** Pick alternates to delete. Numbers toggle selection; the last one clicked shows in the preview.
- *  rendered inline in the bubble, not portalled — the backdrop is position:fixed anyway. */
+ *  rendered inline in the bubble, not portalled, the backdrop is position:fixed anyway. */
 function SwipePicker({
   swipes,
   onCancel,

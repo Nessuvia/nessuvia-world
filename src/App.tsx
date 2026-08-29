@@ -34,7 +34,7 @@ export default function App() {
 
   return (
     // useTransitions={false}: React Router 7 wraps navigation in startTransition by default, and a
-    // transition keeps the current screen on screen instead of showing a Suspense fallback — so
+    // transition keeps the current screen on screen instead of showing a Suspense fallback, so
     // PageLoader never appeared and a slow module chunk read as the page hanging.
     <BrowserRouter useTransitions={false}>
       <Routes>
@@ -46,8 +46,8 @@ export default function App() {
 }
 
 // Module scope, not defined inside App: a component declared in a render body is a new component
-// type on every render, so React would unmount and remount this whole subtree — background fade
-// and all — every time App re-renders for a palette change.
+// type on every render, so React would unmount and remount this whole subtree, background fade
+// and all, every time App re-renders for a palette change.
 function AppShell() {
   // Module chunks come down in the background once boot is over, so the first click on a tab has
   // nothing left to fetch. Held until after the splash so the animation keeps the network to itself.

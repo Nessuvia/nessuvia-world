@@ -17,7 +17,7 @@ import { resolveParams } from '../../core/settings/resolveParams'
 
 /**
  * What the next generation would send, rendered in the Story settings panel. It calls
- * `buildStoryPrompt` and `buildRequestBody` — the same two functions `generate` calls — so what it
+ * `buildStoryPrompt` and `buildRequestBody`, the same two functions `generate` calls, so what it
  * shows and what goes over the wire can't diverge.
  *
  * The prose comes from the saved Chapter, which the editor writes 800ms after the last keystroke,
@@ -63,7 +63,7 @@ export default function StoryPromptPanel() {
   const connection = baseConnection && resolveParams(baseConnection, undefined, story)
 
   // Split around the Block the cursor is in, the same way writeBlock() does, so the preview shows
-  // the "What follows" block the next generation would actually send — and honours that Block's own
+  // the "What follows" block the next generation would actually send, and honours that Block's own
   // context setting. The prose here is the saved text, so it trails typing.
   const activeBlock = active?.blocks.find((b) => b.id === activeBlockId)
   const split = storyProseSplit(
