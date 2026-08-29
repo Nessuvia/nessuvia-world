@@ -2,7 +2,15 @@
 // which can't resolve extensionless app imports.
 import type { ChatMessage } from '../connectors/connectorInterface'
 import type { TagRule } from '../stores/settingsStore'
-import type { Chat, Character, Message, Persona, PromptBlock, PromptStack } from '../storage/types'
+import type {
+  BlockSource,
+  Chat,
+  Character,
+  Message,
+  Persona,
+  PromptBlock,
+  PromptStack,
+} from '../storage/types'
 import { activeContent, activeDescription } from '../storage/types.ts'
 import { isGroup } from '../stores/roster.ts'
 import { chatTokens, swapBlockVals, swapTokens } from './swapTokens.ts'
@@ -11,7 +19,7 @@ import type { Budget } from './budget.ts'
 import { countMessages, countTokens, perMessageOverhead, trimHistory } from './budget.ts'
 import { fillSlots, miscPrompt } from './miscPrompts.ts'
 import type { MiscPrompts } from './miscPrompts.ts'
-import type { ResolvedWorldInfo } from './worldInfo.ts'
+import { emptyWorldInfo, type ResolvedWorldInfo } from './worldInfo.ts'
 
 /**
  * The card's text, or the block's own content when the card has none — which is the spec's
@@ -32,13 +40,19 @@ function boundText(
   character: Character,
   persona: Persona,
   authorNote: string,
-  worldInfo: string,
+  worldInfo: ResolvedWorldInfo,
 ): string {
   switch (block.source) {
     case 'authorNote':
       return authorNote
     case 'worldInfo':
-      return worldInfo
+      return worldInfo.before
+    case 'worldInfoAfter':
+      return worldInfo.after
+    // Its entries leave the stack for history, like a depth-limited author's note. The block is
+    // here to carry their role and to be switchable, not to hold text.
+    case 'worldInfoDepth':
+      return ''
     case 'characterDescription':
       return activeDescription(character)
     case 'characterPersonality':
@@ -83,7 +97,7 @@ function blockText(
   character: Character,
   persona: Persona,
   authorNote: string,
-  worldInfo: string,
+  worldInfo: ResolvedWorldInfo,
   indent: boolean,
   depth: number,
 ): string {
@@ -145,6 +159,20 @@ export function stripDepthTags(content: string, distance: number, rules?: TagRul
   return out.replace(/\n{3,}/g, '\n\n').trim()
 }
 
+/**
+ * The first block of a source anywhere in the stack, nested or not. Disabled blocks are returned
+ * too: a block switched off is a decision the user made, and the callers below have to tell that
+ * apart from a stack that never had the block at all.
+ */
+function findBlock(blocks: PromptBlock[], source: BlockSource): PromptBlock | undefined {
+  for (const block of blocks) {
+    if (block.source === source) return block
+    const found = findBlock(block.children ?? [], source)
+    if (found) return found
+  }
+  return undefined
+}
+
 /** The trailing turn naming who speaks next. Wording lives in `miscPrompts`, so a stack can
  *  override it; this only fills the slot. */
 export function nextSpeakerHint(name: string, prompts?: MiscPrompts): string {
@@ -162,7 +190,8 @@ export interface BuildPromptArgs {
   chat?: Chat
   /** Matched lorebook content. Resolved by the caller with `resolveWorldInfo` — matching needs
    *  entries out of storage, and this function stays pure, exactly as it does for `authorNote`.
-   *  `.text` fills a `worldInfo` block; `.atDepth` entries are spliced into history instead. */
+   *  `.before` and `.after` fill the two block slots; `.atDepth` entries are spliced into history
+   *  instead, with the role of the `worldInfoDepth` block if the stack carries one. */
   worldInfo?: ResolvedWorldInfo
   /** A system turn appended after everything else — the rewrite instruction. Counted against
    *  the budget like any other text, never exempted. */
@@ -233,7 +262,16 @@ export function buildPrompt(
   // labelled history.
   const who = speaker ?? character
   const authorNote = chat?.authorNote ?? ''
-  const worldInfoText = worldInfo?.text ?? ''
+  const afterBlock = findBlock(stack.active, 'worldInfoAfter')
+  const depthBlock = findBlock(stack.active, 'worldInfoDepth')
+  // A stack with no after-char block folds those entries into the before-char one. Every stack
+  // written before the slots were split has exactly that shape, and dropping their after-char
+  // entries on the floor would silently shrink prompts that work today.
+  const resolvedWorldInfo: ResolvedWorldInfo = worldInfo
+    ? afterBlock
+      ? worldInfo
+      : { ...worldInfo, before: [worldInfo.before, worldInfo.after].filter(Boolean).join('\n'), after: '' }
+    : emptyWorldInfo
   // Labels only once there's more than one character to tell apart: a solo chat's prompt is
   // byte-identical to what Phase 1 produced. `chat.nameSpeakers` forces them on for a chat that
   // several *people* speak in — every buildPrompt caller passes `chat`, so a session's labels
@@ -274,10 +312,16 @@ export function buildPrompt(
       resolved.push('history')
       continue
     }
+    // Holds no text of its own — its entries are spliced into history below, taking this block's
+    // role. It leaves the loop here so it isn't reported as an empty block every turn.
+    if (block.source === 'worldInfoDepth') {
+      if (!resolvedWorldInfo.atDepth.length) skipped.push({ label: block.label, reason: 'empty' })
+      continue
+    }
 
     const text = swap(
       resolveConditions(
-        blockText(block, who, persona, authorNote, worldInfoText, !!indent, 0),
+        blockText(block, who, persona, authorNote, resolvedWorldInfo, !!indent, 0),
         conditions,
       ),
     )
@@ -303,15 +347,19 @@ export function buildPrompt(
     resolved.push(message)
   }
 
-  // Lorebook entries positioned at a depth. They are not part of the World info block — the block
-  // holds `.text` and these were separated out before it — so they go in whether or not the stack
-  // carries one, exactly as their position says. Same splice as a depth-limited author's note, and
-  // counted against the budget the same way.
-  for (const at of worldInfo?.atDepth ?? []) {
-    const content = swap(resolveConditions(at.text, conditions))
-    if (!content.trim()) continue
-    depthNotes.push({ message: { role: 'system', content }, depth: at.depth })
-    fixedTokens += countTokens(content) + perMessageOverhead
+  // Lorebook entries positioned at a depth. They never sit in the stack's own order — each entry's
+  // `depth` places it, counted from the end of history, same splice as a depth-limited author's
+  // note. The `worldInfoDepth` block gives them a role and a switch: no such block means the role
+  // is `system`, which is what every stack written before the block existed already did, and a
+  // disabled one drops them entirely.
+  if (!depthBlock?.disabled) {
+    const depthRole = depthBlock?.role ?? 'system'
+    for (const at of resolvedWorldInfo.atDepth) {
+      const content = swap(resolveConditions(at.text, conditions))
+      if (!content.trim()) continue
+      depthNotes.push({ message: { role: depthRole, content }, depth: at.depth })
+      fixedTokens += countTokens(content) + perMessageOverhead
+    }
   }
 
   // Both trailing turns are system turns, so the merge below concatenates them: the hint says who

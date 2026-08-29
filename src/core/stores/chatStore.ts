@@ -104,6 +104,9 @@ export async function worldInfoFor(
   speaker: Character,
   chat: Chat | null,
   messages: Message[],
+  /** The stack's `worldInfoBudget`. Passed in rather than read here: which stack is in play is the
+   *  caller's business, and this function already takes every other input it needs. */
+  budget?: number,
 ): Promise<ResolvedWorldInfo> {
   const state = useLorebooks.getState()
   // The list is loaded once and kept; a send that races a first load would otherwise see no
@@ -114,7 +117,7 @@ export async function worldInfoFor(
   if (!ids.length) return emptyWorldInfo
   const entries = await useWorldInfo.getState().fetchForBooks(ids)
   if (!entries.length) return emptyWorldInfo
-  return resolveWorldInfo(entries, messages, new Map(books.map((b) => [b.id!, b])))
+  return resolveWorldInfo(entries, messages, new Map(books.map((b) => [b.id!, b])), budget)
 }
 
 /** Per character: how many chats it has, and when its newest message was (0 = none). */
@@ -495,7 +498,7 @@ export const useChats = create<ChatState>()((set, get) => ({
             chat,
             speaker,
             messages: get().messages,
-            worldInfo: await worldInfoFor(speaker, chat, get().messages),
+            worldInfo: await worldInfoFor(speaker, chat, get().messages, stack.worldInfoBudget),
             tagRules: useSettings.getState().appearance.tagRules,
             cast: _sessionCast,
             personas: _sessionPersonas,
@@ -600,7 +603,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages,
-          worldInfo: await worldInfoFor(speaker, chat, get().messages),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages, stack.worldInfoBudget),
           tagRules: useSettings.getState().appearance.tagRules,
           cast: _sessionCast,
           personas: _sessionPersonas,
@@ -739,7 +742,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages.slice(0, at),
-          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, at)),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, at), stack.worldInfoBudget),
           appendSystem,
           tagRules: useSettings.getState().appearance.tagRules,
           cast: _sessionCast,
@@ -857,7 +860,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages.slice(0, -1),
-          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, -1)),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, -1), stack.worldInfoBudget),
           appendSystem: continuePrompt(stack.miscPrompts),
           appendAssistant: prefix,
           tagRules: useSettings.getState().appearance.tagRules,

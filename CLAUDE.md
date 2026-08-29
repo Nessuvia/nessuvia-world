@@ -133,6 +133,14 @@ Three Zustand stores persist to localStorage instead of Dexie, via `zustand/midd
 `stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file
 leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
 
+**Non-portable preferences.** Small view state that belongs to this browser and not to the user's
+data: whether a panel is collapsed, which rail is open, an example section dismissed. Write it
+straight to `localStorage` under a `nessuTavern.*` key — no store, no Dexie table — and leave it out
+of the export. `backup.ts` reads only the three keys it names, so a new key stays out of a backup by
+construction. `nessuTavern.sidebarCollapsed` (`app/Sidebar.tsx`) and
+`nessuTavern.lorebooksExample` (`modules/lorebooks/EntryExample.tsx`) are the pattern. The test is
+whether restoring a backup on another machine should carry it: if it shouldn't, it's a preference.
+
 ## Conventions
 
 - camelCase everywhere — variables, functions, filenames. Exceptions only where the platform forces

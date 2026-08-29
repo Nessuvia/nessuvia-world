@@ -159,6 +159,14 @@
   min-height: 34px;
 }
 
+/* Only the handle is draggable — see the comment in EntryRows — so it carries the grab cursor. */
+.lorebooksEntryHandle {
+  display: flex;
+  align-items: center;
+  color: var(--textMuted);
+  cursor: grab;
+}
+
 .lorebooksEntryName {
   flex: 1 1 12ch;
   min-width: 0;
@@ -191,11 +199,44 @@
   max-height: 60vh;
 }
 
+/* The whole entry, closed: the column is wide enough to read one, and a truncated line meant
+   opening every entry to find out what was in it. */
 .lorebooksEntrySnippet {
   margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  white-space: pre-wrap;
+}
+
+/* --- the example entry ------------------------------------------------- */
+
+.lorebooksExample {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lorebooksExampleHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.lorebooksExampleTitle {
+  margin-right: auto;
+}
+
+/* Nothing in it is editable, so it sits back from the rows it explains. */
+.lorebooksExampleCard {
+  background: var(--surfaceSunken);
+}
+
+.lorebooksExampleNote {
+  margin: 0;
+}
+
+.lorebooksExampleText {
+  min-height: 8em;
 }
 
 /* --- the attach control, in the chat panel and the character editor ----- */
@@ -227,7 +268,14 @@
 
 .lorebooksAttachActions {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.lorebooksGoEdit {
+  color: var(--textMuted);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 @media (max-width: 700px) {

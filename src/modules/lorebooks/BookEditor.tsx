@@ -3,6 +3,7 @@ import { defaultDepth } from '../../core/prompt/worldInfo'
 import type { Lorebook } from '../../core/storage/types'
 import { useLorebooks } from '../../core/stores/lorebooksStore'
 import { newEntry, useWorldInfo } from '../../core/stores/worldInfoStore'
+import EntryExample from './EntryExample'
 import EntryRows from './EntryRows'
 
 /**
@@ -11,14 +12,22 @@ import EntryRows from './EntryRows'
  */
 export default function BookEditor({ book }: { book: Lorebook }) {
   const save = useLorebooks((s) => s.save)
-  const { entries, loadFor, save: saveEntry, remove: removeEntry } = useWorldInfo()
+  const {
+    entries,
+    loadFor,
+    save: saveEntry,
+    remove: removeEntry,
+    reorder: reorderEntry,
+  } = useWorldInfo()
   const bookId = book.id!
 
   useEffect(() => {
     loadFor(bookId)
   }, [bookId, loadFor])
 
-  const nextOrder = entries.length ? Math.max(...entries.map((e) => e.order)) + 1 : 0
+  // In hundreds, matching what a drag-reorder renumbers to, so a new entry lands last and there is
+  // room to type an order between any two rows.
+  const nextOrder = entries.length ? Math.max(...entries.map((e) => e.order)) + 100 : 100
   const patch = (fields: Partial<Lorebook>) => save({ ...book, ...fields })
 
   return (
@@ -89,7 +98,18 @@ export default function BookEditor({ book }: { book: Lorebook }) {
         own scan depth.
       </p>
 
-      <EntryRows book={book} entries={entries} onSave={saveEntry} onRemove={removeEntry} />
+      <EntryExample />
+      <p className="hint">
+        Drag entries to set their order. Entries from every attached book are sorted together, and
+        the prompt stack's world info budget keeps the first ones that fit.
+      </p>
+      <EntryRows
+        book={book}
+        entries={entries}
+        onSave={saveEntry}
+        onRemove={removeEntry}
+        onReorder={reorderEntry}
+      />
     </div>
   )
 }

@@ -13,6 +13,22 @@ export function newBook(name = ''): Lorebook {
   return { ownerId: currentOwnerId(), name, description: '', global: false }
 }
 
+/**
+ * Strip a deleted book's id from every character and chat holding it. Written through `storage`
+ * rather than through the two stores, so this file doesn't import them back: `charactersStore`
+ * already imports this one. The stores' in-memory rows reload on their next `load()`, and
+ * `BookAttach` drops a stale id it can't resolve on sight.
+ */
+async function detachEverywhere(bookId: number) {
+  for (const table of ['characters', 'chats'] as const) {
+    for (const row of await storage.getAll(table)) {
+      const ids = row.lorebookIds as number[] | undefined
+      if (!ids?.includes(bookId)) continue
+      await storage.put(table, { ...row, lorebookIds: ids.filter((id) => id !== bookId) })
+    }
+  }
+}
+
 const byName = (a: Lorebook, b: Lorebook) =>
   a.name.localeCompare(b.name) || (a.id ?? 0) - (b.id ?? 0)
 
@@ -69,10 +85,12 @@ export const useLorebooks = create<LorebooksState>()((set, get) => ({
   },
 
   remove: async (id) => {
-    // Cascade: an entry with no book is unreachable and unmatchable, so it goes with it. The
-    // characters and chats pointing at this book keep a dead id, which resolves to nothing.
+    // Cascade: an entry with no book is unreachable and unmatchable, so it goes with it, and so do
+    // the attachments. A dead id used to sit on the character, where it resolved to no row but
+    // still counted — the tab read "1 lorebook" over an empty list, and the next attach made 2.
     await useWorldInfo.getState().removeFor(id)
     await storage.remove('lorebooks', id)
+    await detachEverywhere(id)
     await get().load()
   },
 }))

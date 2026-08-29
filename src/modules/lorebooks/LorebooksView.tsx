@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { newBook, useLorebooks } from '../../core/stores/lorebooksStore'
 import TwoColumn from '../../app/TwoColumn'
 import BookEditor from './BookEditor'
@@ -11,10 +12,17 @@ export default function LorebooksView() {
   const [openId, setOpenId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const { hash } = useLocation()
 
   useEffect(() => {
     load()
   }, [load])
+
+  // `#book-12` opens that book: how the New book buttons elsewhere in the app link here.
+  useEffect(() => {
+    const id = Number(hash.match(/^#book-(\d+)$/)?.[1])
+    if (id) setOpenId(id)
+  }, [hash])
 
   const open = books.find((b) => b.id === openId) ?? null
 

@@ -13,7 +13,9 @@ export const sourceLabels: Record<BlockSource, string> = {
   characterPostHistory: 'Character post-history instructions',
   personaDescription: 'Persona description',
   authorNote: "Author's note",
-  worldInfo: 'World info',
+  worldInfo: 'World info — before character',
+  worldInfoAfter: 'World info — after character',
+  worldInfoDepth: 'World info — at depth',
   chatHistory: 'Chat history',
   cast: 'Cast',
   storyContext: 'Story context',
@@ -60,5 +62,8 @@ export function applyType(block: PromptBlock, type: BlockType): PromptBlock {
     input: undefined,
     // The point of an author's note block is depth injection, so give a new one somewhere to land.
     ...(type === 'authorNote' && block.depth === undefined ? { depth: 2 } : {}),
+    // Its entries go in as system turns unless the block says otherwise; a block retyped from a
+    // user or assistant one would otherwise change how they read for no reason the user asked for.
+    ...(type === 'worldInfoDepth' ? { role: 'system' as const } : {}),
   }
 }

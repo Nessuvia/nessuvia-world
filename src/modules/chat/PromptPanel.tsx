@@ -65,13 +65,13 @@ export default function PromptPanel() {
       ? [...messages, { ownerId: 'local', chatId: chat.id!, role: 'user' as const, content: typed, createdAt: Date.now() }]
       : messages
     let live = true
-    worldInfoFor(speaker, chat, pending).then((resolved) => {
+    worldInfoFor(speaker, chat, pending, stack?.worldInfoBudget).then((resolved) => {
       if (live) setWorldInfo(resolved)
     })
     return () => {
       live = false
     }
-  }, [chat, characters, speakerId, messages, typed])
+  }, [chat, characters, speakerId, messages, typed, stack?.worldInfoBudget])
 
   // Token counting on every keystroke is the one thing here that could feel slow.
   useEffect(() => {
@@ -142,6 +142,13 @@ export default function PromptPanel() {
             <p className="hint">
               The context limit can't fit the fixed blocks plus the reply reserve. No history is
               being sent.
+            </p>
+          )}
+
+          {worldInfo.dropped.length > 0 && (
+            <p className="hint">
+              Over the world info budget, not sent:{' '}
+              {worldInfo.dropped.map((d) => d.name || 'Unnamed').join(', ')}.
             </p>
           )}
         </>

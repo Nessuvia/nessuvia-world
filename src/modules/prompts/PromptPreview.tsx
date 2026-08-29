@@ -12,6 +12,7 @@ import { usePersonas } from '../../core/stores/personasStore'
 import { useSettings, type Connection } from '../../core/stores/settingsStore'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
 import { budgetOf, maxTokensOf } from '../../core/params/connectionParams'
+import { hasSource } from './stackKinds'
 
 const defaultUserLine = 'Hello there.'
 
@@ -190,13 +191,13 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
   useEffect(() => {
     if (!character) return setWorldInfo(emptyWorldInfo)
     let live = true
-    worldInfoFor(character, null, history).then((resolved) => {
+    worldInfoFor(character, null, history, stack.worldInfoBudget).then((resolved) => {
       if (live) setWorldInfo(resolved)
     })
     return () => {
       live = false
     }
-  }, [character, charLine, userLine])
+  }, [character, charLine, userLine, stack.worldInfoBudget])
 
   if (!character || !persona) {
     return (
@@ -265,6 +266,19 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
         <p className="hint">
           {built.droppedCount} older history message{built.droppedCount === 1 ? '' : 's'} would be
           dropped.
+        </p>
+      )}
+
+      {worldInfo.dropped.length > 0 && (
+        <p className="hint">
+          Over the world info budget, not sent: {worldInfo.dropped.map((d) => d.name || 'Unnamed').join(', ')}.
+        </p>
+      )}
+
+      {worldInfo.atDepth.length > 0 && !hasSource(stack, 'worldInfoDepth') && (
+        <p className="hint">
+          Entries positioned at a depth are going in as system turns. Add a World info — at depth
+          block to set their role.
         </p>
       )}
 

@@ -7,6 +7,7 @@ import { budgetOf } from '../params/connectionParams.ts'
 import { buildPrompt } from './buildPrompt.ts'
 import { characterTokens, chatTokens, swapTokens } from './swapTokens.ts'
 import { oldMessageInstruction, rewritePrompt } from './rewrite.ts'
+import { emptyWorldInfo, type ResolvedWorldInfo } from './worldInfo.ts'
 
 let n = 0
 function block(b: Partial<PromptBlock>): PromptBlock {
@@ -15,6 +16,11 @@ function block(b: Partial<PromptBlock>): PromptBlock {
 
 function stack(active: PromptBlock[]): PromptStack {
   return { ownerId: 'local', name: 's', active }
+}
+
+/** A ResolvedWorldInfo with only the slots a case cares about filled in. */
+function wi(patch: Partial<ResolvedWorldInfo>): ResolvedWorldInfo {
+  return { ...emptyWorldInfo, ...patch }
 }
 
 // Damien-shaped: everything lives in `description`, the other bound fields are empty.
@@ -329,9 +335,43 @@ assert.strictEqual(
     character: damien,
     persona: dom,
     messages,
-    worldInfo: { text: 'CBT is a talking therapy.', atDepth: [] },
+    worldInfo: wi({ before: 'CBT is a talking therapy.' }),
   }).messages
   assert.strictEqual(out[0].content, 'CBT is a talking therapy.')
+}
+
+// --- the two slots are separate blocks ----------------------------------
+{
+  const out = buildPrompt({
+    stack: stack([
+      block({ source: 'worldInfo' }),
+      block({ source: 'characterDescription' }),
+      block({ source: 'worldInfoAfter' }),
+      block({ source: 'chatHistory' }),
+    ]),
+    character: damien,
+    persona: dom,
+    messages,
+    worldInfo: wi({ before: 'Before lore.', after: 'After lore.' }),
+  }).messages
+  // All three are system blocks, so they merge into one turn — in stack order.
+  assert.strictEqual(out[0].content, 'Before lore.\n\nplain description\n\nAfter lore.')
+}
+
+// --- with no after block, after-char entries fold into the before one ---
+{
+  const out = buildPrompt({
+    stack: stack([block({ source: 'worldInfo' }), block({ source: 'chatHistory' })]),
+    character: damien,
+    persona: dom,
+    messages,
+    worldInfo: wi({ before: 'Before lore.', after: 'After lore.' }),
+  }).messages
+  assert.strictEqual(
+    out[0].content,
+    'Before lore.\nAfter lore.',
+    'a stack written before the slots split still sends everything it matched',
+  )
 }
 
 // --- an entry positioned at a depth goes into history, not the block ----
@@ -341,7 +381,7 @@ assert.strictEqual(
     character: damien,
     persona: dom,
     messages,
-    worldInfo: { text: '', atDepth: [{ depth: 1, text: 'Depth lore.' }] },
+    worldInfo: wi({ atDepth: [{ depth: 1, text: 'Depth lore.' }] }),
   }).messages
   // The block itself contributed nothing, so the depth entry is the only system turn, and it sits
   // one message from the end rather than ahead of the whole history.
@@ -351,6 +391,61 @@ assert.strictEqual(
     'the entry is spliced in as a system turn',
   )
   assert.notStrictEqual(out[0].content, 'Depth lore.', 'it is not the World info block')
+}
+
+// --- the at-depth block sets the role those entries go in with ----------
+{
+  const built = buildPrompt({
+    stack: stack([
+      block({ label: 'depth', source: 'worldInfoDepth', role: 'user' }),
+      block({ source: 'chatHistory' }),
+    ]),
+    character: damien,
+    persona: dom,
+    messages,
+    worldInfo: wi({ atDepth: [{ depth: 1, text: 'Depth lore.' }] }),
+  })
+  // As a user turn it merges with the user message it was spliced ahead of, which is exactly what
+  // any two neighbouring same-role turns do.
+  assert.ok(
+    built.messages.some((m) => m.role === 'user' && m.content.startsWith('Depth lore.')),
+    'the block carries the role, not a hardcoded system',
+  )
+  assert.ok(
+    !built.messages.some((m) => m.role === 'system' && m.content.includes('Depth lore.')),
+  )
+  // It holds no text of its own, so it is never reported as an empty block while entries match.
+  assert.deepStrictEqual(built.skipped, [])
+}
+
+// --- disabling the at-depth block drops those entries entirely ----------
+{
+  const built = buildPrompt({
+    stack: stack([
+      block({ label: 'depth', source: 'worldInfoDepth', disabled: true }),
+      block({ source: 'chatHistory' }),
+    ]),
+    character: damien,
+    persona: dom,
+    messages,
+    worldInfo: wi({ atDepth: [{ depth: 1, text: 'Depth lore.' }] }),
+  })
+  assert.ok(!built.messages.some((m) => m.content === 'Depth lore.'))
+  assert.deepStrictEqual(built.skipped, [{ label: 'depth', reason: 'disabled' }])
+}
+
+// --- an at-depth block with nothing to place reports as empty -----------
+{
+  const built = buildPrompt({
+    stack: stack([
+      block({ label: 'depth', source: 'worldInfoDepth' }),
+      block({ source: 'chatHistory' }),
+    ]),
+    character: damien,
+    persona: dom,
+    messages,
+  })
+  assert.deepStrictEqual(built.skipped, [{ label: 'depth', reason: 'empty' }])
 }
 
 // --- nothing matched leaves no empty turn behind ------------------------

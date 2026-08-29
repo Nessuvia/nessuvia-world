@@ -456,6 +456,25 @@ export default function StackEditor() {
           onChange={(e) => change({ ...draft, name: e.target.value })}
           aria-label="Stack name"
         />
+        {stackKind(draft) === 'chat' && (
+          <label className="stackBudget">
+            World info budget
+            <input
+              type="number"
+              min={0}
+              step={100}
+              value={draft.worldInfoBudget ?? ''}
+              placeholder="No limit"
+              onChange={(e) =>
+                change({
+                  ...draft,
+                  worldInfoBudget: e.target.value === '' ? undefined : Number(e.target.value),
+                })
+              }
+            />
+            tokens
+          </label>
+        )}
         <label className="blockDeleteToggle">
           <input
             type="checkbox"

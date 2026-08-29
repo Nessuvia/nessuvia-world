@@ -43,8 +43,9 @@ function book(patch: Partial<Lorebook> = {}): Lorebook {
 const books = (patch: Partial<Lorebook> = {}) => new Map([[patch.id ?? 1, book(patch)]])
 
 const names = (list: WorldInfoEntry[]) => list.map((e) => e.name)
+/** The before-char slot, which is where `entry()`'s default position puts everything. */
 const textOf = (entries: WorldInfoEntry[], messages: Message[], map?: Map<number, Lorebook>) =>
-  resolveWorldInfo(entries, messages, map).text
+  resolveWorldInfo(entries, messages, map).before
 
 // --- always-on fires with no keys, a keyless entry doesn't ------------
 {
@@ -203,7 +204,7 @@ const textOf = (entries: WorldInfoEntry[], messages: Message[], map?: Map<number
   const shallow = entry({ name: 'shallow', always: true, order: 3, position: 'atDepth', depth: 1, content: 'at one' })
   const alsoTwo = entry({ name: 'alsoTwo', always: true, order: 4, position: 'atDepth', depth: 2, content: 'also two' })
   const out = resolveWorldInfo([inline, deep, shallow, alsoTwo], [])
-  assert.strictEqual(out.text, 'in the block', 'only the inline entry is in the block text')
+  assert.strictEqual(out.before, 'in the block', 'only the inline entry is in the block text')
   assert.deepStrictEqual(out.atDepth, [
     { depth: 2, text: 'at two\nalso two' }, // one message per depth, deepest first
     { depth: 1, text: 'at one' },
@@ -216,8 +217,73 @@ const textOf = (entries: WorldInfoEntry[], messages: Message[], map?: Map<number
 // --- nothing matched is the empty string, which the prompt skips ----
 {
   const out = resolveWorldInfo([entry({ keys: ['nope'] })], [message('hi')])
-  assert.strictEqual(out.text, '')
+  assert.strictEqual(out.before, '')
+  assert.strictEqual(out.after, '')
   assert.deepStrictEqual(out.atDepth, [])
+  assert.deepStrictEqual(out.dropped, [])
+}
+
+// --- the three positions land in three separate slots ---------------
+{
+  const before = entry({ name: 'b', always: true, order: 1, content: 'before text' })
+  const after = entry({ name: 'a', always: true, order: 2, position: 'afterChar', content: 'after text' })
+  const deep = entry({ name: 'd', always: true, order: 3, position: 'atDepth', depth: 3, content: 'deep text' })
+  const out = resolveWorldInfo([before, after, deep], [])
+  assert.strictEqual(out.before, 'before text')
+  assert.strictEqual(out.after, 'after text', 'afterChar no longer folds into the block text')
+  assert.deepStrictEqual(out.atDepth, [{ depth: 3, text: 'deep text' }])
+}
+
+// --- the prompt-wide cap drops the lowest-priority entries ----------
+{
+  // Roughly 50 tokens each, so a cap of 120 fits two.
+  const make = (name: string, order: number) =>
+    entry({ name, always: true, order, content: `${name} `.repeat(50) })
+  const list = [make('first', 1), make('second', 2), make('third', 3)]
+  const out = resolveWorldInfo(list, [], undefined, 120)
+  assert.ok(out.before.includes('first') && out.before.includes('second'))
+  assert.ok(!out.before.includes('third'), 'the lowest-priority entry is the one dropped')
+  assert.deepStrictEqual(
+    out.dropped.map((d) => d.name),
+    ['third'],
+    'what was cut is reported, so the preview can name it',
+  )
+  // The cap stops rather than skips: a small late entry does not jump the queue.
+  const withRunt = [...list, entry({ name: 'runt', always: true, order: 4, content: 'tiny' })]
+  const stopped = resolveWorldInfo(withRunt, [], undefined, 120)
+  assert.ok(!stopped.before.includes('tiny'), 'order means priority, even for an entry that would fit')
+  // No cap, and a zero cap, both mean everything goes in.
+  assert.strictEqual(resolveWorldInfo(list, []).dropped.length, 0)
+  assert.strictEqual(resolveWorldInfo(list, [], undefined, 0).dropped.length, 0)
+  // Unlike a book budget, the cap has no first-match exemption: a cap under one entry yields none.
+  const none = resolveWorldInfo(list, [], undefined, 5)
+  assert.strictEqual(none.before, '')
+  assert.strictEqual(none.dropped.length, 3)
+}
+
+// --- the cap spans all three slots, and applies after book budgets --
+{
+  const long = (name: string, order: number, patch: Partial<WorldInfoEntry> = {}) =>
+    entry({ name, always: true, order, content: `${name} `.repeat(50), ...patch })
+  const out = resolveWorldInfo(
+    [long('one', 1), long('two', 2, { position: 'afterChar' }), long('three', 3, { position: 'atDepth' })],
+    [],
+    undefined,
+    120,
+  )
+  assert.ok(out.before.includes('one'))
+  assert.ok(out.after.includes('two'))
+  assert.deepStrictEqual(out.atDepth, [], 'the depth slot draws on the same pool as the other two')
+  assert.deepStrictEqual(out.dropped.map((d) => d.name), ['three'])
+  // An entry the book budget already dropped is not reported as over the prompt cap.
+  const booked = resolveWorldInfo(
+    [long('one', 1), long('two', 2)],
+    [],
+    books({ tokenBudget: 60 }),
+    10_000,
+  )
+  assert.ok(!booked.before.includes('two'))
+  assert.deepStrictEqual(booked.dropped, [], "the book's own limit is not the user's budget")
 }
 
 console.log('checkWorldInfo ok')

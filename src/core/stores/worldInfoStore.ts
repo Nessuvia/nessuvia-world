@@ -31,6 +31,8 @@ interface WorldInfoState {
   bookId: number | null
   loadFor(bookId: number): Promise<void>
   save(entry: WorldInfoEntry): Promise<void>
+  /** Move the loaded book's entry at `from` to `to`, renumbering `order` across the book. */
+  reorder(from: number, to: number): Promise<void>
   remove(id: number): Promise<void>
   /** Import: writes a whole book's entries against a book that now has an id. */
   addAll(bookId: number, entries: ImportedEntry[]): Promise<void>
@@ -55,6 +57,24 @@ export const useWorldInfo = create<WorldInfoState>()((set, get) => ({
   save: async (entry) => {
     await storage.put('worldInfo', entry as unknown as StoredRecord)
     if (get().bookId === entry.bookId) await get().loadFor(entry.bookId)
+  },
+
+  reorder: async (from, to) => {
+    const bookId = get().bookId
+    if (bookId === null) return
+    const list = [...get().entries]
+    const [moved] = list.splice(from, 1)
+    if (!moved) return
+    list.splice(to, 0, moved)
+    // Renumbered in hundreds, whole book at a time. Gaps leave room to type an order between two
+    // rows later without rewriting the book, and the numbers stay meaningful across books — the
+    // send path sorts every attached book's entries as one list by `order`.
+    for (const [i, entry] of list.entries()) {
+      const order = (i + 1) * 100
+      if (entry.order === order) continue
+      await storage.put('worldInfo', { ...entry, order } as unknown as StoredRecord)
+    }
+    await get().loadFor(bookId)
   },
 
   remove: async (id) => {

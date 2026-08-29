@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { RiCloseLine } from '@remixicon/react'
 import { newBook, useLorebooks } from '../../core/stores/lorebooksStore'
 import EntityPicker from '../../app/EntityPicker'
@@ -21,12 +22,22 @@ export default function BookAttach({
 }) {
   const { books, counts, load } = useLorebooks()
   const [picking, setPicking] = useState(false)
+  // The book just made here, so the link to go and fill it in has somewhere to point.
+  const [createdId, setCreatedId] = useState<number | null>(null)
+  // Books are known only after the first load resolves; before that every id looks dead.
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    load()
+    load().then(() => setReady(true))
   }, [load])
 
   const attached = ids.map((id) => books.find((b) => b.id === id)).filter((b) => !!b)
+
+  // An id with no book left behind it — a book deleted in an older build, or one that never came
+  // back from a restore. Write the list back without it, so the count matches the rows.
+  useEffect(() => {
+    if (ready && attached.length !== ids.length) onChange(attached.map((b) => b.id!))
+  })
 
   return (
     <div className="lorebooksAttach">
@@ -75,10 +86,16 @@ export default function BookAttach({
                 .getState()
                 .create({ book: newBook('New book'), entries: [] })
               onChange([...ids, id])
+              setCreatedId(id)
             }}
           >
             New book
           </button>
+          {createdId !== null && (
+            <Link className="lorebooksGoEdit" to={`/lorebooks#book-${createdId}`}>
+              Go to edit →
+            </Link>
+          )}
         </div>
       )}
     </div>

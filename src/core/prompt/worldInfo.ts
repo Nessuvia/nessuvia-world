@@ -80,10 +80,9 @@ export function matchedEntries(
  * entries leave the block entirely, so where they land in this list only orders them against each
  * other at the same depth.
  *
- * Flagged compromise: before/after order entries *within* the single World info block, not two
- * slots around the character definitions. The prompt stack has one `worldInfo` block source, and
- * splitting it in two is stack-schema churn this pass doesn't need. The upgrade path is a second
- * `worldInfoAfter` block source, with this function's two ranks feeding one block each.
+ * The three positions now feed three block sources (`worldInfo`, `worldInfoAfter`,
+ * `worldInfoDepth`), so this sort no longer decides placement on its own. It still decides
+ * priority: the prompt-wide budget below fills in this order and drops the tail.
  */
 const rank = (entry: WorldInfoEntry) => (entry.position === 'beforeChar' ? 0 : 1)
 
@@ -92,10 +91,15 @@ const byPlacement = (a: WorldInfoEntry, b: WorldInfoEntry) =>
 
 /** What the matched entries contribute, split by where they go. */
 export interface ResolvedWorldInfo {
-  /** The World info block's text: every matched entry that isn't placed at a depth. */
-  text: string
+  /** `beforeChar` entries — the `worldInfo` block's text. */
+  before: string
+  /** `afterChar` entries — the `worldInfoAfter` block's text. */
+  after: string
   /** Entries placed in history instead, one per distinct depth, deepest first. */
   atDepth: { depth: number; text: string }[]
+  /** What the prompt-wide budget cut, for the preview to report. Book budgets don't land here:
+   *  those are the book author's own limit, not something the user set and should see undone. */
+  dropped: { name: string; tokens: number }[]
 }
 
 /**
@@ -111,19 +115,33 @@ export function resolveWorldInfo(
   entries: WorldInfoEntry[],
   messages: Message[],
   books?: BookMap,
+  /** The stack's `worldInfoBudget`: one pool shared by all three slots, in tokens. Undefined or 0
+   *  is no cap, which is what every stack has until the user sets one. */
+  cap?: number,
 ): ResolvedWorldInfo {
   const matched = matchedEntries(entries, messages, books)
   // Per book: tokens spent, and whether anything has gone in yet.
   const spent = new Map<number, number>()
   const kept = new Map<number, number>()
-  const inline: string[] = []
+  const before: string[] = []
+  const after: string[] = []
   const depths = new Map<number, string[]>()
+  const dropped: { name: string; tokens: number }[] = []
+  const capped = cap !== undefined && cap > 0
+  let poolSpent = 0
+  let full = false
 
   for (const entry of matched) {
+    // Once the pool is full every entry left is lower priority than the one that overflowed it.
+    // Recording them without pricing them keeps the preview's list complete.
+    if (full) {
+      dropped.push({ name: entry.name, tokens: countTokens(entry.content) })
+      continue
+    }
+    const cost = countTokens(entry.content)
     const budget = bookOf(entry, books)?.tokenBudget
     if (budget !== undefined && budget > 0) {
       const used = spent.get(entry.bookId) ?? 0
-      const cost = countTokens(entry.content)
       // The first match of a book always goes in, over budget or not. Real books set budgets
       // smaller than a single entry — the reference book allows 500 tokens for entries of 700 —
       // and a book that silently injects nothing at all reads as broken rather than as thrifty.
@@ -133,25 +151,46 @@ export function resolveWorldInfo(
       spent.set(entry.bookId, used + cost)
       kept.set(entry.bookId, (kept.get(entry.bookId) ?? 0) + 1)
     }
+    // The prompt-wide cap, applied after the book's own. Stops rather than skips: `matched` is in
+    // priority order, so letting a small late entry jump the queue past the one that didn't fit
+    // would make `order` mean less than it says.
+    // Unlike a book budget this has no first-match exemption — the user set the number, and a cap
+    // that quietly overspends is worse than one that yields nothing.
+    if (capped && poolSpent + cost > cap) {
+      dropped.push({ name: entry.name, tokens: cost })
+      full = true
+      continue
+    }
+    poolSpent += cost
+
     if (entry.position === 'atDepth') {
       const depth = entry.depth ?? defaultInsertDepth
       const at = depths.get(depth)
       if (at) at.push(entry.content)
       else depths.set(depth, [entry.content])
+    } else if (entry.position === 'afterChar') {
+      after.push(entry.content)
     } else {
-      inline.push(entry.content)
+      before.push(entry.content)
     }
   }
 
   return {
-    text: inline.join('\n'),
+    before: before.join('\n'),
+    after: after.join('\n'),
     // Deepest first, which is the order they have to be spliced in: each insertion point is
     // counted from the end of history, so a shallower note inserted first would shift a deeper one.
     atDepth: [...depths.entries()]
       .sort((a, b) => b[0] - a[0])
       .map(([depth, texts]) => ({ depth, text: texts.join('\n') })),
+    dropped,
   }
 }
 
 /** Nothing matched. The shape `buildPrompt` gets when a chat has no books attached at all. */
-export const emptyWorldInfo: ResolvedWorldInfo = { text: '', atDepth: [] }
+export const emptyWorldInfo: ResolvedWorldInfo = {
+  before: '',
+  after: '',
+  atDepth: [],
+  dropped: [],
+}

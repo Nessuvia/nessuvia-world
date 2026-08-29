@@ -350,7 +350,14 @@ export type BlockSource =
   | 'characterPostHistory'
   | 'personaDescription' // the active persona's description
   | 'authorNote' // the chat's author's note; skipped when empty. Chat stacks only.
-  | 'worldInfo' // the speaking character's matched lorebook entries; skipped when none match
+  // The three lorebook slots, one per EntryPosition. Each is skipped when nothing matched for it.
+  // `worldInfo` keeps its name rather than becoming `worldInfoBefore`: stacks written before the
+  // split carry it, and it still means the same slot.
+  | 'worldInfo' // matched entries positioned beforeChar
+  | 'worldInfoAfter' // matched entries positioned afterChar
+  // Entries positioned atDepth. The block carries the role they're injected with; each entry's own
+  // `depth` decides how far back it lands, so the block's place in the stack doesn't matter.
+  | 'worldInfoDepth'
   | 'chatHistory' // mandatory, exactly one per chat stack
   // Story-stack bound sources (Write mode). Wiring lives in sub-goal C; here they're just sources.
   | 'cast' // the Story's enabled characters/personas (full cards)
@@ -409,6 +416,11 @@ export interface PromptStack {
    *  for rows written before the field existed. */
   kind?: 'chat' | 'story'
   active: PromptBlock[] // order = array order
+  /** Tokens the three World info slots may take between them. Absent or 0 = no cap, which is what
+   *  every stack has until it's set. Entries are filled in priority order (`entry.order`) and the
+   *  rest are dropped, so lore yields to the budget instead of chat history yielding to lore.
+   *  A plain field, not indexed: no Dexie version bump. */
+  worldInfoBudget?: number
   /** Overrides for the small utility prompts (`core/prompt/miscPrompts.ts`), keyed by def id.
    *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned — a plain
    *  field, so an older row simply has none. */

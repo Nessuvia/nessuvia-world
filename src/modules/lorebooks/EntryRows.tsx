@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { RiDeleteBinLine } from '@remixicon/react'
+import { RiDeleteBinLine, RiDraggable } from '@remixicon/react'
+import { useDragReorder } from '../../app/useDragReorder'
+import '../../app/dragReorder.css'
 import { defaultDepth, defaultInsertDepth } from '../../core/prompt/worldInfo'
 import type { EntryPosition, Lorebook, WorldInfoEntry } from '../../core/storage/types'
 
@@ -27,21 +29,27 @@ const splitKeys = (value: string) =>
  * The entry list of one book. Rows save on blur rather than on a debounce: a row has a dozen fields
  * and an entry's content runs to hundreds of words, so writing per keystroke buys nothing here.
  *
- * The second line of controls (secondary keys, logic, position, depth) only appears with the text,
- * because a book of sixty entries is read as a list of names and keys first.
+ * The second line of controls (secondary keys, logic, position, order, depth) only appears with the
+ * text, because a book of sixty entries is read as a list of names and keys first.
+ *
+ * Rows drag to reorder, which rewrites `order` across the book. That number is priority as well as
+ * sequence: the stack's world info budget fills entries in this order and drops the tail.
  */
 export default function EntryRows({
   entries,
   book,
   onSave,
   onRemove,
+  onReorder,
 }: {
   entries: WorldInfoEntry[]
   book: Lorebook
   onSave: (entry: WorldInfoEntry) => void
   onRemove: (id: number) => void
+  onReorder: (from: number, to: number) => void
 }) {
   const [openId, setOpenId] = useState<number | null>(null)
+  const drag = useDragReorder(onReorder)
 
   const commit = (entry: WorldInfoEntry, patch: Partial<WorldInfoEntry>) =>
     onSave({ ...entry, ...patch })
@@ -50,9 +58,28 @@ export default function EntryRows({
 
   return (
     <ul className="lorebooksEntryList">
-      {entries.map((entry) => (
-        <li key={entry.id} className="card lorebooksEntry">
+      {entries.map((entry, index) => {
+        // Split, unlike every other useDragReorder row in the app: `draggable` on an ancestor stops
+        // Chrome selecting text inside the inputs below, and this row is nothing but inputs. The
+        // handle starts the drag; the whole row is still a drop target.
+        const { draggable, onDragStart, onDragEnd, ...dropProps } = drag.itemProps(index)
+        return (
+        <li
+          key={entry.id}
+          className={`card lorebooksEntry${drag.over === index ? ' dropTarget' : ''}`}
+          {...dropProps}
+        >
           <div className="lorebooksEntryRow">
+            <span
+              className="lorebooksEntryHandle"
+              aria-label="Drag to reorder"
+              title="Drag to reorder"
+              draggable={draggable}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            >
+              <RiDraggable size={16} />
+            </span>
             <input
               type="checkbox"
               checked={entry.enabled}
@@ -151,6 +178,16 @@ export default function EntryRows({
                     </option>
                   ))}
                 </select>
+                <label className="lorebooksEntryFlag">
+                  Order
+                  <input
+                    className="lorebooksEntryNumber"
+                    type="number"
+                    title="Sorted against every attached book's entries, not just this one"
+                    value={entry.order}
+                    onChange={(e) => commit(entry, { order: Number(e.target.value) })}
+                  />
+                </label>
                 {entry.position === 'atDepth' && (
                   <input
                     className="lorebooksEntryNumber"
@@ -174,10 +211,11 @@ export default function EntryRows({
               />
             </>
           ) : (
-            <p className="hint lorebooksEntrySnippet">{entry.content.slice(0, 120) || 'No text.'}</p>
+            <p className="hint lorebooksEntrySnippet">{entry.content || 'No text.'}</p>
           )}
         </li>
-      ))}
+        )
+      })}
     </ul>
   )
 }

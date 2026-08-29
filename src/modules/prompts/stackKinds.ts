@@ -19,6 +19,8 @@ export const boundSources: Record<StackKind, BlockSource[]> = {
     'characterPostHistory',
     'personaDescription',
     'worldInfo',
+    'worldInfoAfter',
+    'worldInfoDepth',
     'authorNote',
     'chatHistory',
   ],
@@ -48,7 +50,10 @@ export const hasSource = (stack: PromptStack, source: BlockSource) => count(stac
 /** Why the stack can't be saved, or '' when it's valid. Keyed by kind. */
 export function validateStack(stack: PromptStack): string {
   if (count(stack, 'authorNote') > 1) return "Only one Author's note block allowed"
-  if (count(stack, 'worldInfo') > 1) return 'Only one World info block allowed'
+  if (count(stack, 'worldInfo') > 1) return 'Only one World info — before character block allowed'
+  if (count(stack, 'worldInfoAfter') > 1)
+    return 'Only one World info — after character block allowed'
+  if (count(stack, 'worldInfoDepth') > 1) return 'Only one World info — at depth block allowed'
   if (stackKind(stack) === 'story') {
     if (count(stack, 'chatHistory') > 0) return 'Story stacks have no Chat History block'
     if (count(stack, 'authorNote') > 0) return "Story stacks have no Author's note block"
