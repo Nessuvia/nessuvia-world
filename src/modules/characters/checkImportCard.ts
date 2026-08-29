@@ -1,7 +1,7 @@
 // Round-trip fidelity: a card imported and re-exported must not lose anything it arrived with.
 // Run: node --experimental-strip-types src/modules/characters/checkImportCard.ts
 import assert from 'node:assert'
-import type { Character, WorldInfoEntry } from '../../core/storage/types.ts'
+import type { Character, Lorebook, WorldInfoEntry } from '../../core/storage/types.ts'
 import { buildCard } from './exportCard.ts'
 import { importBook, importCard } from './importCard.ts'
 
@@ -54,22 +54,27 @@ assert.equal(c.name, 'Ada')
 assert.equal(c.firstMessage, 'Hello.')
 assert.deepStrictEqual(c.alternateGreetings, ['Hi.', 'Hey.'])
 assert.deepStrictEqual(c.tags, ['sci-fi', 'Sci-Fi']) // verbatim: no case folding, no dedupe
-assert.equal(c.worldBook?.scanDepth, 5)
 assert.equal(c.systemPrompt, 'You are {{char}}.')
 assert.equal(c.postHistoryInstructions, 'Stay in character.')
 assert.equal(c.creatorNotes, 'notes from the author')
 assert.equal(c.creator, 'someone')
 assert.equal(c.characterVersion, '1.2')
 
-const { entries } = importBook(card)
+const { book, entries } = importBook(card)
+assert.equal(book.scanDepth, 5)
+assert.equal(book.name, 'Ada lore')
 assert.equal(entries.length, 1)
+// The shared mapper reads the fields the old card path ignored.
+assert.deepStrictEqual(entries[0].secondaryKeys, ['analytical'])
+assert.equal(entries[0].position, 'afterChar') // the spec's string spelling
 assert.equal(entries[0].name, 'Engine') // `comment` wins over the spec's `name`
 assert.equal(entries[0].order, 3)
 assert.equal(entries[0].scanDepth, 2) // extensions.scan_depth, not extensions.depth
 
 // --- re-export keeps the fields we don't model ---------------------------
-const stored: WorldInfoEntry[] = entries.map((e) => ({ ...e, ownerId: 'local', characterId: 1 }))
-const out = buildCard({ ...c, id: 1 } as Character, stored)
+const stored: WorldInfoEntry[] = entries.map((e) => ({ ...e, ownerId: 'local', bookId: 1 }))
+const storedBook: Lorebook = { ...book, id: 1, ownerId: 'local' }
+const out = buildCard({ ...c, id: 1 } as Character, stored, storedBook)
 
 assert.equal(out.data.creator_notes, 'notes from the author')
 assert.equal(out.data.system_prompt, 'You are {{char}}.')
@@ -88,7 +93,11 @@ assert.deepStrictEqual(out.data.character_book?.entries[0], card.data.character_
 
 // Editing a promoted field changes the export. This is what promoting them was for: before, these
 // were read off rawCard and an edit went nowhere.
-const edited = buildCard({ ...c, id: 1, creator: 'me', systemPrompt: 'new rules' } as Character, stored)
+const edited = buildCard(
+  { ...c, id: 1, creator: 'me', systemPrompt: 'new rules' } as Character,
+  stored,
+  storedBook,
+)
 assert.equal(edited.data.creator, 'me')
 assert.equal(edited.data.system_prompt, 'new rules')
 
@@ -105,7 +114,7 @@ const mine: Character = {
   // Two greetings, only the second named: the short/holey case is the one that misaligns.
   greetingTitles: ['', 'Formal'],
 }
-const back = importCard(buildCard(mine, stored))
+const back = importCard(buildCard(mine, stored, storedBook))
 assert.equal(back.displayName, 'Ada L.')
 assert.deepStrictEqual(back.colors, mine.colors)
 assert.deepStrictEqual(back.gallery, mine.gallery)
@@ -126,7 +135,8 @@ assert.equal(bare.paramOverrides, undefined)
 assert.equal(bare.systemPrompt, '')
 assert.equal(bare.creator, '')
 assert.deepStrictEqual(bare.colors, { textColor: '', emphasisColor: '', boldColor: '', quoteColor: '' })
-assert.equal(bare.worldBook, undefined)
+// A card with no book imports no entries, so nothing is written to the Lorebooks list.
+assert.deepStrictEqual(importBook({ name: 'Bob' }).entries, [])
 
 // A hostile card can't smuggle a non-string into a color or the gallery.
 const junk = importCard({

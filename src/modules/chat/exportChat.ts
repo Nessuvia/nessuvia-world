@@ -341,12 +341,15 @@ ${body}
  * parse: an importer has to drop the autoincrement ids and remap `chatId` onto the new chat.
  */
 export function buildJson(chat: Chat, messages: Message[]): string {
+  // Lorebook ids are row ids in this browser's database and name nothing on another device, so
+  // they are dropped rather than exported as numbers that would resolve to someone else's books.
+  const { lorebookIds: _lorebookIds, ...rest } = chat
   return JSON.stringify(
     {
       format: 'xeniaNessuvia.chat',
       version: 1,
       exportedAt: new Date().toISOString(),
-      chat,
+      chat: rest,
       messages: [...messages].sort(byTime),
     },
     null,

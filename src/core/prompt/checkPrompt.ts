@@ -329,9 +329,28 @@ assert.strictEqual(
     character: damien,
     persona: dom,
     messages,
-    worldInfo: 'CBT is a talking therapy.',
+    worldInfo: { text: 'CBT is a talking therapy.', atDepth: [] },
   }).messages
   assert.strictEqual(out[0].content, 'CBT is a talking therapy.')
+}
+
+// --- an entry positioned at a depth goes into history, not the block ----
+{
+  const out = buildPrompt({
+    stack: stack([block({ source: 'worldInfo' }), block({ source: 'chatHistory' })]),
+    character: damien,
+    persona: dom,
+    messages,
+    worldInfo: { text: '', atDepth: [{ depth: 1, text: 'Depth lore.' }] },
+  }).messages
+  // The block itself contributed nothing, so the depth entry is the only system turn, and it sits
+  // one message from the end rather than ahead of the whole history.
+  assert.strictEqual(out.at(-1)?.content, 'hi')
+  assert.ok(
+    out.some((m) => m.role === 'system' && m.content === 'Depth lore.'),
+    'the entry is spliced in as a system turn',
+  )
+  assert.notStrictEqual(out[0].content, 'Depth lore.', 'it is not the World info block')
 }
 
 // --- nothing matched leaves no empty turn behind ------------------------

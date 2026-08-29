@@ -39,8 +39,9 @@ export interface Character {
   rawCard?: unknown // original parsed card, untouched
   paramOverrides?: ParamOverrides
   stackId?: number // declared now, no UI until it's wanted
-  /** Imported lorebook metadata. The entries themselves live in the `worldInfo` table. */
-  worldBook?: WorldBook
+  /** Lorebooks that travel with this character: attached in every chat they speak in. An imported
+   *  card's `character_book` lands here as a single id. Absent = none. */
+  lorebookIds?: number[]
   createdAt: number
   updatedAt: number
   colors: CharacterColors // per-speaker overrides; each '' = fall through to the global appearance color
@@ -59,33 +60,53 @@ export interface AvatarCrop {
 }
 
 /**
- * A lorebook entry, owned by one character. Global/shared books are the planned next level: when
- * they land this record keeps `characterId`, and a book gains a row of its own — no migration.
+ * A lorebook: a named set of entries that exists on its own. Attached to characters
+ * (`Character.lorebookIds`), to a single chat (`Chat.lorebookIds`), or to everything at once via
+ * `global`. The entries are the big payload and live in the `worldInfo` table, keyed by `bookId`.
+ */
+export interface Lorebook {
+  id?: number
+  ownerId: string
+  name: string
+  description: string
+  scanDepth?: number // card's `scan_depth`: the default for entries that don't override it
+  tokenBudget?: number // card's `token_budget`: cap on what this book may add to one prompt
+  /** Applies to every chat, on top of whatever the character and the chat attach. */
+  global: boolean
+}
+
+/** Where a matched entry goes in the prompt. `beforeChar`/`afterChar` order it within the World
+ *  info block; `atDepth` lifts it out of that block and splices it N messages from the end of
+ *  history, the way an author's note with a depth is placed. */
+export type EntryPosition = 'beforeChar' | 'afterChar' | 'atDepth'
+
+/**
+ * One lorebook entry, owned by one book.
  */
 export interface WorldInfoEntry {
   id?: number
   ownerId: string
-  characterId: number
+  bookId: number
   name: string // row label; cards keep it in `comment`, so import falls back through name and keys
-  keys: string[] // trigger words, matched case-insensitively
+  keys: string[] // trigger words; matched case-insensitively unless `caseSensitive`
+  /** Gated keys: a primary hit only counts once these pass `selectiveLogic`. Empty = no gate. */
+  secondaryKeys: string[]
+  /** How `secondaryKeys` gate a primary hit. SillyTavern's numbering, which is what imports carry:
+   *  0 AND_ANY (any secondary present), 1 NOT_ALL (fails when all are present), 2 NOT_ANY (fails
+   *  when any is present), 3 AND_ALL (all must be present). */
+  selectiveLogic: number
+  caseSensitive?: boolean // absent = insensitive, which is what most books want
   content: string
   always: boolean // inject regardless of keys (a card's `constant`)
   enabled: boolean
   scanDepth?: number // trailing messages to scan for keys; absent = the book's, then defaultDepth
   order: number // position among matches (a card's `insertion_order`)
+  position: EntryPosition
+  depth?: number // messages from the end, for `atDepth` only; absent = 4, SillyTavern's default
   // The untouched card entry, same contract as Character.rawCard. This is what keeps the fields
-  // this release ignores — secondary_keys, selective, priority, probability, position, extensions —
-  // from being lost on import and re-export.
+  // this release ignores — probability, excludeRecursion, characterFilter, group weighting — from
+  // being lost on import and re-export.
   raw?: unknown
-}
-
-/** Book-level metadata from a card's `character_book`. Four scalars, so it rides on the Character
- *  record; the entries are the big payload and get their own table. */
-export interface WorldBook {
-  name: string
-  description: string
-  scanDepth?: number // card's `scan_depth`: the default for entries that don't override it
-  tokenBudget?: number // card's `token_budget`: cap on the whole block's text
 }
 
 /** Anything that renders as an avatar. Character and Persona both satisfy it structurally. */
@@ -170,6 +191,9 @@ export interface Chat {
   selfReplyCount?: number
   /** Width of the chat area as a percentage of its container. Default 100. */
   chatWidth?: number
+  /** Lorebooks attached to this chat alone, on top of the speaker's and every global one. Absent =
+   *  none. Never exported with the chat: book ids mean nothing on another device. */
+  lorebookIds?: number[]
   authorNote?: string
   authorNoteDepth?: number // messages from the end; default 2
   /** Pinned to the sidebar for quick access. Absent = not bookmarked. */

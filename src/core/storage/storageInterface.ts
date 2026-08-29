@@ -21,6 +21,7 @@ export type TableName =
   | 'characters'
   | 'personas'
   | 'worldInfo'
+  | 'lorebooks'
   | 'chats'
   | 'messages'
   | 'promptStacks'
@@ -55,6 +56,9 @@ export const tableNames: TableName[] = [
   'characters',
   'personas',
   'worldInfo',
+  // The books those entries belong to. Both halves ride along in a backup or there is no book to
+  // restore, only orphaned entries.
+  'lorebooks',
   'chats',
   'messages',
   'promptStacks',

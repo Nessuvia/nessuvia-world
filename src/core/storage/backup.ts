@@ -17,10 +17,16 @@ export interface Backup {
 }
 
 /**
- * What a shareable export keeps: the things a user made, not what they did with them. worldInfo
- * rides along because its rows are a character's lorebook, not a separate library.
+ * What a shareable export keeps: the things a user made, not what they did with them. lorebooks and
+ * worldInfo ride along as a pair — the entries are meaningless without the book they are keyed to.
  */
-const shareableTables: TableName[] = ['characters', 'worldInfo', 'promptStacks', 'palettes']
+const shareableTables: TableName[] = [
+  'characters',
+  'lorebooks',
+  'worldInfo',
+  'promptStacks',
+  'palettes',
+]
 
 export interface BackupOptions {
   /** Keep API keys in the settings blob. Only ever true when the user turned it on in Settings. */

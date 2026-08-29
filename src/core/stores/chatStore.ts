@@ -21,8 +21,9 @@ import { parseCommand, stripEscape } from './slashCommands'
 import { continuePrompt, oldMessageInstruction, rewritePrompt } from '../prompt/rewrite'
 import { isEnabled, modules } from '../../app/moduleRegistry'
 import { chatTokens, swapTokens } from '../prompt/swapTokens'
-import { worldInfoText } from '../prompt/worldInfo'
+import { emptyWorldInfo, resolveWorldInfo, type ResolvedWorldInfo } from '../prompt/worldInfo'
 import { useWorldInfo } from './worldInfoStore'
+import { bookIdsFor, useLorebooks } from './lorebooksStore'
 import { useBlips } from './blipStore'
 import { isNarrator, narratorCharacter } from '../multiplayer/narrator'
 import { budgetOf, maxTokensOf } from '../params/connectionParams'
@@ -95,14 +96,25 @@ function characterAt(chat: Chat, index: number, fallback: Character): Character 
 }
 
 /**
- * The World info text for a turn. Resolved against the *speaker* — in a group chat the character
- * replying owns the book, not the chat's first participant.
+ * The lorebook content for a turn, from three attachment levels at once: every global book, the
+ * *speaker's* books — in a group chat the character replying brings their own, not the chat's first
+ * participant — and the books attached to this chat.
  */
-async function worldInfoFor(speaker: Character, messages: Message[]): Promise<string> {
-  if (!speaker.id) return ''
-  const entries = await useWorldInfo.getState().fetchFor(speaker.id)
-  if (!entries.length) return ''
-  return worldInfoText(entries, messages, speaker.worldBook)
+export async function worldInfoFor(
+  speaker: Character,
+  chat: Chat | null,
+  messages: Message[],
+): Promise<ResolvedWorldInfo> {
+  const state = useLorebooks.getState()
+  // The list is loaded once and kept; a send that races a first load would otherwise see no
+  // global books at all.
+  if (!state.books.length && !state.loading) await state.load()
+  const books = useLorebooks.getState().books
+  const ids = bookIdsFor(books, speaker.lorebookIds, chat?.lorebookIds)
+  if (!ids.length) return emptyWorldInfo
+  const entries = await useWorldInfo.getState().fetchForBooks(ids)
+  if (!entries.length) return emptyWorldInfo
+  return resolveWorldInfo(entries, messages, new Map(books.map((b) => [b.id!, b])))
 }
 
 /** Per character: how many chats it has, and when its newest message was (0 = none). */
@@ -483,7 +495,7 @@ export const useChats = create<ChatState>()((set, get) => ({
             chat,
             speaker,
             messages: get().messages,
-            worldInfo: await worldInfoFor(speaker, get().messages),
+            worldInfo: await worldInfoFor(speaker, chat, get().messages),
             tagRules: useSettings.getState().appearance.tagRules,
             cast: _sessionCast,
             personas: _sessionPersonas,
@@ -588,7 +600,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages,
-          worldInfo: await worldInfoFor(speaker, get().messages),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages),
           tagRules: useSettings.getState().appearance.tagRules,
           cast: _sessionCast,
           personas: _sessionPersonas,
@@ -727,7 +739,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages.slice(0, at),
-          worldInfo: await worldInfoFor(speaker, get().messages.slice(0, at)),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, at)),
           appendSystem,
           tagRules: useSettings.getState().appearance.tagRules,
           cast: _sessionCast,
@@ -845,7 +857,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages.slice(0, -1),
-          worldInfo: await worldInfoFor(speaker, get().messages.slice(0, -1)),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, -1)),
           appendSystem: continuePrompt(stack.miscPrompts),
           appendAssistant: prefix,
           tagRules: useSettings.getState().appearance.tagRules,

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import type { Message, PromptStack, WorldInfoEntry } from '../../core/storage/types'
+import type { Message, PromptStack } from '../../core/storage/types'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
 import { buildStoryPrompt } from '../../core/prompt/buildStoryPrompt'
 import { storyTokens } from '../../core/prompt/storyTokens'
-import { worldInfoText } from '../../core/prompt/worldInfo'
-import { useWorldInfo } from '../../core/stores/worldInfoStore'
+import { emptyWorldInfo, type ResolvedWorldInfo } from '../../core/prompt/worldInfo'
+import { worldInfoFor } from '../../core/stores/chatStore'
 import { countTokens, loadTokenizer, perMessageOverhead } from '../../core/prompt/budget'
 import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
@@ -161,7 +161,7 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
   const [characterId, setCharacterId] = useState<number | null>(null)
   const [charLine, setCharLine] = useState<string | null>(null)
   const [userLine, setUserLine] = useState(defaultUserLine)
-  const [entries, setEntries] = useState<WorldInfoEntry[]>([])
+  const [worldInfo, setWorldInfo] = useState<ResolvedWorldInfo>(emptyWorldInfo)
 
   useEffect(() => {
     load()
@@ -169,12 +169,6 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
   }, [load, ensurePersona])
 
   const character = characters.find((c) => c.id === characterId) ?? characters[0]
-  const previewedId = character?.id ?? null
-
-  useEffect(() => {
-    if (!previewedId) return setEntries([])
-    useWorldInfo.getState().fetchFor(previewedId).then(setEntries)
-  }, [previewedId])
 
   const persona = personas.find((p) => p.id === activePersonaId) ?? personas[0]
 
@@ -190,6 +184,20 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
     { ownerId: 'local', chatId: 0, role: 'user', content: userLine, createdAt: 2 },
   ]
 
+  // No chat here, so the books in play are the character's plus every global one. Matched against
+  // the example lines above, so a key typed into the user line shows its entry appearing.
+  // Deps are the values `history` is built from — the array itself is new on every render.
+  useEffect(() => {
+    if (!character) return setWorldInfo(emptyWorldInfo)
+    let live = true
+    worldInfoFor(character, null, history).then((resolved) => {
+      if (live) setWorldInfo(resolved)
+    })
+    return () => {
+      live = false
+    }
+  }, [character, charLine, userLine])
+
   if (!character || !persona) {
     return (
       <section className="panel stackZone">
@@ -201,10 +209,6 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
 
   // The same call the send path makes — the preview can't drift from what gets sent. Counts and
   // warnings read from this one, so indentation never touches the numbers.
-  // Matched against the example lines above, so a key typed into the user line shows its entry
-  // appearing in the preview.
-  const worldInfo = worldInfoText(entries, history, character.worldBook)
-
   const built = buildPrompt({ stack, character, persona, messages: history, worldInfo }, budgetOf(connection))
   // A second, display-only pass with nested content indented. Same inputs, so its messages line up
   // 1:1 with `built` (indentation doesn't change role boundaries), and the <pre> shows this text.

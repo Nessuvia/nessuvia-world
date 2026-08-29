@@ -651,102 +651,11 @@
   cursor: pointer;
 }
 
-/* Lorebook tab. One row per entry, its text folded away until asked for. */
-.lorebookBook {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-/* Sits on the same row as the two book fields, pushed to the far edge. */
-.lorebookAdd {
-  margin-left: auto;
-}
-
-.lorebookBook input {
-  width: 8ch;
-}
-
-.lorebookList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lorebookEntry {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 13px 14px;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) + 2px);
-  background: var(--surface);
-}
-
-/* The row's own height, plus matching heights on the controls that can take one. Checkboxes are
-   left alone — a min-height stretches the box rather than the space around it. */
-.lorebookRow {
-  min-height: 34px;
-}
-
-.lorebookRow input:not([type='checkbox']),
-.lorebookRow button {
-  min-height: 32px;
-}
-
-/* Opened by the Text button: sized to the entry rather than to a row count, so a card entry of
-   several hundred words is read in one go. Capped so one entry can't fill the viewport. */
-.lorebookText {
-  field-sizing: content;
-  min-height: 12em;
-  max-height: 60vh;
-}
-
-.lorebookRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.lorebookName {
-  flex: 1 1 12ch;
-  min-width: 0;
-}
-
-/* Wider than the name: a card entry often carries several keys. */
-.lorebookKeys {
-  flex: 2 1 20ch;
-  min-width: 0;
-}
-
-.lorebookAlways {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.lorebookDepth {
-  width: 6ch;
-}
-
-.lorebookSnippet {
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 @media (max-width: 700px) {
   .charactersHeader,
   .headerActions,
   .avatarRow,
-  .editorActions,
-  .lorebookBook,
-  .lorebookRow {
+  .editorActions {
     flex-wrap: wrap;
   }
 

@@ -17,7 +17,6 @@ import {
 } from '@remixicon/react'
 import LorebookTab from './LorebookTab'
 import TagChips from './TagChips'
-import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import { hasSource } from '../prompts/stackKinds'
 
@@ -72,10 +71,8 @@ export default function CharacterEditor({
   const loadStacks = useStacks((s) => s.load)
   const activeStackId = useSettings((s) => s.activeStackId)
   const activeStack = stacks.find((s) => s.id === activeStackId)
-  // Entries so the shut Lorebook header can count them. LorebookTab loads the same list when it
-  // mounts; loadFor is by character id, so the second call is the same read.
-  const bookEntries = useWorldInfo((s) => s.entries)
-  const loadBook = useWorldInfo((s) => s.loadFor)
+  // The shut Lorebook header counts attached books, not entries: the entries belong to the book
+  // now, and the character only holds the attachment.
   const [draft, setDraft] = useState<Character | null>(
     characterId === null ? newCharacter() : null,
   )
@@ -102,10 +99,6 @@ export default function CharacterEditor({
   useEffect(() => {
     if (stacks.length === 0) loadStacks()
   }, [stacks.length, loadStacks])
-
-  useEffect(() => {
-    if (characterId) loadBook(characterId)
-  }, [characterId, loadBook])
 
   // Fills once, when the characters land. Switching character remounts this component
   // (the parent keys it on the id), so the draft never needs resetting in place.
@@ -240,8 +233,8 @@ export default function CharacterEditor({
     Identity: variants.length ? plural(variants.length, 'description variant') : '',
     Openings: openings ? plural(openings, 'greeting') : '',
     Media: galleryTiles.length ? plural(galleryTiles.length, 'image') : '',
-    Lorebook: bookEntries.length
-      ? `${bookEntries.length} ${bookEntries.length === 1 ? 'entry' : 'entries'}`
+    Lorebook: (draft.lorebookIds ?? []).length
+      ? plural((draft.lorebookIds ?? []).length, 'lorebook')
       : '',
     Prompt: promptFields ? plural(promptFields, 'override') : '',
     Metadata: (draft.tags ?? []).length ? plural((draft.tags ?? []).length, 'tag') : '',
@@ -683,12 +676,7 @@ export default function CharacterEditor({
             'Lorebook',
             <LorebookTab
               character={draft}
-              onChangeBook={(patch) =>
-                change({
-                  ...draft,
-                  worldBook: { name: '', description: '', ...draft.worldBook, ...patch },
-                })
-              }
+              onChange={(lorebookIds) => change({ ...draft, lorebookIds })}
             />,
           )}
 

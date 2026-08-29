@@ -2,8 +2,9 @@ import type { Character } from '../storage/types'
 import { emptyColors } from '../storage/types.ts'
 
 /**
- * The Narrator's fixed id. Negative so it can never collide with a Dexie autoincrement key, and
- * not 0 because `worldInfoFor` guards on `if (!speaker.id)` and would treat 0 as "no speaker".
+ * The Narrator's fixed id. Negative so it can never collide with a Dexie autoincrement key.
+ * The Narrator carries no `lorebookIds`, so a turn of theirs sees only the global books and the
+ * ones attached to the chat.
  */
 export const narratorId = -1
 

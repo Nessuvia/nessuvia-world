@@ -11,6 +11,7 @@ import type { Budget } from './budget.ts'
 import { countMessages, countTokens, perMessageOverhead, trimHistory } from './budget.ts'
 import { fillSlots, miscPrompt } from './miscPrompts.ts'
 import type { MiscPrompts } from './miscPrompts.ts'
+import type { ResolvedWorldInfo } from './worldInfo.ts'
 
 /**
  * The card's text, or the block's own content when the card has none — which is the spec's
@@ -159,9 +160,10 @@ export interface BuildPromptArgs {
   speaker?: Character
   /** Source of the author's note text for `authorNote` blocks. */
   chat?: Chat
-  /** Text for a `worldInfo` block. Resolved by the caller — matching needs the speaking character's
-   *  entries out of storage, and this function stays pure, exactly as it does for `authorNote`. */
-  worldInfo?: string
+  /** Matched lorebook content. Resolved by the caller with `resolveWorldInfo` — matching needs
+   *  entries out of storage, and this function stays pure, exactly as it does for `authorNote`.
+   *  `.text` fills a `worldInfo` block; `.atDepth` entries are spliced into history instead. */
+  worldInfo?: ResolvedWorldInfo
   /** A system turn appended after everything else — the rewrite instruction. Counted against
    *  the budget like any other text, never exempted. */
   appendSystem?: string
@@ -231,7 +233,7 @@ export function buildPrompt(
   // labelled history.
   const who = speaker ?? character
   const authorNote = chat?.authorNote ?? ''
-  const worldInfoText = worldInfo ?? ''
+  const worldInfoText = worldInfo?.text ?? ''
   // Labels only once there's more than one character to tell apart: a solo chat's prompt is
   // byte-identical to what Phase 1 produced. `chat.nameSpeakers` forces them on for a chat that
   // several *people* speak in — every buildPrompt caller passes `chat`, so a session's labels
@@ -257,7 +259,8 @@ export function buildPrompt(
 
   // Resolve first, assemble second: budgeting needs the fixed cost before history goes in.
   const resolved: (ChatMessage | 'history')[] = []
-  // Author's notes with a depth leave the stack and get spliced into history below.
+  // Author's notes with a depth, and lorebook entries positioned at one, leave the stack and get
+  // spliced into history below.
   const depthNotes: { message: ChatMessage; depth: number }[] = []
   const skipped: SkippedBlock[] = []
   let fixedTokens = 0
@@ -298,6 +301,17 @@ export function buildPrompt(
       continue
     }
     resolved.push(message)
+  }
+
+  // Lorebook entries positioned at a depth. They are not part of the World info block — the block
+  // holds `.text` and these were separated out before it — so they go in whether or not the stack
+  // carries one, exactly as their position says. Same splice as a depth-limited author's note, and
+  // counted against the budget the same way.
+  for (const at of worldInfo?.atDepth ?? []) {
+    const content = swap(resolveConditions(at.text, conditions))
+    if (!content.trim()) continue
+    depthNotes.push({ message: { role: 'system', content }, depth: at.depth })
+    fixedTokens += countTokens(content) + perMessageOverhead
   }
 
   // Both trailing turns are system turns, so the merge below concatenates them: the hint says who
@@ -351,7 +365,9 @@ export function buildPrompt(
       content: group ? `${speakerLabel(m, character, persona)}: ${content}` : content,
     }
   })
-  for (const note of depthNotes) {
+  // Deepest first: each insertion point is counted from the end, so splicing a shallow note before
+  // a deep one would shift the deep one's target by the row just added.
+  for (const note of [...depthNotes].sort((a, b) => b.depth - a.depth)) {
     history.splice(Math.max(0, history.length - note.depth), 0, note.message)
   }
 

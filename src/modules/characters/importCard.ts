@@ -5,9 +5,10 @@ import type {
   Character,
   CharacterColors,
   ParamOverrides,
-  WorldBook,
-  WorldInfoEntry,
 } from '../../core/storage/types'
+// Explicit extension: this file runs under node in checkImportCard.ts. The entry mapper is shared
+// with the standalone-file import so the two paths can never read the same book differently.
+import { mapBook, type ImportedBook } from '../lorebooks/importLorebook.ts'
 
 type Loose = Record<string, unknown>
 
@@ -90,8 +91,8 @@ export function importCard(json: unknown): Character {
     // import plus the Tags page are where that gets sorted out — not here.
     tags: strList(d.tags),
     rawCard: json,
-    // Absent unless the card actually carried a book, so an empty one never shows up in the UI.
-    worldBook: hasBook(json) ? importBook(json).book : undefined,
+    // The book itself is a record of its own now. charactersStore writes it and links the id, so
+    // nothing about it lands on the Character here.
   }
 }
 
@@ -107,56 +108,14 @@ export const bookOf = (json: unknown): Loose | undefined => {
   return (d.character_book ?? card.character_book) as Loose | undefined
 }
 
-const hasBook = (json: unknown) => !!bookOf(json)
-
-/** An entry as it comes off a card: everything but the ids, which the store stamps on write. */
-export type ImportedEntry = Omit<WorldInfoEntry, 'ownerId' | 'characterId'>
-
 /**
- * A card's `character_book`, mapped. Both halves come back together because a card has one book:
- * `book` goes on the Character record, `entries` go in the worldInfo table.
+ * A card's `character_book`, mapped through the same reader a standalone world-info file uses.
+ * Both halves come back together because a card has one book: `book` becomes a Lorebook record,
+ * `entries` go in the worldInfo table keyed to it.
  *
- * Cards in the wild disagree about the entry list: v2/v3 spec it as an array, older SillyTavern
- * world_info exports write an object keyed by index. Both are accepted.
+ * The card's own name is the book's fallback label: a `character_book` with no `name` is the
+ * common case, and "Ada" reads better in the Lorebooks list than "Lorebook".
  */
-export function importBook(json: unknown): { book: WorldBook; entries: ImportedEntry[] } {
-  const raw = bookOf(json)
-  const book: WorldBook = {
-    name: str(raw?.name),
-    description: str(raw?.description),
-    scanDepth: num(raw?.scan_depth),
-    tokenBudget: num(raw?.token_budget),
-  }
-  const list = Array.isArray(raw?.entries)
-    ? raw.entries
-    : raw?.entries && typeof raw.entries === 'object'
-      ? Object.values(raw.entries as Loose)
-      : []
-
-  const entries = list
-    .map((item, index) => {
-      const e = (item ?? {}) as Loose
-      const keys = (Array.isArray(e.keys) ? e.keys : []).filter(
-        (k): k is string => typeof k === 'string' && !!k.trim(),
-      )
-      const extensions = (e.extensions as Loose) ?? {}
-      return {
-        // `comment` first: the spec's own `name` is routinely empty and the label lives there.
-        name: str(e.comment).trim() || str(e.name).trim() || keys[0] || 'Entry',
-        keys,
-        content: str(e.content),
-        always: e.constant === true,
-        // Anything but an explicit false is on — an absent flag means the author never turned it off.
-        enabled: e.enabled !== false,
-        // `extensions.scan_depth`, NOT `extensions.depth`: the latter is where SillyTavern inserts
-        // the entry in history, which has nothing to do with how far back keys are scanned.
-        scanDepth: num(extensions.scan_depth),
-        order: num(e.insertion_order) ?? index,
-        raw: item,
-      }
-    })
-    // No content is nothing to inject, whatever the keys say.
-    .filter((e) => e.content.trim())
-
-  return { book, entries }
+export function importBook(json: unknown): ImportedBook {
+  return mapBook(bookOf(json), str(cardData(json).name).trim() || 'Lorebook')
 }

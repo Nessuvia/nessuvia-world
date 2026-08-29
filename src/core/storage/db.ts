@@ -228,6 +228,26 @@ db.version(13).stores({
   paramDefs: '++id, ownerId, key',
 })
 
+// Lorebooks become records of their own, so entries are scoped by the book they belong to rather
+// than by a character. No migration: existing worldInfo rows keep a `characterId` nothing reads
+// any more, per the WIP-database note in CLAUDE.md.
+db.version(14).stores({
+  characters: '++id, ownerId',
+  personas: '++id, ownerId',
+  worldInfo: '++id, ownerId, bookId',
+  lorebooks: '++id, ownerId',
+  chats: '++id, ownerId, characterId',
+  messages: '++id, ownerId, chatId',
+  promptStacks: '++id, ownerId',
+  stories: '++id, ownerId',
+  chapters: '++id, ownerId, storyId',
+  palettes: '++id, ownerId',
+  backgroundImages: '++id, ownerId',
+  bodyTrackers: '++id, ownerId, chatId',
+  bodyMaps: '++id, ownerId',
+  paramDefs: '++id, ownerId, key',
+})
+
 function table(name: TableName) {
   return db.table<StoredRecord, number>(name)
 }

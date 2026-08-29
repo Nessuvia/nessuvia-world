@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
-import type { Message, WorldInfoEntry } from '../../core/storage/types'
+import type { Message } from '../../core/storage/types'
 import { buildRequestBody, redact } from '../../core/connectors/buildRequestBody'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
-import { worldInfoText } from '../../core/prompt/worldInfo'
-import { useWorldInfo } from '../../core/stores/worldInfoStore'
+import { emptyWorldInfo, type ResolvedWorldInfo } from '../../core/prompt/worldInfo'
 import { loadTokenizer } from '../../core/prompt/budget'
 import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
-import { useChats, resolvedConnection } from '../../core/stores/chatStore'
+import { useChats, resolvedConnection, worldInfoFor } from '../../core/stores/chatStore'
 import { nextSpeakerId } from '../../core/stores/roster'
 import { useDraft } from '../../core/stores/draftStore'
 import { usePersonas } from '../../core/stores/personasStore'
@@ -43,9 +42,9 @@ export default function PromptPanel() {
 
   const [typed, setTyped] = useState(draftText)
   const [ready, setReady] = useState(false)
-  // Fetched rather than read off the store's `entries`: those belong to whichever character the
-  // editor has open, which has nothing to do with who is up next in this chat.
-  const [entries, setEntries] = useState<WorldInfoEntry[]>([])
+  // Resolved in an effect rather than inline: matching reads entries out of storage, and it has to
+  // run against the same pending history the preview is built from.
+  const [worldInfo, setWorldInfo] = useState<ResolvedWorldInfo>(emptyWorldInfo)
   const speakerId = chat ? (nextSpeakerId(chat) ?? chat.characterId) : null
 
   // activeConnection, not the resolved one: `tokenizer` isn't overridable, and the resolved
@@ -58,9 +57,21 @@ export default function PromptPanel() {
   }, [tokenizerId])
 
   useEffect(() => {
-    if (!speakerId) return setEntries([])
-    useWorldInfo.getState().fetchFor(speakerId).then(setEntries)
-  }, [speakerId])
+    const speaker = characters.find((c) => c.id === speakerId)
+    if (!chat || !speaker) return setWorldInfo(emptyWorldInfo)
+    // The unsent draft counts as the next user turn here too, so a key typed into the composer
+    // shows its entry appearing in the preview.
+    const pending: Message[] = typed.trim()
+      ? [...messages, { ownerId: 'local', chatId: chat.id!, role: 'user' as const, content: typed, createdAt: Date.now() }]
+      : messages
+    let live = true
+    worldInfoFor(speaker, chat, pending).then((resolved) => {
+      if (live) setWorldInfo(resolved)
+    })
+    return () => {
+      live = false
+    }
+  }, [chat, characters, speakerId, messages, typed])
 
   // Token counting on every keystroke is the one thing here that could feel slow.
   useEffect(() => {
@@ -88,7 +99,7 @@ export default function PromptPanel() {
       chat,
       speaker,
       messages: pending,
-      worldInfo: worldInfoText(entries, pending, speaker.worldBook),
+      worldInfo,
       tagRules,
     },
     budgetOf(connection),
