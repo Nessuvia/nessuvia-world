@@ -760,8 +760,36 @@
   width: 80px;
 }
 
+/* Grammar Hammer's rule list: cards, not nested under the enable toggle. */
+.grammarRuleList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .chatSettings label.ruleToggleRow {
-  padding-left: 16px;
+  width: 100%;
+}
+
+.ruleToggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ruleToggleName {
+  color: var(--text);
+}
+
+.ruleTogglePattern {
+  color: var(--textMuted);
+  font-size: 12px;
+  font-family: monospace;
+  overflow-wrap: break-word;
 }
 
 .chatSettings .optionalBlock {

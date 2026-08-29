@@ -255,7 +255,8 @@ input[type='checkbox'] {
   accent-color: var(--accent);
 }
 
-/* Checkbox-and-label baseline: box on the left, text beside it, both left-aligned. Panels stack
+/* Checkbox-and-label baseline: a card the whole label toggles. The box sits top-left so it lines
+   up the same way on a one-line row or a multi-line card, text beside and below it. Panels stack
    their labels in a column (`.chatSettings label`, `.formPage label`, `.storyRail label`) because
    a text field belongs under its name, a checkbox doesn't, and without this it lands above the
    text and centered. #root because those module rules are single-class selectors this has to beat
@@ -263,16 +264,28 @@ input[type='checkbox'] {
 #root label.checkboxRow {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
   gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  cursor: pointer;
 }
 
-/* The box keeps its size when the text wraps. */
+/* Lit border when checked: the whole card reads as "on" without a second color for the box. */
+#root label.checkboxRow:has(input[type='checkbox']:checked) {
+  border-color: var(--borderAccent);
+}
+
+/* The box keeps its size when the text wraps, and reads larger than a bare browser checkbox. */
 #root label.checkboxRow > input[type='checkbox'] {
   flex: none;
-  margin: 0;
+  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
 }
 
 /* Button baseline. Mirrors .formPage button. Buttons carrying their own module styling override. */

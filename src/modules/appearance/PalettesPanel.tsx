@@ -568,13 +568,13 @@ export default function PalettesPanel() {
               // narrower clips the chat settings labels.
               onBlur={(e) => {
                 const n = Number(e.target.value)
-                patch({ sidebarWidth: n <= 0 ? 0 : Math.min(560, Math.max(280, n)) })
+                patch({ sidebarWidth: n <= 0 ? 0 : Math.min(560, Math.max(300, n)) })
               }}
             />
             px
             {rewindOf('sidebarWidth')}
           </label>
-          <p className="hint">Sidebar width 0 uses the default of 280px. Minimum is 280px.</p>
+          <p className="hint">Sidebar width 0 uses the default of 300px. Minimum is 300px.</p>
           <label className="appearanceRow">
             <span>Corner radius</span>
             <input

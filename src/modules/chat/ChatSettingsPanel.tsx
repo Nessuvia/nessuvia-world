@@ -212,10 +212,14 @@ export default function ChatSettingsPanel({
           Show reasoning
         </label>
         <SpeakerColors chat={value} />
+      </details>
+      )}
 
-        {/* writes the global grammarHammer settings, same records the Settings panel
-            edits, flipping a rule here affects every chat. Per-chat override: add a
-            grammarHammer field to the Chat record and merge it in stripText's callers. */}
+      {/* writes the global grammarHammer settings, same records the Settings panel edits,
+          flipping a rule here affects every chat. Per-chat override: add a grammarHammer field
+          to the Chat record and merge it in stripText's callers. */}
+      <details>
+        <summary>Grammar Hammer</summary>
         <label className="checkboxRow">
           <input
             type="checkbox"
@@ -226,30 +230,40 @@ export default function ChatSettingsPanel({
               })
             }
           />
-          Grammar Hammer
+          Enable
         </label>
-        {appearance.grammarHammer.enabled &&
-          appearance.grammarHammer.rules.map((rule) => (
-            <label key={rule.id} className="checkboxRow ruleToggleRow">
-              <input
-                type="checkbox"
-                checked={rule.enabled}
-                onChange={(e) =>
-                  setAppearance({
-                    grammarHammer: {
-                      ...appearance.grammarHammer,
-                      rules: appearance.grammarHammer.rules.map((r) =>
-                        r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
-                      ),
-                    },
-                  })
-                }
-              />
-              {rule.label || 'Untitled rule'}
-            </label>
-          ))}
+        {appearance.grammarHammer.enabled && (
+          <ul className="grammarRuleList">
+            {appearance.grammarHammer.rules.map((rule) => (
+              <li key={rule.id}>
+                <label className="checkboxRow ruleToggleRow">
+                  <input
+                    type="checkbox"
+                    checked={rule.enabled}
+                    onChange={(e) =>
+                      setAppearance({
+                        grammarHammer: {
+                          ...appearance.grammarHammer,
+                          rules: appearance.grammarHammer.rules.map((r) =>
+                            r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
+                          ),
+                        },
+                      })
+                    }
+                  />
+                  <span className="ruleToggleText">
+                    <span className="ruleToggleName">{rule.label || 'Untitled rule'}</span>
+                    <span className="ruleTogglePattern">{rule.pattern || '—'}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+            {appearance.grammarHammer.rules.length === 0 && (
+              <p className="hint">No rules yet. Add some in Settings.</p>
+            )}
+          </ul>
+        )}
       </details>
-      )}
 
       {/* Sections contributed by other modules. Order is module registration order (main.tsx). */}
       {chatPanels(enabledPlugins).map(({ label, component: Panel }) => (
