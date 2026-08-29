@@ -4,6 +4,7 @@ import { buildStoryPrompt, castText, fitChapterGuide } from '../../core/prompt/b
 import { storyProseSplit } from '../../core/prompt/chapterGuide'
 import { storyTokens } from '../../core/prompt/storyTokens'
 import { loadTokenizer } from '../../core/prompt/budget'
+import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import { useSettings } from '../../core/stores/settingsStore'
@@ -38,9 +39,12 @@ export default function StoryPromptPanel() {
   const [ready, setReady] = useState(false)
   const [typed, setTyped] = useState(direction)
 
+  const tokenizerId = baseConnection ? tokenizerFor(baseConnection) : defaultTokenizer
+
   useEffect(() => {
-    loadTokenizer().then(() => setReady(true))
-  }, [])
+    setReady(false)
+    loadTokenizer(tokenizerId).then(() => setReady(true))
+  }, [tokenizerId])
 
   // Token counting on every keystroke in the Direction box is the one thing here that could feel
   // slow.

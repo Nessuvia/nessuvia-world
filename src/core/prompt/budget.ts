@@ -1,20 +1,73 @@
 import type { Message } from '../storage/types'
+import { defaultTokenizer, tokenizerDef, type ResolvedTokenizerId } from './tokenizers.ts'
+import { readVocab } from './tokenizerCache.ts'
 
-// The BPE table is big, so it loads on demand and never touches first paint. The single-encoding
-// entrypoint matters: the package root bundles every encoding it ships, which doubled the chunk.
+// A BPE table is big, so it loads on demand and never touches first paint. For the tiktoken
+// families the single-encoding entrypoint matters: the package root bundles every encoding it
+// ships, which doubled the chunk.
+//
+// Two phases on purpose: loading is async, counting is not. countTokens runs inside trim loops and
+// straight in JSX, and none of that can await.
 let count: ((text: string) => number) | null = null
+const counters = new Map<ResolvedTokenizerId, (text: string) => number>()
 
-export async function loadTokenizer() {
-  if (!count) count = (await import('gpt-tokenizer/encoding/o200k_base')).countTokens
+async function buildCounter(id: ResolvedTokenizerId) {
+  const def = tokenizerDef(id)
+  try {
+    if (def.kind === 'tiktoken') {
+      // Static specifiers, so Vite can see both chunks. A computed path would bundle nothing.
+      // Only o200k_base is precached; offline, cl100k_base fails here and falls back like the
+      // undownloaded families do.
+      const mod =
+        id === 'cl100k_base'
+          ? await import('gpt-tokenizer/encoding/cl100k_base')
+          : await import('gpt-tokenizer/encoding/o200k_base')
+      return mod.countTokens
+    }
+    // Never downloads a vocab: an hf family the user hasn't fetched stays unavailable and the
+    // caller falls back. Downloading is only ever the button in the connection editor.
+    const vocab = await readVocab(id)
+    if (!vocab) return null
+    const { TokenizerLoader } = await import('@lenml/tokenizers')
+    const tok = TokenizerLoader.fromPreTrained(vocab)
+    // Raw text, no chat template and no specials — perMessageOverhead already prices the wrapper.
+    return (text: string) => tok.encode(text, { add_special_tokens: false }).length
+  } catch {
+    // A chunk that won't load or a vocab that won't parse counts as unavailable. Falling back is
+    // always better than throwing: this sits in the send path, and a slightly wrong number beats
+    // a failed generate.
+    return null
+  }
+}
+
+/**
+ * Prepares `id` and points countTokens at it. Falls back to the bundled default when the family
+ * needs a download that hasn't happened, so this resolves with something usable either way.
+ *
+ * Concurrent loads of different ids both write `count`, and the last one wins. Every counting site
+ * awaits its own load first and only one connection is active at a time, so the worst case is a
+ * stale number in a preview, never a wrong prompt — not worth a lock.
+ */
+export async function loadTokenizer(id: ResolvedTokenizerId = defaultTokenizer): Promise<void> {
+  const cached = counters.get(id)
+  if (cached) {
+    count = cached
+    return
+  }
+  const built = await buildCounter(id)
+  if (!built) {
+    if (id !== defaultTokenizer) await loadTokenizer(defaultTokenizer)
+    return
+  }
+  counters.set(id, built)
+  count = built
 }
 
 /** Roles and delimiters aren't free: every message costs a little more than its text. */
 export const perMessageOverhead = 4
 
-// one tokenizer for all models — per-family tokenizers if the margin stops covering it.
-// Exact for OpenAI-family, 10-20% off for Llama/Mistral/Qwen; safetyMarginPct absorbs that.
 export function countTokens(text: string): number {
-  // chars/4 before the table lands. Every caller that shows numbers awaits loadTokenizer.
+  // chars/4 before any table lands. Every caller that shows numbers awaits loadTokenizer.
   return count ? count(text) : Math.ceil(text.length / 4)
 }
 

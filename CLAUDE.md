@@ -6,12 +6,14 @@ A local-first character app that runs in the browser: chat with character cards,
 longer-form stories, an Ask scratchpad, and a multiplayer mode where guests join a host's chat from
 a link. All data lives in the user's browser and there are no accounts.
 
-Three paths leave the tab, and nothing else does:
+Four paths leave the tab, and nothing else does:
 
 - The model endpoint, OpenAI-compatible, hosted or localhost, with the user's own key.
 - The multiplayer relay — Supabase Realtime on a build, or a Centrifugo instance the user runs.
   Broadcast and presence only; nothing is stored there and API keys never reach it.
 - The user's own S3-compatible bucket, when sync is on. There is no server of ours in it.
+- jsDelivr, for a tokenizer vocabulary, and only when the user presses the download button in a
+  connection. Two public JSON files, no key and no user text. See `core/prompt/tokenizerCache.ts`.
 
 The build ships as static assets behind a Cloudflare Worker (`src/index.js`, `wrangler.jsonc`) that
 serves `dist` and has no routes of its own, and it installs as a PWA.
@@ -26,7 +28,8 @@ Skip migrations and back-compat shims for old records; clearing site data is a f
 
 Vite · React 19 + TypeScript · plain CSS · React Router · Zustand · Dexie (IndexedDB) · pnpm
 
-Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (token budgeting),
+Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (the bundled GPT token
+tables), `@lenml/tokenizers` (runs a downloaded `tokenizer.json` for the other model families),
 `compromise` (POS tagging for the grammar hammer), `@supabase/supabase-js` and `centrifuge`
 (multiplayer relays), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping),
 `react-colorful` (the swatch picker in `app/ColorInput.tsx`).
@@ -88,7 +91,9 @@ Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas
 ## Seams — reuse these, don't reinvent
 
 - **Prompt assembly** — `core/prompt`. `buildPrompt` (chat), `buildStoryPrompt` (Write),
-  `budget` (token counting and history trimming), `flattenPrompt` (text-completion connections),
+  `budget` (token counting and history trimming — `loadTokenizer` is async, `countTokens` is not,
+  and it has to stay that way; `tokenizers`/`autoTokenizer`/`tokenizerCache` pick and fetch which
+  one counts), `flattenPrompt` (text-completion connections),
   `swapTokens`, `worldInfo`, `conditions`, `chapterGuide`, `rewrite`. Anything changing what the
   model receives goes through one of these.
 - **Model calls** — `core/connectors`. `openaiCompatible` (streaming), `dummy` (local generator for
@@ -138,13 +143,14 @@ leaves the browser. A backup gets emailed around; a missed secret is the failure
   prevent real mistakes. Avoid generics gymnastics and decorators.
 - Components read from and call into stores. **A component must never touch Dexie.** `core/storage`
   is the only importer of Dexie and that rule has no exceptions.
-- The send path never calls `fetch` from a component: it goes store → connector. Four files outside
+- The send path never calls `fetch` from a component: it goes store → connector. Five files outside
   `core/connectors` talk outward on purpose, each saying why in its header — `sync/syncClient.ts`
   (every request is SigV4-signed, so threading a signer elsewhere buys nothing),
-  `multiplayer/realtimeClient.ts` (the relay client), and the two Settings probes,
+  `multiplayer/realtimeClient.ts` (the relay client), the two Settings probes,
   `ConnectionEditor.tsx`'s connection test and `readContextLimit.ts`, which are one-shot diagnostics
-  built from the connectors' own `completionUrl`/`modelsUrl`/`buildRequestBody`. Don't add a fifth
-  without the same kind of comment.
+  built from the connectors' own `completionUrl`/`modelsUrl`/`buildRequestBody`, and
+  `prompt/tokenizerCache.ts`, which fetches a static vocabulary from a CDN on a button press. Don't
+  add a sixth without the same kind of comment.
 - Model output and imported character cards are untrusted input. Render them as React elements,
   never via `dangerouslySetInnerHTML` — this origin holds API keys in localStorage. User markup has
   exactly one vetted route: `palette/sanitizeHtml.ts` (a `<template>` parse against a structural

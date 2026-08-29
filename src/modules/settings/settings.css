@@ -141,6 +141,12 @@
   min-width: 0;
 }
 
+/* Its own class rather than `.modelRow select`: the row is shared with the model picker. */
+.tokenizerSelect {
+  flex: 1;
+  min-width: 0;
+}
+
 .modelPicker {
   position: relative;
   flex-wrap: wrap;

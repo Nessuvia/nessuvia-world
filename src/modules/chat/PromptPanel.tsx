@@ -5,6 +5,7 @@ import { buildPrompt } from '../../core/prompt/buildPrompt'
 import { worldInfoText } from '../../core/prompt/worldInfo'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { loadTokenizer } from '../../core/prompt/budget'
+import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { useChats, resolvedConnection } from '../../core/stores/chatStore'
 import { nextSpeakerId } from '../../core/stores/roster'
@@ -47,9 +48,14 @@ export default function PromptPanel() {
   const [entries, setEntries] = useState<WorldInfoEntry[]>([])
   const speakerId = chat ? (nextSpeakerId(chat) ?? chat.characterId) : null
 
+  // activeConnection, not the resolved one: `tokenizer` isn't overridable, and the resolved
+  // connection isn't built until further down.
+  const tokenizerId = activeConnection ? tokenizerFor(activeConnection) : defaultTokenizer
+
   useEffect(() => {
-    loadTokenizer().then(() => setReady(true))
-  }, [])
+    setReady(false)
+    loadTokenizer(tokenizerId).then(() => setReady(true))
+  }, [tokenizerId])
 
   useEffect(() => {
     if (!speakerId) return setEntries([])

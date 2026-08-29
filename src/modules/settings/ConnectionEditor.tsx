@@ -13,6 +13,7 @@ import { recommendedParams } from '../../core/params/connectionParams'
 import ParamBuilder from './ParamBuilder'
 import TemplateEditor from './TemplateEditor'
 import { readContextLimit } from './readContextLimit'
+import TokenizerPicker from './TokenizerPicker'
 
 interface Props {
   connection: Connection
@@ -265,6 +266,8 @@ export default function ConnectionEditor({ connection, onSave, onClose }: Props)
               onChange={(e) => set('safetyMarginPct', Number(e.target.value))}
             />
           </label>
+
+          <TokenizerPicker connection={draft} onChange={(t) => set('tokenizer', t)} />
         </div>
       </details>
 

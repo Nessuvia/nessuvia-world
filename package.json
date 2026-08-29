@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lenml/tokenizers": "^3.7.2",
     "@remixicon/react": "^4.9.0",
     "@supabase/supabase-js": "^2.112.3",
     "aws4fetch": "^1.0.20",

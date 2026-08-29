@@ -6,6 +6,7 @@ import { storyTokens } from '../../core/prompt/storyTokens'
 import { worldInfoText } from '../../core/prompt/worldInfo'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
 import { countTokens, loadTokenizer, perMessageOverhead } from '../../core/prompt/budget'
+import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import { useSettings, type Connection } from '../../core/stores/settingsStore'
@@ -55,10 +56,13 @@ export default function PromptPreview({
   onToggleCollapsed: () => void
 }) {
   const [ready, setReady] = useState(false)
+  const activeConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const tokenizerId = activeConnection ? tokenizerFor(activeConnection) : defaultTokenizer
 
   useEffect(() => {
-    loadTokenizer().then(() => setReady(true))
-  }, [])
+    setReady(false)
+    loadTokenizer(tokenizerId).then(() => setReady(true))
+  }, [tokenizerId])
 
   if (collapsed) {
     return <CollapseRail label="Preview" onToggle={onToggleCollapsed} />

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@lenml/tokenizers':
+        specifier: ^3.7.2
+        version: 3.7.2
       '@remixicon/react':
         specifier: ^4.9.0
         version: 4.9.0(react@19.2.8)
@@ -978,6 +981,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@lenml/tokenizers@3.7.2':
+    resolution: {integrity: sha512-tuap9T7Q80Czor8NHzxjlLNvxEX8MgFINzsBTV+lq1v7G+78YR3ZvBhmLsPHtgqExB4Q4kCJH6dhXOYWSLdHLw==}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -3638,6 +3644,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@lenml/tokenizers@3.7.2': {}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true

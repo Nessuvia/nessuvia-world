@@ -11,6 +11,7 @@ import { storyTokens } from '../prompt/storyTokens'
 import { rewritePrompt } from '../prompt/rewrite'
 import { deletedSwipes, regenerated, selectSwipe, swipeIndex } from './swipes'
 import { loadTokenizer } from '../prompt/budget'
+import { tokenizerFor } from '../prompt/tokenizers'
 import { activeConnection } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
 import { useStacks } from './stacksStore'
@@ -621,7 +622,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     let finishReason = ''
     try {
       const stack = await useStacks.getState().ensureActive('story')
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       const current = get().chapters
       // The one thing the per-Block context setting does: blank one side of the prose or the other.
       const split = storyProseSplit(current, chapterId, blockId, block.context)

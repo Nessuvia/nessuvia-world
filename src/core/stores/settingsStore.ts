@@ -6,6 +6,7 @@ import type { ConnectionType, InstructTemplate, ParamValue } from '../params/par
 import { tableNames, type TableName } from '../storage/storageInterface.ts'
 import { emptyBucketConfig, type BucketConfig } from '../sync/bucketConfig.ts'
 import { emptyRelayConfig, type RelayConfig } from '../multiplayer/relayConfig.ts'
+import type { TokenizerId } from '../prompt/tokenizers.ts'
 
 /** The three colorable inline markers, distinct from plain text. Order in `Palette.colorOrder`
  *  is top-first (strongest first) — see renderText for how precedence resolves. */
@@ -30,9 +31,13 @@ export interface Connection {
   params: ParamValue[]
   /** How messages are flattened for `type: 'text'`. Unset uses `defaultTemplate()` (ChatML). */
   template?: InstructTemplate
-  /** Budget inputs, not request fields: neither is ever sent. */
+  /** Budget inputs, not request fields: none of the three is ever sent. */
   contextLimit: number
   safetyMarginPct: number
+  /** Which tokenizer counts this connection's prompts. Undefined means `auto` — guessed from the
+   *  model name. Connection-level and not in `overridableFields`: this describes the model the
+   *  connection points at, not a preference. Per-chat override is the upgrade path if wanted. */
+  tokenizer?: TokenizerId
   /** How much structure this endpoint accepts on a request, learned on the first palette ask
    *  rather than configured. Undefined means it has not been tried yet. */
   structuredOutput?: StructuredMode

@@ -7,6 +7,7 @@ import { sendMessage } from '../connectors/openaiCompatible'
 import { snapshotOf } from '../connectors/snapshot'
 import { buildPrompt } from '../prompt/buildPrompt'
 import { loadTokenizer } from '../prompt/budget'
+import { tokenizerFor } from '../prompt/tokenizers'
 import type { Connection } from './settingsStore'
 import { activeConnection, useSettings } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
@@ -473,7 +474,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       try {
         const stack = await stackFor(chat)
         const persona = await usePersonas.getState().ensureActive()
-        await loadTokenizer()
+        await loadTokenizer(tokenizerFor(connection))
         const promptMessages = buildPrompt(
           {
             stack,
@@ -578,7 +579,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     try {
       const stack = await stackFor(chat)
       const persona = await usePersonas.getState().ensureActive()
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       const promptMessages = buildPrompt(
         {
           stack,
@@ -715,7 +716,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     let snapshot: string | undefined
     try {
       const persona = await usePersonas.getState().ensureActive()
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       // As if this message didn't exist yet: history is everything before it. Anything after it
       // is neither sent nor touched — it only reaches the model through the instruction above.
       const prompt = buildPrompt(
@@ -832,7 +833,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     try {
       const stack = await stackFor(chat)
       const persona = await usePersonas.getState().ensureActive()
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       // History is everything before this message; the message itself goes in as the prefill, so
       // it appears once rather than twice. Deliberately unlabelled in a group chat, where history
       // turns carry a `Name:` prefix — the continuation should come back as bare text.
