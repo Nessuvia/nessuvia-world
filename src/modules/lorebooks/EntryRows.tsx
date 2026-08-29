@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { RiDeleteBinLine, RiDraggable } from '@remixicon/react'
 import { useDragReorder } from '../../app/useDragReorder'
+import { useMediaQuery } from '../../app/useMediaQuery'
 import '../../app/dragReorder.css'
 import { defaultDepth, defaultInsertDepth } from '../../core/prompt/worldInfo'
 import type { EntryPosition, Lorebook, WorldInfoEntry } from '../../core/storage/types'
@@ -50,6 +51,9 @@ export default function EntryRows({
 }) {
   const [openId, setOpenId] = useState<number | null>(null)
   const drag = useDragReorder(onReorder)
+  const narrow = useMediaQuery('(max-width: 700px)')
+  // Blur commits the text, so Escape has to say it meant the other thing.
+  const cancelled = useRef(false)
 
   const commit = (entry: WorldInfoEntry, patch: Partial<WorldInfoEntry>) =>
     onSave({ ...entry, ...patch })
@@ -95,7 +99,7 @@ export default function EntryRows({
             />
             <input
               className="lorebooksEntryKeys"
-              placeholder="Keys, comma separated"
+              placeholder="Strings to match by"
               defaultValue={entry.keys.join(', ')}
               onBlur={(e) => commit(entry, { keys: splitKeys(e.target.value) })}
             />
@@ -142,7 +146,7 @@ export default function EntryRows({
               <div className="lorebooksEntryRow">
                 <input
                   className="lorebooksEntryKeys"
-                  placeholder="Secondary keys, comma separated"
+                  placeholder="Secondary keys"
                   defaultValue={(entry.secondaryKeys ?? []).join(', ')}
                   onBlur={(e) => commit(entry, { secondaryKeys: splitKeys(e.target.value) })}
                 />
@@ -205,13 +209,47 @@ export default function EntryRows({
               </div>
               <textarea
                 rows={10}
+                autoFocus
                 defaultValue={entry.content}
                 className="lorebooksEntryText"
-                onBlur={(e) => commit(entry, { content: e.target.value })}
+                onBlur={(e) => {
+                  // Focus moving to the selects above is still inside the entry, so the row only
+                  // closes once focus leaves it altogether.
+                  const leaving = !e.currentTarget
+                    .closest('li')
+                    ?.contains(e.relatedTarget as Node | null)
+                  if (cancelled.current) cancelled.current = false
+                  else commit(entry, { content: e.target.value })
+                  if (leaving) setOpenId(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    cancelled.current = true
+                    e.currentTarget.value = entry.content
+                    e.currentTarget.blur()
+                    setOpenId(null)
+                    return
+                  }
+                  // Enter saves and closes the row, shift-Enter is a newline. On a phone Enter is
+                  // the only newline key there is, so the Close button does the closing instead.
+                  if (e.key !== 'Enter' || e.shiftKey || narrow) return
+                  e.preventDefault()
+                  commit(entry, { content: e.currentTarget.value })
+                  setOpenId(null)
+                }}
               />
+              <p className="hint lorebooksEntryHint">
+                Enter or click out saves · Shift+Enter for a new line · Esc discards
+              </p>
             </>
           ) : (
-            <p className="hint lorebooksEntrySnippet">{entry.content || 'No text.'}</p>
+            // Clicking the text opens it for editing, the way a chat message does.
+            <p
+              className="hint lorebooksEntrySnippet"
+              onClick={() => setOpenId(entry.id ?? null)}
+            >
+              {entry.content || 'No text.'}
+            </p>
           )}
         </li>
         )

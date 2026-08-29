@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { RiDeleteBinLine } from '@remixicon/react'
 import { CollapseButton } from '../../app/CollapseButton'
 
-/** View state only, so it is not in Dexie and not in a backup. '1' means collapsed. */
+/** View state only, so it is not in Dexie and not in a backup. '0' means open. */
 const storageKey = 'nessuTavern.lorebooksExample'
 
 /**
@@ -11,7 +11,8 @@ const storageKey = 'nessuTavern.lorebooksExample'
  * match a field here against the same field one row down.
  */
 export default function EntryExample() {
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(storageKey) === '1')
+  // Closed until asked for: the rows below explain themselves once you have read this once.
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(storageKey) !== '0')
 
   const toggle = () => {
     const next = !collapsed
@@ -33,12 +34,12 @@ export default function EntryExample() {
             <input
               className="lorebooksEntryName"
               disabled
-              placeholder="Name — yours to find it by. Not sent."
+              placeholder="Name"
             />
             <input
               className="lorebooksEntryKeys"
               disabled
-              placeholder="elf, elves, Sylvani — a match in recent messages adds this entry"
+              placeholder="Strings to match by"
             />
             <label className="lorebooksEntryFlag">
               <input type="checkbox" disabled />
@@ -68,7 +69,7 @@ export default function EntryExample() {
             <input
               className="lorebooksEntryKeys"
               disabled
-              placeholder="Secondary keys — the message must match one of these too"
+              placeholder="Secondary keys"
             />
             <select disabled aria-label="Secondary key rule">
               <option>Any secondary</option>
@@ -83,9 +84,8 @@ export default function EntryExample() {
           </div>
 
           <p className="hint lorebooksExampleNote">
-            The rule next to the secondary keys says how many of them have to match. Position is
-            where the text lands: before or after the character, or a set number of messages from
-            the end of the chat.
+            Position is where the text lands: before or after the character, or a set number of
+            messages from the end of the chat.
           </p>
 
           <textarea

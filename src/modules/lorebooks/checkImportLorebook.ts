@@ -1,11 +1,11 @@
-// The standalone world-info reader, against the reference export in the repo root.
+// The standalone world-info reader, against the reference export in src/assets/testAssets.
 // Run: node --experimental-strip-types src/modules/lorebooks/checkImportLorebook.ts
 import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import { importLorebook, mapEntry } from './importLorebook.ts'
 
 const reference = JSON.parse(
-  readFileSync(new URL('../../../honkai-star-rail.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../assets/testAssets/honkai-star-rail.json', import.meta.url), 'utf8'),
 )
 
 // --- the reference file: index-keyed, key/keysecondary, disable ----------

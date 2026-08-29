@@ -37,6 +37,11 @@ interface LorebooksState {
   /** Entries per book id, for the list. Counted on load rather than held per book: the number is a
    *  property of the worldInfo table, and a stale copy on the book row is the thing that rots. */
   counts: Record<number, number>
+  /** Character names holding each book id, for the Bundled group in the list. Read here for the
+   *  same reason `counts` is: attachment lives on the character row, and the view must not reach
+   *  into storage itself. A book attached to a chat is not bundled — only characters travel with
+   *  a card. */
+  bundledTo: Record<number, string[]>
   loading: boolean
   load(): Promise<void>
   save(book: Lorebook): Promise<number>
@@ -51,6 +56,7 @@ interface LorebooksState {
 export const useLorebooks = create<LorebooksState>()((set, get) => ({
   books: [],
   counts: {},
+  bundledTo: {},
   loading: false,
 
   load: async () => {
@@ -61,7 +67,14 @@ export const useLorebooks = create<LorebooksState>()((set, get) => ({
       const bookId = entry.bookId as number
       counts[bookId] = (counts[bookId] ?? 0) + 1
     }
-    set({ books: rows.sort(byName), counts, loading: false })
+    const bundledTo: Record<number, string[]> = {}
+    for (const row of await storage.getAll('characters')) {
+      const ids = row.lorebookIds as number[] | undefined
+      if (!ids?.length) continue
+      const name = (row.name as string) || 'Unnamed'
+      for (const id of ids) (bundledTo[id] ??= []).push(name)
+    }
+    set({ books: rows.sort(byName), counts, bundledTo, loading: false })
   },
 
   save: async (book) => {

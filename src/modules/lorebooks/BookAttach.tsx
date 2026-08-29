@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RiCloseLine } from '@remixicon/react'
 import { newBook, useLorebooks } from '../../core/stores/lorebooksStore'
@@ -20,8 +20,10 @@ export default function BookAttach({
   onChange: (ids: number[]) => void
   emptyText: string
 }) {
-  const { books, counts, load } = useLorebooks()
+  const { books, counts, load, importFile } = useLorebooks()
   const [picking, setPicking] = useState(false)
+  const [error, setError] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
   // The book just made here, so the link to go and fill it in has somewhere to point.
   const [createdId, setCreatedId] = useState<number | null>(null)
   // Books are known only after the first load resolves; before that every id looks dead.
@@ -38,6 +40,18 @@ export default function BookAttach({
   useEffect(() => {
     if (ready && attached.length !== ids.length) onChange(attached.map((b) => b.id!))
   })
+
+  /** Import reads a lorebook file into the library and attaches the book it made. */
+  async function readFile(file: File) {
+    setError('')
+    try {
+      const id = await importFile(await file.text(), file.name.replace(/\.[^.]+$/, ''))
+      onChange([...ids, id])
+      setCreatedId(id)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not read that file.')
+    }
+  }
 
   return (
     <div className="lorebooksAttach">
@@ -78,6 +92,20 @@ export default function BookAttach({
           <button type="button" onClick={() => setPicking(true)}>
             Attach
           </button>
+          <button type="button" className="secondary" onClick={() => fileRef.current?.click()}>
+            Import
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="lorebooksFileInput"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) readFile(file)
+              e.target.value = '' // let the same file be picked again
+            }}
+          />
           <button
             type="button"
             className="secondary"
@@ -98,6 +126,8 @@ export default function BookAttach({
           )}
         </div>
       )}
+
+      {error && <p className="hint lorebooksError">{error}</p>}
     </div>
   )
 }

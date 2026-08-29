@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiQuestionAnswerLine } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 import './ask.css'
 
 registerModule({
@@ -8,5 +7,5 @@ registerModule({
   label: 'Ask',
   icon: RiQuestionAnswerLine,
   route: '/ask',
-  component: lazy(() => import('./AskView')),
+  component: lazyView(() => import('./AskView')),
 })

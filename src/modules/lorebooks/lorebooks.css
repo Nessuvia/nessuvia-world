@@ -33,6 +33,19 @@
   gap: 6px;
 }
 
+/* Spans the list column, so it reads as a heading over the rows in one- and two-column layouts
+   alike. Not a .card: it is a label in the list, not a row you can open. */
+.lorebooksGroupHeader {
+  padding: 4px 2px;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+/* The second header follows a run of rows and needs air off them. */
+.lorebooksListRow + .lorebooksGroupHeader {
+  margin-top: 12px;
+}
+
 .lorebooksListRow {
   display: flex;
   align-items: center;
@@ -204,6 +217,13 @@
 .lorebooksEntrySnippet {
   margin: 0;
   white-space: pre-wrap;
+  /* Muted read as placeholder text against the filled-in fields above it. */
+  color: var(--textSoft);
+  cursor: text;
+}
+
+.lorebooksEntryHint {
+  margin: 0;
 }
 
 /* --- the example entry ------------------------------------------------- */

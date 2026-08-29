@@ -1554,7 +1554,47 @@
   color: var(--textMuted);
 }
 
-/* ---- Import tag review --------------------------------------------------- */
+/* ---- Import review ------------------------------------------------------- */
+
+.importReviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.importReviewTitle {
+  margin: 0;
+  font-size: 14px;
+}
+
+.importReviewCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.importReviewEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.importReviewEntryName {
+  margin: 0;
+  color: var(--textBright);
+}
+
+.importReviewEntryKeys {
+  margin: 0;
+}
+
+.importReviewEntryText {
+  margin: 0;
+  color: var(--textSoft);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
 
 .importTagBadges {
   display: flex;

@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiStackLine } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 
 registerModule({
   id: 'prompts',
@@ -11,5 +10,5 @@ registerModule({
     ['stacks', 'Stacks'],
     ['misc', 'Misc Prompts'],
   ],
-  component: lazy(() => import('./StackEditor')),
+  component: lazyView(() => import('./StackEditor')),
 })

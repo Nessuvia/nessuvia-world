@@ -61,8 +61,10 @@ interface CharactersState {
   /** The one card-import path: saves the character, then its lorebook against the new id. Every
    *  caller goes through here so no import route can quietly drop a book.
    *  `tags` overrides whatever the card carried — the import review screen passes the ones the user
-   *  kept. Omitted (seeding, cards with no tags) means the card's own tags stand. */
-  importCharacter(json: unknown, avatar?: string, tags?: string[]): Promise<number>
+   *  kept. Omitted (seeding, cards with no tags) means the card's own tags stand.
+   *  `includeBook` false leaves the card's embedded lorebook unimported — the import review screen
+   *  passes the user's answer. The card itself still keeps it in `rawCard`. */
+  importCharacter(json: unknown, avatar?: string, tags?: string[], includeBook?: boolean): Promise<number>
   remove(id: number): Promise<void>
 }
 
@@ -108,10 +110,10 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
     return id
   },
 
-  importCharacter: async (json, avatar, tags) => {
+  importCharacter: async (json, avatar, tags, includeBook = true) => {
     // The book is written first so its id can go on the character in the same save — otherwise a
     // card import would need a second write just to link what it already knows.
-    const lorebookIds = await importedBookIds(json)
+    const lorebookIds = includeBook ? await importedBookIds(json) : []
     return get().save({
       ...importCard(json),
       ...(avatar ? { avatar } : {}),

@@ -1,6 +1,7 @@
 // Round-trip fidelity: a card imported and re-exported must not lose anything it arrived with.
 // Run: node --experimental-strip-types src/modules/characters/checkImportCard.ts
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
 import type { Character, Lorebook, WorldInfoEntry } from '../../core/storage/types.ts'
 import { buildCard } from './exportCard.ts'
 import { importBook, importCard } from './importCard.ts'
@@ -149,5 +150,19 @@ assert.equal(junk.avatarCrop, undefined)
 
 // A card with no name is not a card.
 assert.throws(() => importCard({ description: 'nope' }), /no name/)
+
+// --- a real card off a card site -----------------------------------------
+// The hand-written card above covers the fields; this one covers the volume. A community card with
+// a book this size is what the import review screen has to describe before anything is written.
+const wild = JSON.parse(
+  readFileSync(new URL('../../assets/testAssets/mushoku-tensei-rpg.json', import.meta.url), 'utf8'),
+)
+const wildBook = importBook(wild)
+assert.equal(importCard(wild).name, 'Mushoku Tensei RPG + Lorebook Entries with Names')
+assert.equal(wildBook.entries.length, 209)
+assert.equal(wildBook.book.name, 'Mushoku Tensei Lorebook')
+// Every entry the review screen counts has something to inject, and one to show as the example.
+assert.ok(wildBook.entries.every((e) => e.content.trim()))
+assert.equal(wildBook.entries[0].name, 'Six-Faced World')
 
 console.log('checkImportCard: ok')

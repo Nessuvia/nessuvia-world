@@ -8,7 +8,7 @@ import BookEditor from './BookEditor'
 const nameOf = (file: File) => file.name.replace(/\.[^.]+$/, '')
 
 export default function LorebooksView() {
-  const { books, counts, loading, load, create, importFile, remove } = useLorebooks()
+  const { books, counts, bundledTo, loading, load, create, importFile, remove } = useLorebooks()
   const [openId, setOpenId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -25,6 +25,39 @@ export default function LorebooksView() {
   }, [hash])
 
   const open = books.find((b) => b.id === openId) ?? null
+
+  const bundled = books.filter((b) => bundledTo[b.id!]?.length)
+  const loose = books.filter((b) => !bundledTo[b.id!]?.length)
+
+  const row = (b: (typeof books)[number]) => (
+    <li
+      key={b.id}
+      className={`card lorebooksListRow ${b.id === openId ? 'editing' : ''}`}
+      onClick={() => setOpenId(b.id === openId ? null : (b.id ?? null))}
+    >
+      <span className="lorebooksName">{b.name || 'Unnamed'}</span>
+      <span className="lorebooksCount">{counts[b.id!] ?? 0}</span>
+      {bundledTo[b.id!]?.map((name) => (
+        <span key={name} className="lorebooksBadge">
+          {name}
+        </span>
+      ))}
+      {b.global && <span className="lorebooksBadge">All chats</span>}
+      <button
+        type="button"
+        className="danger"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (confirm(`Delete ${b.name || 'this book'} and its entries?`)) {
+            if (openId === b.id) setOpenId(null)
+            remove(b.id!)
+          }
+        }}
+      >
+        Delete
+      </button>
+    </li>
+  )
 
   async function readFile(file: File) {
     setError('')
@@ -73,30 +106,14 @@ export default function LorebooksView() {
       <TwoColumn
         list={
           <ul className="lorebooksList">
-            {books.map((b) => (
-              <li
-                key={b.id}
-                className={`card lorebooksListRow ${b.id === openId ? 'editing' : ''}`}
-                onClick={() => setOpenId(b.id === openId ? null : (b.id ?? null))}
-              >
-                <span className="lorebooksName">{b.name || 'Unnamed'}</span>
-                <span className="lorebooksCount">{counts[b.id!] ?? 0}</span>
-                {b.global && <span className="lorebooksBadge">All chats</span>}
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (confirm(`Delete ${b.name || 'this book'} and its entries?`)) {
-                      if (openId === b.id) setOpenId(null)
-                      remove(b.id!)
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
+            {/* A header only appears when its group has rows, so a library with no bundled books
+                doesn't grow a heading over nothing. */}
+            {bundled.length > 0 && (
+              <li className="lorebooksGroupHeader">Bundled with a character</li>
+            )}
+            {bundled.map(row)}
+            {loose.length > 0 && <li className="lorebooksGroupHeader">Not bundled</li>}
+            {loose.map(row)}
           </ul>
         }
         detail={open && <BookEditor key={open.id} book={open} />}

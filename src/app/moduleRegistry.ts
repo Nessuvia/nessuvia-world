@@ -1,5 +1,5 @@
 import type { RemixiconComponentType } from '@remixicon/react'
-import type { ComponentType } from 'react'
+import { lazy, type ComponentType } from 'react'
 
 export interface AppModule {
   id: string
@@ -37,6 +37,41 @@ export function isEnabled(mod: AppModule, enabledPlugins: Record<string, boolean
 
 export function registerModule(mod: AppModule) {
   modules.push(mod)
+}
+
+type ViewLoader = () => Promise<{ default: ComponentType }>
+
+// A lazy component keeps its loader private, so the same import has to be handed to us to prefetch.
+// lazyView pairs the two: React gets the lazy wrapper, the registry keeps the loader.
+const loaders = new Map<ComponentType, ViewLoader>()
+
+/** Use in place of `lazy()` for a module's route view, so it can also be prefetched. */
+export function lazyView(load: ViewLoader) {
+  const component = lazy(load) as unknown as ComponentType
+  loaders.set(component, load)
+  return component
+}
+
+let preloading = false
+
+/** Fetch every registered module's chunk, one at a time, so a tab is already in memory when it is
+ *  clicked. Sequential and idle-scheduled: the point is to stay out of the way of whatever the user
+ *  is doing, not to win a race. The browser cache and the import map dedupe against the real
+ *  navigation, so a click mid-prefetch costs nothing. */
+export function preloadModules() {
+  if (preloading) return
+  preloading = true
+  const queue = modules.map((mod) => loaders.get(mod.component)).filter((load) => load !== undefined)
+  const idle: (cb: () => void) => void = window.requestIdleCallback
+    ? (cb) => void window.requestIdleCallback(cb)
+    : (cb) => void setTimeout(cb, 200)
+  const next = () => {
+    const load = queue.shift()
+    if (!load) return
+    // A failed chunk is not worth reporting: the route's own Suspense boundary retries on click.
+    idle(() => void load().then(next, next))
+  }
+  next()
 }
 
 /** Every chat-sidebar section, in module registration order. */

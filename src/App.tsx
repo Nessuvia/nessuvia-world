@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Sidebar from './app/Sidebar'
 import AppRoutes from './app/routes'
+import { preloadModules } from './app/moduleRegistry'
 import JoinView from './modules/join/JoinView'
 import PageBackground from './app/PageBackground'
 import SplashScreen from './app/SplashScreen'
@@ -48,6 +49,13 @@ export default function App() {
 // type on every render, so React would unmount and remount this whole subtree — background fade
 // and all — every time App re-renders for a palette change.
 function AppShell() {
+  // Module chunks come down in the background once boot is over, so the first click on a tab has
+  // nothing left to fetch. Held until after the splash so the animation keeps the network to itself.
+  // Lives here rather than in App: a guest on /join never mounts the shell and never prefetches.
+  useEffect(() => {
+    const t = setTimeout(preloadModules, 2200)
+    return () => clearTimeout(t)
+  }, [])
   return (
     <div className="appShell">
       <SplashScreen />

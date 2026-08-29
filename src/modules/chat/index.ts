@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiChat3Line } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 import './chat.css'
 
 registerModule({
@@ -8,5 +7,5 @@ registerModule({
   label: 'Chat',
   icon: RiChat3Line,
   route: '/chat',
-  component: lazy(() => import('./ChatModule')),
+  component: lazyView(() => import('./ChatModule')),
 })
