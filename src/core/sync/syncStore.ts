@@ -20,7 +20,7 @@ export type Direction = 'push' | 'pull'
 
 export interface TableComparison {
   verdict: Verdict
-  /** The obvious direction, pre-filled. Null for `both`, which the user has to decide — an
+  /** The obvious direction, pre-filled. Null for `both`, which the user has to decide: an
    *  unresolved collision is refused by apply rather than settled by a default. */
   suggested: Direction | null
   /** Stamped by the store, not this device. Absent when the table has never been pushed. */

@@ -57,7 +57,7 @@ export const useBackgroundImages = create<BackgroundImagesState>()((set, get) =>
   },
 }))
 
-/** The image at `id`, or undefined — a palette can point at a row that was deleted. */
+/** The image at `id`, or undefined, a palette can point at a row that was deleted. */
 export function useBackgroundImage(id: number): BackgroundImage | undefined {
   return useBackgroundImages((s) => s.images.find((img) => img.id === id))
 }

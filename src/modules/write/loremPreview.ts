@@ -1,5 +1,5 @@
 // Placeholder prose for the Preview Word Count toggle: shows an Author how long a beat's target
-// actually is. Display only — it is never stored on a Block and never sent to the model.
+// actually is. Display only: it is never stored on a Block and never sent to the model.
 //
 // Its own file, extension-ful imports and all, so checkLoremPreview.ts can run it under
 // `node --experimental-strip-types`.
@@ -32,7 +32,7 @@ function sentences(count: number): string {
  * `words` words of placeholder prose split into paragraphs, exactly that many words in total.
  *
  * Roughly one paragraph in four is a single short sentence, the rest run 50–140 words, which is
- * what makes the block read like a reply rather than a wall — the whole point is judging length by
+ * what makes the block read like a reply rather than a wall. The whole point is judging length by
  * eye. The last paragraph takes whatever is left, so the count is exact and the number under the
  * beat's target field matches what is on screen.
  */

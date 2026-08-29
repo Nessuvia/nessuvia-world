@@ -1,5 +1,5 @@
 // Per-kind config for the stack editor: which bound sources a kind exposes and how it validates.
-// The difference between a Chat stack and a Story stack is data, not control flow — StackEditor
+// The difference between a Chat stack and a Story stack is data, not control flow: StackEditor
 // reads these tables and stays one code path.
 import type { BlockSource, PromptBlock, PromptStack } from '../../core/storage/types'
 
@@ -8,7 +8,7 @@ export type StackKind = 'chat' | 'story'
 /** A stack's kind, defaulting rows written before the field existed to 'chat'. */
 export const stackKind = (stack: Pick<PromptStack, 'kind'>): StackKind => stack.kind ?? 'chat'
 
-/** Bound sources per kind — pulled in from elsewhere in the app, allowed once each at top level. */
+/** Bound sources per kind: pulled in from elsewhere in the app, allowed once each at top level. */
 export const boundSources: Record<StackKind, BlockSource[]> = {
   chat: [
     'characterDescription',
@@ -32,7 +32,7 @@ export const boundSources: Record<StackKind, BlockSource[]> = {
 /** Sources a block of this kind may take: freeform text plus the kind's bound sources. */
 export const kindSources = (kind: StackKind): BlockSource[] => ['text', ...boundSources[kind]]
 
-// Switched on only, at any depth — nesting a bound block inside a wrapper still uses that source,
+// Switched on only, at any depth: nesting a bound block inside a wrapper still uses that source,
 // so it counts. A disabled block takes its whole subtree out of the prompt, so neither counts.
 const countIn = (list: PromptBlock[], source: BlockSource): number =>
   list.reduce(
@@ -43,17 +43,17 @@ const countIn = (list: PromptBlock[], source: BlockSource): number =>
 
 const count = (stack: PromptStack, source: BlockSource) => countIn(stack.active, source)
 
-/** Whether a stack has a live block of this source. A disabled one doesn't count — it contributes
+/** Whether a stack has a live block of this source. A disabled one doesn't count: it contributes
  *  nothing, which is the same outcome as not having it. */
 export const hasSource = (stack: PromptStack, source: BlockSource) => count(stack, source) > 0
 
 /** Why the stack can't be saved, or '' when it's valid. Keyed by kind. */
 export function validateStack(stack: PromptStack): string {
   if (count(stack, 'authorNote') > 1) return "Only one Author's note block allowed"
-  if (count(stack, 'worldInfo') > 1) return 'Only one World info — before character block allowed'
+  if (count(stack, 'worldInfo') > 1) return 'Only one World info (before character) block allowed'
   if (count(stack, 'worldInfoAfter') > 1)
-    return 'Only one World info — after character block allowed'
-  if (count(stack, 'worldInfoDepth') > 1) return 'Only one World info — at depth block allowed'
+    return 'Only one World info (after character) block allowed'
+  if (count(stack, 'worldInfoDepth') > 1) return 'Only one World info (at depth) block allowed'
   if (stackKind(stack) === 'story') {
     if (count(stack, 'chatHistory') > 0) return 'Story stacks have no Chat History block'
     if (count(stack, 'authorNote') > 0) return "Story stacks have no Author's note block"

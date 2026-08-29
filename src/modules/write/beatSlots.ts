@@ -1,6 +1,6 @@
 // Mapping an edited beat list back onto a Chapter's `blocks`. Its own file rather than a helper in
 // PlotLayout.tsx so checkBeatSlots.ts can run it under `node --experimental-strip-types`, which
-// cannot parse JSX — and this is logic that has already shipped one bug.
+// cannot parse JSX, and this is logic that has already shipped one bug.
 //
 // Extension-ful imports on purpose, for the same reason.
 import type { Block, Chapter } from '../../core/storage/types.ts'
@@ -8,7 +8,7 @@ import { isBeat } from '../../core/prompt/chapterGuide.ts'
 
 /**
  * What an empty beat is stored as. `isBeat` is `beat !== ''`, so a beat the Author has not written
- * yet still needs *something* in the field or the Block silently becomes free prose — clearing the
+ * yet still needs *something* in the field or the Block silently becomes free prose. Clearing the
  * text is not how you ask for that. A single space is that something.
  *
  * It is storage, not text: `beatText` takes it back out for display, and `storedBeat` puts it back.
@@ -30,7 +30,7 @@ export const storedBeat = (text: string): string =>
  * stretches keep their positions, so editing the plan on the Plot Layout tab never shuffles prose
  * the Author wrote outside it.
  *
- * `next` comes from `beatBlocks`, so both sides must agree on which Blocks are beats — that is why
+ * `next` comes from `beatBlocks`, so both sides must agree on which Blocks are beats. That is why
  * the slot scan calls `isBeat` rather than spelling the test again. When they disagreed, a beat the
  * Author had just added counted in `next` but held no slot, so every keystroke appended a copy
  * instead of replacing it.
@@ -46,7 +46,7 @@ export function withBeats(chapter: Pick<Chapter, 'blocks'>, next: Block[]): Bloc
       out.push(block)
       continue
     }
-    // This slot takes the next entry in the edited list, whatever its id — that is what makes a
+    // This slot takes the next entry in the edited list, whatever its id: that is what makes a
     // reorder land in place rather than appending. A slot past the end of `next` held a beat that
     // was removed, so it is simply not written out.
     if (k < next.length) out.push(next[k++])

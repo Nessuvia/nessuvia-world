@@ -34,7 +34,7 @@ export default defineConfig({
         // precache, and it is the one every connection uses until told otherwise.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // cl100k is an opt-in pick, so it is fetched when chosen rather than costing every install
-        // ~950 kB up front. Offline without it, counts fall back to o200k — the same thing that
+        // ~950 kB up front. Offline without it, counts fall back to o200k, the same thing that
         // happens for a family whose vocab has not been downloaded.
         globIgnores: ['**/cl100k_base-*.js'],
       },

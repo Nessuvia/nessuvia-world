@@ -66,7 +66,7 @@ export function modeLadder(stored?: StructuredMode): StructuredMode[] {
 }
 
 /**
- * Shape only: field names, types, all required. No hex patterns and no numeric ranges — those are
+ * Shape only: field names, types, all required. No hex patterns and no numeric ranges: those are
  * where a strict backend is most likely to refuse the schema, and `coerceFields` already throws out
  * a value of the wrong shape whatever the endpoint did.
  *
@@ -74,7 +74,7 @@ export function modeLadder(stored?: StructuredMode): StructuredMode[] {
  */
 /**
  * Fields the model is never shown and never asked for. `backgrounds` holds image references and raw
- * CSS — nothing a color scheme should invent, and a nested object is what a strict schema backend
+ * CSS: nothing a color scheme should invent, and a nested object is what a strict schema backend
  * refuses. The webfont fields are a user pick from the Fontsource catalog, not a color the model
  * chooses, and a made-up `webfontId` would 404 the CDN. `coerceFields` keeps the base's value for
  * anything missing, so leaving them out preserves whatever the palette already had.
@@ -170,8 +170,8 @@ export function parsePaletteReply(text: string, base: Palette): Palette {
 }
 
 /** The first balanced `{…}` in the text, ignoring braces inside strings. Exported because every
- *  one-shot JSON request has the same problem — a model that fences the object or wraps it in a
- *  sentence — and one scanner is enough. `core/prompt/outline.ts` is the other caller. */
+ *  one-shot JSON request has the same problem: a model that fences the object or wraps it in a
+ *  sentence, and one scanner is enough. `core/prompt/outline.ts` is the other caller. */
 export function firstJsonObject(text: string): string {
   const start = text.indexOf('{')
   if (start === -1) return ''

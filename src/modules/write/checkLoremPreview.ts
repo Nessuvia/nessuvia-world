@@ -12,7 +12,7 @@ for (const n of [1, 7, 19, 20, 55, 140, 300, 1200]) {
   for (let i = 0; i < 40; i++) {
     const text = loremParagraphs(n)
     assert.equal(count(text), n, `expected ${n} words`)
-    // No empty or whitespace-only paragraph — that would show as a gap with nothing in it.
+    // No empty or whitespace-only paragraph: that would show as a gap with nothing in it.
     for (const p of text.split('\n\n')) assert.ok(p.trim(), 'empty paragraph')
   }
 }

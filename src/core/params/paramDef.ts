@@ -16,7 +16,7 @@ export type ParamKind = 'number' | 'slider' | 'text' | 'bool' | 'select' | 'stri
 export interface ParamDef {
   id?: number
   ownerId: string
-  /** The JSON key sent in the request body, e.g. `dry_multiplier`. Unique across the library —
+  /** The JSON key sent in the request body, e.g. `dry_multiplier`. Unique across the library:
    *  a connection's params reference a def by this, not by row id, so the reference survives
    *  export, import and a re-seed on another device. */
   key: string
@@ -52,7 +52,7 @@ export interface InstructTemplate {
   userSuffix: string
   modelPrefix: string
   modelSuffix: string
-  /** Emitted once at the very front — a BOS token like `<|begin_of_text|>`. */
+  /** Emitted once at the very front, a BOS token like `<|begin_of_text|>`. */
   firstPrefix?: string
   stopSequences: string[]
   trimTrailingSpace: boolean
@@ -74,7 +74,7 @@ export function defaultTemplate(): InstructTemplate {
 
 /**
  * A param's value as the request body should carry it. Returns `undefined` when the param has
- * nothing to send — an empty list or a blank json blob — so the caller omits the key rather than
+ * nothing to send, an empty list or a blank json blob, so the caller omits the key rather than
  * sending a null a picky backend will reject.
  */
 export function coerceValue(def: ParamDef, value: unknown): unknown {

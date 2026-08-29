@@ -20,7 +20,7 @@ function free(content: string): Block {
 }
 
 let n = 0
-/** `prose` is shorthand for a trailing free Block — most cases here only care that the Chapter has
+/** `prose` is shorthand for a trailing free Block. Most cases here only care that the Chapter has
  *  some prose, not which Block holds it. */
 function ch(c: Partial<GuideChapter> & { prose?: string; beats?: Block[] }): GuideChapter {
   const { prose, beats, blocks, ...rest } = c
@@ -48,7 +48,7 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
   const planned = ch({ id: 2 })
   assert.strictEqual(chapterState(written, null), 'written')
   assert.strictEqual(chapterState(planned, null), 'notYetWritten')
-  // Active wins over both — an active Chapter with prose is still being written.
+  // Active wins over both: an active Chapter with prose is still being written.
   assert.strictEqual(chapterState(written, 1), 'writingNow')
   assert.strictEqual(chapterState(planned, 2), 'writingNow')
 }
@@ -71,17 +71,17 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
   assert.strictEqual(
     out,
     [
-      'Chapter 1 — Arrival [written]',
+      'Chapter 1 - Arrival [written]',
       '  They meet on the platform.',
-      'Chapter 2 — Ruin [writing now]',
+      'Chapter 2 - Ruin [writing now]',
       '  He gets her as far as the house.',
       '  · John invites Mary over [done]',
       '  · Mary discovers the truth',
-      'Chapter 3 — Escape [not yet written]',
+      'Chapter 3 - Escape [not yet written]',
       '  · Mary tries to escape',
     ].join('\n'),
   )
-  // No `Beats:` header any more — the bullets carry it, on every Chapter.
+  // No `Beats:` header any more: the bullets carry it, on every Chapter.
   assert.ok(!out.includes('Beats:'))
 }
 
@@ -97,13 +97,13 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
 {
   const parts = { summary: 'a recap', beats: [beat('a plan')] }
   const both = renderChapterGuide([ch({ id: 1, title: 'A', ...parts })], null)
-  assert.strictEqual(both, 'Chapter 1 — A [not yet written]\n  a recap\n  · a plan')
+  assert.strictEqual(both, 'Chapter 1 - A [not yet written]\n  a recap\n  · a plan')
 
   const beatsOnly = renderChapterGuide([ch({ id: 1, title: 'A', guideSend: 'beats', ...parts })], null)
-  assert.strictEqual(beatsOnly, 'Chapter 1 — A [not yet written]\n  · a plan')
+  assert.strictEqual(beatsOnly, 'Chapter 1 - A [not yet written]\n  · a plan')
 
   const summaryOnly = renderChapterGuide([ch({ id: 1, title: 'A', guideSend: 'summary', ...parts })], null)
-  assert.strictEqual(summaryOnly, 'Chapter 1 — A [not yet written]\n  a recap')
+  assert.strictEqual(summaryOnly, 'Chapter 1 - A [not yet written]\n  a recap')
 
   assert.strictEqual(renderChapterGuide([ch({ id: 1, guideSend: 'off', ...parts })], null), '')
 }
@@ -114,10 +114,10 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
     [ch({ id: 1, title: 'One' }), ch({ id: 2, title: 'Two', guideSend: 'off' }), ch({ id: 3, title: 'Three' })],
     null,
   )
-  assert.ok(out.includes('Chapter 1 — One'))
+  assert.ok(out.includes('Chapter 1 - One'))
   assert.ok(!out.includes('Two'))
   // Three keeps its position in the Story rather than becoming Chapter 2.
-  assert.ok(out.includes('Chapter 3 — Three'))
+  assert.ok(out.includes('Chapter 3 - Three'))
 }
 
 // --- empty pieces drop out ----------------------------------------------------
@@ -128,14 +128,14 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
   // A blank beat contributes no bullet.
   assert.strictEqual(
     renderChapterGuide([ch({ id: 1, title: 'A', beats: [beat('  ')] })], 1),
-    'Chapter 1 — A [writing now]',
+    'Chapter 1 - A [writing now]',
   )
 }
 
 // --- a multi-line summary keeps its indent ------------------------------------
 {
   const out = renderChapterGuide([ch({ id: 1, title: 'A', summary: 'one\ntwo' })], null)
-  assert.strictEqual(out, 'Chapter 1 — A [not yet written]\n  one\n  two')
+  assert.strictEqual(out, 'Chapter 1 - A [not yet written]\n  one\n  two')
 }
 
 // --- prose stops at the active Chapter, with dividers between ----------------
@@ -147,20 +147,20 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', false, 'a')] }), true)
   ]
   assert.strictEqual(
     storyProse(chapters, 2),
-    'first prose\n\n— Chapter 2: Two —\n\nsecond prose',
+    'first prose\n\n- Chapter 2: Two -\n\nsecond prose',
   )
   // The Chapter after the active one is the future; its prose is not context yet.
   assert.ok(!storyProse(chapters, 2).includes('third prose'))
   // No active Chapter (a Story opened but never clicked into) falls back to the last one.
   assert.ok(storyProse(chapters, null).includes('third prose'))
-  // One Chapter reads as plain prose — no divider.
+  // One Chapter reads as plain prose, no divider.
   assert.strictEqual(storyProse([ch({ id: 1, title: 'One', prose: 'prose' })], 1), 'prose')
 }
 
 // --- an empty Chapter contributes its divider but no blank gap ---------------
 {
   const chapters = [ch({ id: 1, title: 'One', prose: 'prose' }), ch({ id: 2, title: 'Two' })]
-  assert.strictEqual(storyProse(chapters, 2), 'prose\n\n— Chapter 2: Two —')
+  assert.strictEqual(storyProse(chapters, 2), 'prose\n\n- Chapter 2: Two -')
   // A cold-start Story has nothing to send.
   assert.strictEqual(storyProse([ch({ id: 1 })], 1), '')
 }

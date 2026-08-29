@@ -1,4 +1,4 @@
-// Character export: a Tavern v2/v3 card. Our own fields ride along in `data.extensions` — readers
+// Character export: a Tavern v2/v3 card. Our own fields ride along in `data.extensions`. Readers
 // that don't know them ignore them, and importCard() reads them back.
 import type { Character, Lorebook, WorldInfoEntry } from '../../core/storage/types'
 import { bookOf, cardData } from './importCard.ts' // explicit extension: checkImportCard.ts imports this file under node
@@ -9,7 +9,7 @@ const obj = (v: unknown) =>(v && typeof v === 'object' && !Array.isArray(v) ? (v
 
 /**
  * The `character_book` half of the card. Each entry's untouched `raw` is preferred, so everything
- * this app doesn't model — secondary_keys, selective, probability, position, extensions — leaves
+ * this app doesn't model (secondary_keys, selective, probability, position, extensions) leaves
  * exactly as it arrived. Hand-authored entries have no `raw` and get a minimal spec entry.
  *
  * The two book-level flags we don't model come off the original book for the same reason.
@@ -52,7 +52,7 @@ function buildBook(c: Character, entries: WorldInfoEntry[], book?: Lorebook) {
 
 /** The card JSON, spec'd as v2 with a v3 marker so both readers find their fields.
  *
- *  Every spec field is written off the Character record — importCard fills all of them on the way
+ *  Every spec field is written off the Character record. importCard fills all of them on the way
  *  in, so a value that arrived on a card is on the record too. `rawCard` is still consulted for
  *  what this app does NOT model: foreign `extensions` keys and the book's own flags. The spec
  *  forbids destroying data that was already there. */

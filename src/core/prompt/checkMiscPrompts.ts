@@ -47,7 +47,7 @@ assert.equal(miscPrompt('neverExisted'), '')
 
 assert.equal(fillSlots('as {{char}}.', { char: 'Mary' }), 'as Mary.')
 assert.equal(fillSlots('as {{ char }}.', { char: 'Mary' }), 'as Mary.', 'spaces inside the braces')
-// An unknown token is left as written — more likely a typo to see than a slot to blank.
+// An unknown token is left as written: more likely a typo to see than a slot to blank.
 assert.equal(fillSlots('as {{nope}}.', { char: 'Mary' }), 'as {{nope}}.')
 // One pass: a value that contains a token is not rescanned. Every one of these quotes model
 // output, and model output that says `{{user}}` must not be substituted into the prompt.

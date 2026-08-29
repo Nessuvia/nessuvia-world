@@ -52,7 +52,7 @@ db.version(4).stores({
 // Kanban board cards.
 // NOT INTENTIONAL: this block and the one below both declare version(5). Dexie keeps the last
 // registration per version number, so this one is dead and kanbanCards was never created in any
-// browser — every write to it threw. The Kanban feature has since been removed, so version(11)
+// browser, every write to it threw. The Kanban feature has since been removed, so version(11)
 // drops the table name entirely. Both blocks stay because Dexie needs the whole chain to upgrade
 // an existing local database.
 db.version(5).stores({
@@ -70,7 +70,7 @@ db.version(5).stores({
 
 // Duplicate version(5): this is the block Dexie actually keeps. See the comment above.
 // Write v2: Macros are global (not scoped to a Story), so they get their own table. Chapters gain
-// title/summary/beats/sendEnabled and Stories a direction — fields, not indexes.
+// title/summary/beats/sendEnabled and Stories a direction, fields, not indexes.
 db.version(5).stores({
   characters: '++id, ownerId',
   personas: '++id, ownerId',
@@ -191,7 +191,7 @@ db.version(11).stores({
 })
 
 // The sampler library. Indexed on key because a connection's params reference a def by its JSON
-// key, not by row id — that reference has to survive an export and a re-seed on another device.
+// key, not by row id, that reference has to survive an export and a re-seed on another device.
 db.version(12).stores({
   characters: '++id, ownerId',
   personas: '++id, ownerId',
@@ -210,7 +210,7 @@ db.version(12).stores({
 })
 
 // Drops macros: saved Directions never earned their place in Write and the feature is gone. Also
-// the version this Chapter.lastGeneration ships under — that's a plain field, not an index, so it
+// the version this Chapter.lastGeneration ships under, that's a plain field, not an index, so it
 // needs no schema line of its own; the bump is the macros drop.
 db.version(13).stores({
   characters: '++id, ownerId',

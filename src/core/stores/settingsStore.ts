@@ -9,7 +9,7 @@ import { emptyRelayConfig, type RelayConfig } from '../multiplayer/relayConfig.t
 import type { TokenizerId } from '../prompt/tokenizers.ts'
 
 /** The three colorable inline markers, distinct from plain text. Order in `Palette.colorOrder`
- *  is top-first (strongest first) — see renderText for how precedence resolves. */
+ *  is top-first (strongest first), see renderText for how precedence resolves. */
 export type MarkerKind = 'emphasis' | 'bold' | 'quotes'
 
 export interface Connection {
@@ -34,7 +34,7 @@ export interface Connection {
   /** Budget inputs, not request fields: none of the three is ever sent. */
   contextLimit: number
   safetyMarginPct: number
-  /** Which tokenizer counts this connection's prompts. Undefined means `auto` — guessed from the
+  /** Which tokenizer counts this connection's prompts. Undefined means `auto`, guessed from the
    *  model name. Connection-level and not in `overridableFields`: this describes the model the
    *  connection points at, not a preference. Per-chat override is the upgrade path if wanted. */
   tokenizer?: TokenizerId
@@ -73,14 +73,14 @@ export interface TagRule {
   label?: string
   /** How many messages, counting from the newest (1 = only while it's the last message), this
    *  tag's block stays in the prompt sent to the model. Undefined = always sent. Stored text and
-   *  the on-screen block are never affected — this is a send-path filter only. */
+   *  the on-screen block are never affected, this is a send-path filter only. */
   depth?: number
 }
 
 /**
  * Display-only find/replace. `find` is a literal string unless `regex` is set, in which case it's
  * a raw JS pattern; `flags` and `$1` capture refs in `replace` then work like `String.replace`.
- * Applied at render time only — stored message content is never rewritten.
+ * Applied at render time only, stored message content is never rewritten.
  */
 export interface ReplaceRule {
   id: string
@@ -93,7 +93,7 @@ export interface ReplaceRule {
 }
 
 /** A Grammar Hammer rule. `strip` deletes the whole match; `replace` swaps it for `replacement`,
- *  which may reference capture groups (`$1..$n`, one per pattern token; `$0` = whole match) — like
+ *  which may reference capture groups (`$1..$n`, one per pattern token; `$0` = whole match), like
  *  Find & Replace but with a part-of-speech find. */
 export interface GrammarHammerRule {
   id: string
@@ -111,7 +111,7 @@ export interface GrammarHammerSettings {
   rules: GrammarHammerRule[]
 }
 
-/** Display behavior, global. Everything visual — colors, font, widths — lives on the active
+/** Display behavior, global. Everything visual, colors, font, widths, lives on the active
  *  Palette instead; see `core/palette/palette.ts`. */
 export interface Appearance {
   tagRules: TagRule[]
@@ -119,7 +119,7 @@ export interface Appearance {
   /** Grammar Hammer: render-time strip of slop constructions. Off by default; per-rule toggles
    *  still apply when on. */
   grammarHammer: GrammarHammerSettings
-  /** Whether the reasoning collapsible block is shown on assistant messages. Visual only —
+  /** Whether the reasoning collapsible block is shown on assistant messages. Visual only:
    *  the reasoning text stays stored and is still sent to the model per its tag rule. */
   showReasoning: boolean
 }
@@ -174,7 +174,7 @@ interface SettingsState {
    *  settings are never synced, and the secret key is stripped from backups. */
   bucket: BucketConfig
   /** Which relay multiplayer sessions run over, and the self-hosted endpoint when there is one.
-   *  The default for a new session — the Multiplayer landing can pick the other one for that
+   *  The default for a new session, the Multiplayer landing can pick the other one for that
    *  session without writing back here. Device-local, like `bucket`. */
   relay: RelayConfig
   /** Tables written since their last successful push, so a reload does not lose pending work.
@@ -184,7 +184,7 @@ interface SettingsState {
   /** The hash of each table as it was last pushed, so compare can tell an unchanged table from a
    *  changed one without downloading anything. A table absent here has never been pushed. */
   tableHashes: Record<string, string>
-  /** When the last apply finished, from the device clock. Display only — the store's own
+  /** When the last apply finished, from the device clock. Display only, the store's own
    *  updatedAt is the authority for which side is newer. */
   lastSyncedAt: number | null
   connections: Connection[]
@@ -233,7 +233,7 @@ interface SettingsState {
    *  until it is turned on in Settings > Miscellaneous > Plugins. */
   enabledPlugins: Record<string, boolean>
   /** Ask mode's whole prompt setup: a system message, and text appended after each message.
-   *  Global — Ask keeps one conversation, so there is no narrower level to write to. */
+   *  Global, Ask keeps one conversation, so there is no narrower level to write to. */
   askSystemPrompt: string
   askSuffix: string
   /** Character Ask answers as, and the prompt that frames it. Both global: Ask keeps one
@@ -399,7 +399,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: 'nessuTavern.settings',
-      // Not a migration of values — the samplers a pre-params blob carried are gone on purpose.
+      // Not a migration of values, the samplers a pre-params blob carried are gone on purpose.
       // This only guarantees the shape, because every reader treats `params` as an array and a
       // blob written before it existed would take the whole app down on the first render.
       merge: (persisted, current) => {

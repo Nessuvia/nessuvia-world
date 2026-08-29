@@ -13,7 +13,7 @@ export interface Character {
   altDescriptions: { title: string; content: string }[]
   activeDescriptionIndex: number // -1 = use `description` verbatim
   alternateGreetings: string[]
-  // Labels for the greetings above, by the same index — the card spec has nowhere to put them, so
+  // Labels for the greetings above, by the same index, the card spec has nowhere to put them, so
   // they ride in our own extensions block and are dropped by any other reader. Absent or short
   // means the rest are unnamed; only the editor writes it, and it splices alongside a delete.
   greetingTitles?: string[]
@@ -22,14 +22,14 @@ export interface Character {
   // every list load pulls in full) and this becomes an array of {url} | {imageId} objects.
   gallery: string[]
   // Free-text tags. Order matters: tags[0] is the character's group in the picker's grouped view.
-  // Unindexed on purpose — the whole roster is in memory, so filtering is an array pass.
+  // Unindexed on purpose, the whole roster is in memory, so filtering is an array pass.
   tags: string[]
   /** Card `system_prompt`. Reaches the model through a `characterSystemPrompt` block; empty falls
    *  back to that block's own content. Character-level, so it applies to every chat with them.
    *  per-chat override belongs on Chat as an optional field, when one chat needs to
    *  differ from the rest. */
   systemPrompt: string
-  /** Card `post_history_instructions` — the "ujb/jailbreak". Same rules as `systemPrompt`. */
+  /** Card `post_history_instructions`, the "ujb/jailbreak". Same rules as `systemPrompt`. */
   postHistoryInstructions: string
   // The three below are card metadata. The spec forbids all of them in prompt engineering, so
   // nothing in core/prompt may read them.
@@ -104,7 +104,7 @@ export interface WorldInfoEntry {
   position: EntryPosition
   depth?: number // messages from the end, for `atDepth` only; absent = 4, SillyTavern's default
   // The untouched card entry, same contract as Character.rawCard. This is what keeps the fields
-  // this release ignores — probability, excludeRecursion, characterFilter, group weighting — from
+  // this release ignores, probability, excludeRecursion, characterFilter, group weighting, from
   // being lost on import and re-export.
   raw?: unknown
 }
@@ -117,7 +117,7 @@ export interface AvatarSource {
 
 /** Per-speaker color overrides. Same set as the global appearance knobs; an empty string on any
  *  field means "no override, use the global color". Flat and named (mirrors Appearance) so it can
- *  grow a field when we actually add one — not an open Record. */
+ *  grow a field when we actually add one, not an open Record. */
 export interface CharacterColors {
   textColor: string
   emphasisColor: string
@@ -129,7 +129,7 @@ export function emptyColors(): CharacterColors {
   return { textColor: '', emphasisColor: '', boldColor: '', quoteColor: '' }
 }
 
-/** Partial patches over a Connection's params. Field names mirror Connection exactly — no mapping
+/** Partial patches over a Connection's params. Field names mirror Connection exactly, no mapping
  *  layer. An unset field falls through to the next level down (chat > character > connection). */
 export interface ParamOverrides {
   contextLimit?: number
@@ -221,7 +221,7 @@ export interface Message {
   personaName?: string
   /** Alternates for an assistant message. Empty/absent = never regenerated.
    *  `content` always mirrors swipes[swipeIndex]; readers that don't care about swipes keep working.
-   *  swipes duplicate the chosen text into content — one denormalised field beats
+   *  swipes duplicate the chosen text into content, one denormalised field beats
    *  touching every reader. */
   swipes?: string[]
   swipeIndex?: number
@@ -232,7 +232,7 @@ export interface Message {
   speakerId?: number
   speakerName?: string
   /** The request that produced each swipe, parallel to `swipes`, for the inspector. Each entry is
-   *  a key-free JSON string — a string so Dexie never indexes into it, and undefined where the
+   *  a key-free JSON string, a string so Dexie never indexes into it, and undefined where the
    *  snapshot was never taken or was past ~256 KB. The field is unindexed, so its shape can change
    *  without a schema version. */
   requestSnapshots?: (string | undefined)[]
@@ -240,7 +240,7 @@ export interface Message {
 }
 
 /** A Story is the top-level Write work: title + Cover, plus its attached cast. It holds no stack id
- *  — the Story stack is globally active (sub-goal B). Its prose lives in Chapters, not here. */
+ * , the Story stack is globally active (sub-goal B). Its prose lives in Chapters, not here. */
 export interface Story {
   id?: number
   ownerId: string
@@ -253,7 +253,7 @@ export interface Story {
    *  and sent as the final user turn. The Direction box in the Story panel writes it. */
   direction: string
   /** Percent of the editor column the prose is displayed at. Per Story, like the Chat record's
-   *  `chatWidth` — reading width is a property of the work, not a global default. Absent = 100. */
+   *  `chatWidth`, reading width is a property of the work, not a global default. Absent = 100. */
   storyWidth?: number
   /** Sampling overrides for this Story, over the connection's own values. The cast contributes
    *  nothing: with several characters attached there is no non-arbitrary winner. */
@@ -279,7 +279,7 @@ export interface CastEntry {
 /** One planned step inside a Chapter: a line of intent, a word target, and a checkbox the Author
  *  ticks. Beats have no table of their own, so they carry their own key. */
 /** How much of the surrounding prose a Block's generation sees. `both` is the default; the other
- *  three are how you write a passage that shouldn't be coloured by what sits around it — a flashback,
+ *  three are how you write a passage that shouldn't be coloured by what sits around it, a flashback,
  *  an opening drafted before the scene leading into it exists. */
 export type BlockContext = 'before' | 'after' | 'both' | 'none'
 
@@ -289,7 +289,7 @@ export type BlockContext = 'before' | 'after' | 'both' | 'none'
  *
  * `beat` empty means a free stretch: plain prose, drawn with no box and no header. `beat` non-empty
  * means a planned section, drawn as a labelled dashed box with its own controls. Converting between
- * the two is writing or clearing that one field — there is no second kind of record, and no
+ * the two is writing or clearing that one field, there is no second kind of record, and no
  * ordering rule between two homes for prose.
  */
 export interface Block {
@@ -298,7 +298,7 @@ export interface Block {
   beat: string
   /** Words this beat is meant to run to. 0 means unset. Meaningless on a free stretch. */
   targetWords: number
-  /** Ticked by hand. Nothing auto-checks it — generating a beat does not mark it done. */
+  /** Ticked by hand. Nothing auto-checks it, generating a beat does not mark it done. */
   done: boolean
   /** The prose. Named `content` so `core/stores/swipes.ts` accepts a Block unchanged; it always
    *  mirrors `swipes[swipeIndex]`, the same denormalisation `Message` uses. */
@@ -328,7 +328,7 @@ export interface Chapter {
   /** Recap only: what the Chapter turned out to contain. Intent lives in the beats. */
   summary: string
   /** The Chapter's prose and its plan, in one ordered list. Beat Blocks are the plan; free Blocks
-   *  are prose written outside it. Never empty in practice — opening a Chapter with none seeds a
+   *  are prose written outside it. Never empty in practice, opening a Chapter with none seeds a
    *  free Block so there is always somewhere to type. */
   blocks: Block[]
   /** What this Chapter contributes to the Chapter guide. Its prose still scrolls in as Story
@@ -375,7 +375,7 @@ export interface PromptBlock {
    *  the block pickable in chat settings; `activeOption` chooses which one is used. */
   options?: { name: string; content: string }[]
   activeOption?: number
-  /** Text after the children — the closing half of a wrapper (`</characters>`). */
+  /** Text after the children, the closing half of a wrapper (`</characters>`). */
   closeContent?: string
   /** Only meaningful on an authorNote block: inject N messages from the end of history.
    *  Undefined = the block sits where it sits in the stack. */
@@ -396,7 +396,7 @@ export interface PromptBlock {
 }
 
 /** Only the range arm is built today; add a new arm + its modal/chat control per new kind.
- *  A range carries two values — the two ends of a span, dragged separately. `value2` is held at
+ *  A range carries two values, the two ends of a span, dragged separately. `value2` is held at
  *  or above `value`. Omit `value2` for a single-value scroll: one thumb, and {{blockVal2}}
  *  resolves to `value` too. */
 export type BlockInput = {
@@ -422,7 +422,7 @@ export interface PromptStack {
    *  A plain field, not indexed: no Dexie version bump. */
   worldInfoBudget?: number
   /** Overrides for the small utility prompts (`core/prompt/miscPrompts.ts`), keyed by def id.
-   *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned — a plain
+   *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned, a plain
    *  field, so an older row simply has none. */
   miscPrompts?: Record<string, string>
 }

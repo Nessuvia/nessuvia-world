@@ -8,7 +8,7 @@ export interface Match {
   /** Token indices [from, to) in the token array this match was found against. */
   tokenFrom: number
   tokenTo: number
-  /** Per-matcher char spans, in pattern order — the capture groups `$1..$n` reference. A slot that
+  /** Per-matcher char spans, in pattern order: the capture groups `$1..$n` reference. A slot that
    *  matched zero tokens (a `?`/`*` that bound nothing) is a zero-width span. */
   groups: Array<{ start: number; end: number }>
 }
@@ -107,7 +107,7 @@ function walk(
 ): { end: number; tokenTo: number; groups: Array<[number, number]> } | null {
   if (mi >= matchers.length) {
     // All matchers consumed. Require at least one token matched (a pattern of only `?` slots still
-    // must bind something to count — otherwise empty matches would fire everywhere).
+    // must bind something to count, otherwise empty matches would fire everywhere).
     if (ti === startTi) return null
     return { end: tokens[ti - 1].end, tokenTo: ti, groups: [] }
   }

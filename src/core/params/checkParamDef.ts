@@ -67,7 +67,7 @@ const find = (key: string) => defs.find((d) => d.key === key)!
   for (const def of defs) {
     assert.ok(def.appliesTo.length, `${def.key} applies to nothing`)
     assert.ok(def.builtin, `${def.key} is not marked builtin`)
-    // A list default is legitimately empty — the param is added but nothing is filled in yet, and
+    // A list default is legitimately empty, the param is added but nothing is filled in yet, and
     // an empty list means "don't send the key". Every other kind has to produce a real value.
     if (def.kind !== 'stringList') {
       assert.notStrictEqual(coerceValue(def, def.default), undefined, `${def.key} default is unsendable`)

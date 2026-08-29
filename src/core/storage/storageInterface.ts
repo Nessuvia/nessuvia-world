@@ -10,7 +10,7 @@ export function currentOwnerId(): string {
   return ownerId
 }
 
-/** No caller today — every row is owned by `localOwnerId`. Kept as the seam a multi-owner backend
+/** No caller today, every row is owned by `localOwnerId`. Kept as the seam a multi-owner backend
  *  would write through, per the ownerId note in CLAUDE.md. Anything calling this must run before
  *  the first load(), since db.ts stamps the value at write time. */
 export function setOwnerId(id: string) {

@@ -172,7 +172,7 @@
   min-height: 34px;
 }
 
-/* Only the handle is draggable — see the comment in EntryRows — so it carries the grab cursor. */
+/* Only the handle is draggable (see the comment in EntryRows), so it carries the grab cursor. */
 .lorebooksEntryHandle {
   display: flex;
   align-items: center;

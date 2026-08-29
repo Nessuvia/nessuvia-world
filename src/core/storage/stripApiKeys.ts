@@ -4,7 +4,7 @@
  * moved connection list or a renamed bucket slice stays covered.
  */
 
-/** Keys whose value is a credential. Add to this list, never to a path-specific check — a backup
+/** Keys whose value is a credential. Add to this list, never to a path-specific check, a backup
  *  file gets emailed around, and a missed key is the failure that matters. */
 const secretKeys = ['apiKey', 'secretAccessKey', 'accessKeyId', 'passphrase']
 

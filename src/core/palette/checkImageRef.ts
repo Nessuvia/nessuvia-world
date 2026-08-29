@@ -37,7 +37,7 @@ for (const written of [
 }
 
 // Anything naming something else is left as the user wrote it, and so is every url() when the slot
-// has no image — the panel validates with none in hand and must read back what was typed.
+// has no image: the panel validates with none in hand and must read back what was typed.
 const other = '.a { background-image: url(https://example.com/image.jpg); }'
 assert.equal(substituteImageUrl(other, src), other)
 assert.equal(substituteImageUrl('.a { background-image: url(image.jpg); }', ''), '.a { background-image: url(image.jpg); }')

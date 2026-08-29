@@ -1,5 +1,5 @@
 // Hex text handling for ColorInput's manual field. Kept out of the component so a check script can
-// import it — the field is a parser, and a parser that quietly accepts junk writes junk into a
+// import it. The field is a parser, and a parser that quietly accepts junk writes junk into a
 // palette, which then reaches `style.setProperty`.
 
 /**
@@ -21,7 +21,7 @@ const expand = (digits: string) => digits.split('').map((c) => c + c).join('')
 /**
  * The stored form of a typed color: `#RRGGBB`, or `#RRGGBBAA` where alpha is allowed. `''` is the
  * empty field, which every caller reads as unset. `null` means the text is not a complete color
- * yet — the caller leaves the value alone and lets the typing continue.
+ * yet: the caller leaves the value alone and lets the typing continue.
  *
  * Shorthand expands (`#ABC` → `#AABBCC`). Eight digits pasted into a field without alpha lose the
  * alpha pair, since the field has nowhere to keep it.

@@ -59,7 +59,7 @@ const withQuery = { kind: 'centrifugo' as const, url: 'wss://r.example.net/ws?x=
 const queryLink = inviteLink(origin, 'abc123', withQuery)
 assert.deepEqual(relayFromLink(new URL(queryLink).searchParams.get('r')), withQuery)
 
-// An `r` that is not a usable relay is undefined — the guest is told the link is bad rather than
+// An `r` that is not a usable relay is undefined: the guest is told the link is bad rather than
 // pointed at whatever it said.
 assert.equal(relayFromLink('ws://localhost:8000'), undefined)
 assert.equal(relayFromLink('http://evil.example/'), undefined)

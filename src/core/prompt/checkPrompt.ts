@@ -354,7 +354,7 @@ assert.strictEqual(
     messages,
     worldInfo: wi({ before: 'Before lore.', after: 'After lore.' }),
   }).messages
-  // All three are system blocks, so they merge into one turn — in stack order.
+  // All three are system blocks, so they merge into one turn, in stack order.
   assert.strictEqual(out[0].content, 'Before lore.\n\nplain description\n\nAfter lore.')
 }
 
@@ -500,7 +500,7 @@ assert.strictEqual(
   assert.strictEqual(out[0].content, 'a travelling bard')
 }
 
-// Tokens resolve in it, and {{user}} is the active persona — not the name stamped on a past turn.
+// Tokens resolve in it, and {{user}} is the active persona, not the name stamped on a past turn.
 {
   const out = build(
     stack([block({ source: 'personaDescription' }), block({ source: 'chatHistory' })]),
@@ -620,7 +620,7 @@ assert.strictEqual(
   assert.strictEqual(out[0].role, 'assistant')
 }
 
-// Nested chat history contributes nothing — the editor refuses it, the builder ignores it.
+// Nested chat history contributes nothing: the editor refuses it, the builder ignores it.
 {
   const out = build(
     stack([
@@ -745,7 +745,7 @@ const longHistory: Message[] = ['a', 'b', 'c', 'd'].map((content, i) => ({
   assert.deepStrictEqual(out[0], { role: 'system', content: 'keep it short' })
 }
 
-// An empty note produces no message at all — at any depth, and with no chat passed.
+// An empty note produces no message at all, at any depth, and with no chat passed.
 for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
   const out = buildPrompt({
     stack: stack([
@@ -889,7 +889,7 @@ for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
     messages,
   })
   assert.ok(built.tokensUsed > plain.tokensUsed, 'the instruction costs tokens')
-  // Blank is no instruction at all — not a blank system turn.
+  // Blank is no instruction at all, not a blank system turn.
   const blank = buildPrompt({
     stack: stack([block({ content: 'sys' }), block({ source: 'chatHistory' })]),
     character: damien,
@@ -910,7 +910,7 @@ for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
     appendSystem: 'carry on',
     appendAssistant: 'half a sen',
   })
-  // Last, and its own turn — a prefill the model continues only works as the final message.
+  // Last, and its own turn: a prefill the model continues only works as the final message.
   assert.deepStrictEqual(built.messages.at(-1), { role: 'assistant', content: 'half a sen' })
   assert.deepStrictEqual(built.messages.at(-2), { role: 'system', content: 'carry on' })
   const plain = buildPrompt({
@@ -921,7 +921,7 @@ for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
     appendSystem: 'carry on',
   })
   assert.ok(built.tokensUsed > plain.tokensUsed, 'the partial costs tokens')
-  // Blank is no prefill at all — not a blank assistant turn.
+  // Blank is no prefill at all, not a blank assistant turn.
   const blank = buildPrompt({
     stack: stack([block({ content: 'sys' }), block({ source: 'chatHistory' })]),
     character: damien,
@@ -1003,7 +1003,7 @@ for (const chat of [{ ...noteChat, authorNote: '  ' }, undefined]) {
   // Same casing and inner-space tolerance as every other token.
   assert.ok(text(stack([sysBlock]), withCard('{{ ORIGINAL }}!')).includes('STACK DEFAULT!'))
 
-  // {{original}} in the block's own content is NOT substituted into itself — otherwise a stack
+  // {{original}} in the block's own content is NOT substituted into itself: otherwise a stack
   // author writing it would get their own text pasted in twice.
   const selfRef = block({ source: 'characterSystemPrompt', content: 'a {{original}} b' })
   assert.ok(text(stack([selfRef]), withCard('')).includes('a {{original}} b'))

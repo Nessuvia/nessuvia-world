@@ -1,4 +1,4 @@
-// Static assets only — no `main`, so there is no Worker script and nothing runs server-side.
+// Static assets only, no `main`, so there is no Worker script and nothing runs server-side.
 // Deploys separately from the app: `npx wrangler deploy --config kanban/wrangler.jsonc`.
 {
   "name": "nessuvia-kanban",

@@ -483,7 +483,7 @@
   gap: 8px;
 }
 
-/* ParamEditor — lives with the component because the chat settings panel renders it too. */
+/* ParamEditor: lives with the component because the chat settings panel renders it too. */
 .paramEditor {
   display: flex;
   flex-direction: column;
@@ -523,7 +523,7 @@
 }
 
 /* #root because the chat module styles every `.chatView button`, and this one is the component's,
-   not the tab's — stylesheet order isn't something to rely on. */
+   not the tab's, and stylesheet order isn't something to rely on. */
 #root .paramClear {
   flex: none;
   padding: 2px 7px;

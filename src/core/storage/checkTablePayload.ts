@@ -43,13 +43,13 @@ const edited = [row(1, 'Mark'), row(2, 'Damien'), row(3, 'Nessuvia!')]
 assert.notStrictEqual(hash, await hashPayload(JSON.stringify(tablePayload('characters', edited))))
 assert.notStrictEqual(hash, await hashPayload(JSON.stringify(tablePayload('personas', rows))))
 
-// The empty table still produces a valid payload — that is what a table with every row deleted
+// The empty table still produces a valid payload, that is what a table with every row deleted
 // pushes, and the delete is carried by the absence.
 const empty = tablePayload('chapters', [])
 assert.deepStrictEqual(empty.rows, [])
 assert.match(await hashPayload(JSON.stringify(empty)), /^[0-9a-f]{64}$/)
 
-// No apiKey survives a full push. Table payloads carry no settings at all — API keys live in the
+// No apiKey survives a full push. Table payloads carry no settings at all, API keys live in the
 // settings blob, which only the file export sends, and only through stripApiKeys.
 const secret = 'sk-live-must-not-leak'
 const backupShaped = {

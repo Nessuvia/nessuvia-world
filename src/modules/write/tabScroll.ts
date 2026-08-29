@@ -1,7 +1,7 @@
 /** Which edges of a horizontal scroller still have something past them. Drives the carets on the
  *  plot layout's tab bar: no caret on the side you can't go.
  *
- *  Split out from the component so it can be checked without a DOM — see checkTabScroll.ts. */
+ *  Split out from the component so it can be checked without a DOM. See checkTabScroll.ts. */
 export interface EdgeState {
   atStart: boolean
   atEnd: boolean

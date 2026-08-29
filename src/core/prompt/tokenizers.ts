@@ -5,8 +5,8 @@ import { autoTokenizerFor } from './autoTokenizer.ts'
  * The tokenizer library, as data. A family is a row here, not code, so adding one is a line.
  *
  * Two kinds:
- * - `tiktoken` — a BPE table from `gpt-tokenizer`, already a dependency. Code-split, no download.
- * - `hf` — a `tokenizer.json` that has to be fetched before it can count. See tokenizerCache.ts.
+ * - `tiktoken`: a BPE table from `gpt-tokenizer`, already a dependency. Code-split, no download.
+ * - `hf`: a `tokenizer.json` that has to be fetched before it can count. See tokenizerCache.ts.
  */
 export type TokenizerId =
   | 'auto'
@@ -23,7 +23,7 @@ export type TokenizerId =
   | 'yi'
   | 'claude'
 
-/** Everything `countTokens` can actually run — `auto` resolves to one of these. */
+/** Everything `countTokens` can actually run. `auto` resolves to one of these. */
 export type ResolvedTokenizerId = Exclude<TokenizerId, 'auto'>
 
 export interface TokenizerDef {

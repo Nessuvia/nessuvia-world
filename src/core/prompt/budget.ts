@@ -30,7 +30,7 @@ async function buildCounter(id: ResolvedTokenizerId) {
     if (!vocab) return null
     const { TokenizerLoader } = await import('@lenml/tokenizers')
     const tok = TokenizerLoader.fromPreTrained(vocab)
-    // Raw text, no chat template and no specials — perMessageOverhead already prices the wrapper.
+    // Raw text, no chat template and no specials: perMessageOverhead already prices the wrapper.
     return (text: string) => tok.encode(text, { add_special_tokens: false }).length
   } catch {
     // A chunk that won't load or a vocab that won't parse counts as unavailable. Falling back is
@@ -46,7 +46,7 @@ async function buildCounter(id: ResolvedTokenizerId) {
  *
  * Concurrent loads of different ids both write `count`, and the last one wins. Every counting site
  * awaits its own load first and only one connection is active at a time, so the worst case is a
- * stale number in a preview, never a wrong prompt — not worth a lock.
+ * stale number in a preview, never a wrong prompt. Not worth a lock.
  */
 export async function loadTokenizer(id: ResolvedTokenizerId = defaultTokenizer): Promise<void> {
   const cached = counters.get(id)
@@ -82,9 +82,9 @@ export interface Budget {
 }
 
 export interface Trimmed {
-  /** A contiguous tail of the input — history is never reordered. */
+  /** A contiguous tail of the input. History is never reordered. */
   messages: Message[]
-  /** The messages that didn't fit, oldest first — the preview names them, not just counts them. */
+  /** The messages that didn't fit, oldest first. The preview names them, not just counts them. */
   dropped: Message[]
   droppedCount: number
   available: number

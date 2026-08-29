@@ -2,9 +2,9 @@
  * The arithmetic behind a phone drawer's swipe, kept apart from the listeners so the release
  * decision can be asserted without a DOM. useSideDrawer.ts owns the touch events.
  *
- * A drawer lives on one edge of the screen. Everything below works in `pull` — how far the finger
- * has moved in the direction that opens *this* drawer — so a left drawer and a right drawer share
- * the same numbers and read the same on release. `towardOpen` is what converts a raw dx.
+ * A drawer lives on one edge of the screen. Everything below works in `pull`: how far the finger
+ * has moved in the direction that opens *this* drawer. That way a left drawer and a right drawer
+ * share the same numbers and read the same on release. `towardOpen` is what converts a raw dx.
  */
 
 export type DrawerSide = 'left' | 'right'
@@ -55,7 +55,7 @@ export function settleDrawer({ startOpen, pull, width, elapsed }: Settle): boole
 
 /**
  * Which drawers are open right now. Every drawer listens to the whole document, so on a screen
- * with more than one they would all answer the same swipe — the navbar opening from the left at
+ * with more than one they would all answer the same swipe: the navbar opening from the left at
  * the moment a right-hand panel is swiped shut, say.
  *
  * The rule that sorts it out: closing beats opening. A drawer takes a gesture if it is the one

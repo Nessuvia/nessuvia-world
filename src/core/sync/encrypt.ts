@@ -1,6 +1,6 @@
 /**
  * AES-GCM with a key derived from the user's passphrase, for the one object in the bucket that
- * holds secrets. WebCrypto only — no dependency, and the browser's implementation is the one worth
+ * holds secrets. WebCrypto only: no dependency, and the browser's implementation is the one worth
  * trusting.
  *
  * The provider's own encryption at rest is not a substitute: the provider holds that key. This one

@@ -3,7 +3,7 @@
 //
 // Extension-ful imports on purpose: checkExportStory.ts runs the builders under
 // `node --experimental-strip-types`, which can't resolve extensionless app imports. The builders
-// stay pure for that reason — only the three `export*` wrappers touch `document`.
+// stay pure for that reason: only the three `export*` wrappers touch `document`.
 import type { Chapter, Story } from '../../core/storage/types.ts'
 import type { Palette } from '../../core/palette/palette.ts'
 import { effectiveFont, paletteVars } from '../../core/palette/palette.ts'
@@ -52,7 +52,7 @@ const tagOf: Record<string, [string, string]> = {
 }
 
 /**
- * Prose to inline HTML. Real elements, not the editor's marker spans — the round-trip invariant
+ * Prose to inline HTML. Real elements, not the editor's marker spans: the round-trip invariant
  * proseMarkup rests on exists for the contenteditable, and a static page has nothing to read back.
  *
  * nesting color goes to the innermost element rather than the palette's
@@ -65,7 +65,7 @@ export function proseHtml(text: string): string {
       .map((p) => {
         if ('text' in p) return escapeHtml(p.text)
         const [open, close] = tagOf[p.kind]
-        // Backtick contents are literal, so they never recurse — parseProse already saw to that.
+        // Backtick contents are literal, so they never recurse; parseProse already saw to that.
         return `${open}${render(p.children)}${close}`
       })
       .join('')

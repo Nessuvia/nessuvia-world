@@ -6,7 +6,7 @@ const ids = ['beats', 'direction', 'characters', 'connection', 'promptStack']
 // Nothing pinned: declared order, untouched.
 assert.deepStrictEqual(railOrder(ids, []), ids)
 
-// Pinned ids come first, in pin order — not declared order.
+// Pinned ids come first, in pin order, not declared order.
 assert.deepStrictEqual(railOrder(ids, ['promptStack', 'direction']), [
   'promptStack',
   'direction',

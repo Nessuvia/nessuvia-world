@@ -16,7 +16,7 @@ export interface GuestPersona {
   avatar?: string
 }
 
-/** A participant in the turn order — the host, or an admitted guest. */
+/** A participant in the turn order: the host, or an admitted guest. */
 export interface Participant {
   id: string
   name: string
@@ -53,7 +53,7 @@ export interface SettingsSummary {
  * the chat text vars and the `chat` slot's background, already resolved over the baseline.
  *
  * The background's `css` and `html` are the host's own, and are rendered through the same
- * sanitizeBackgroundHtml/scopeBackgroundCss path as a local background — never innerHTML.
+ * sanitizeBackgroundHtml/scopeBackgroundCss path as a local background, never innerHTML.
  * An uploaded image lives in the host's `backgroundImages` table and its bytes are not sent, so
  * only `url` travels; a host on an uploaded image shows guests no image.
  */
@@ -101,7 +101,7 @@ export interface ByeEvent {
 
 /**
  * A guest rewriting its own persona mid-session. The host validates it exactly as it validates a
- * `hello`, then holds it until the guest's turn passes — a persona never changes under a line that
+ * `hello`, then holds it until the guest's turn passes: a persona never changes under a line that
  * has already been said.
  */
 export interface PersonaEvent {
@@ -143,7 +143,7 @@ export interface StreamEvent {
   type: 'stream'
   /** Identifies the in-flight reply so a guest can replace rather than append. */
   key: string
-  /** The full text so far, not a delta — a dropped event self-heals. */
+  /** The full text so far, not a delta: a dropped event self-heals. */
   text: string
   speakerName: string
 }

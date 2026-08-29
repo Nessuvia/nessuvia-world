@@ -1,5 +1,5 @@
 // Magic-wand region picking: flood-fill same-colored pixels from a clicked point on the base
-// image, then take the bounding box of the fill — the region-drawing workflow (drag to
+// image, then take the bounding box of the fill. The region-drawing workflow (drag to
 // reposition, snap to middle, click-out to commit) takes over from there unchanged.
 
 export interface Bounds {

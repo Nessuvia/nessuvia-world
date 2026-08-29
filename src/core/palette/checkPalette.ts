@@ -108,7 +108,7 @@ assert.strictEqual(splitVars['--appFont'], 'ui-monospace, monospace')
 // Turning on the chat webfont leaves the app font alone.
 assert.strictEqual(webfontVars['--appFont'], '')
 
-// The match toggle: on copies the chat font over, off must always leave the two unmatched — the
+// The match toggle: on copies the chat font over, off must always leave the two unmatched. The
 // checkbox is derived from the fields, so a no-op "off" would stick on forever.
 const georgia = resolvePalette({ fontFamily: 'Georgia, serif' })
 assert.strictEqual(appFontMatched(georgia), false)
@@ -126,7 +126,7 @@ const fresh = resolvePalette({})
 assert.strictEqual(appFontMatched(fresh), true)
 assert.strictEqual(appFontMatched(resolvePalette({ ...fresh, ...matchAppFontPatch(fresh, false) })), false)
 
-// textWeight: emitted as a bare number string, and never empty — an unset weight means 400, not a
+// textWeight: emitted as a bare number string, and never empty. An unset weight means 400, not a
 // dropped var, since :root's fallback is the same value either way.
 assert.strictEqual(paletteVars(resolvePalette({ textWeight: 600 }))['--textWeight'], '600')
 assert.strictEqual(paletteVars(resolvePalette({}))['--textWeight'], '400')
@@ -207,7 +207,7 @@ const everything = resolvePalette({
 const trip = parsePalettes(JSON.stringify(buildPaletteFile([everything]))).palettes[0]
 assert.deepStrictEqual({ ...trip, id: 9 }, { ...everything, ownerId: trip.ownerId })
 
-// A boolean from a file is a boolean or it is the fallback — a truthy string is not a yes.
+// A boolean from a file is a boolean or it is the fallback. A truthy string is not a yes.
 const lied = parsePalettes(
   JSON.stringify({
     format: 'nessuTavern.palettes',
@@ -366,7 +366,7 @@ assert.strictEqual(props.colorOrder.type, 'array')
 assert.ok(!JSON.stringify(schema).includes('pattern'))
 assert.ok(!JSON.stringify(schema).includes('minimum'))
 
-// A schema reply still goes through coercion — structured output is not a reason to trust it.
+// A schema reply still goes through coercion. Structured output is not a reason to trust it.
 assert.strictEqual(parsePaletteReply('{"bg":null,"radius":"6"}', base).bg, base.bg)
 
 // --- rewind diffing -------------------------------------------------------
@@ -508,7 +508,7 @@ assert.deepStrictEqual(systemBars('#f2f2f5'), { themeColor: '#f2f2f5', iosStatus
 assert.deepStrictEqual(systemBars('#fff'), { themeColor: '#fff', iosStatusBarStyle: 'default' })
 assert.strictEqual(systemBars('  #FFF  ').themeColor, '#FFF') // trimmed, case kept
 // The theme-color meta takes a color, so a value that isn't one falls back to the stylesheet's
-// background rather than reaching the tag — an ignored tag would leave the last palette's bar up.
+// background rather than reaching the tag. An ignored tag would leave the last palette's bar up.
 for (const junk of ['', 'red', 'rgb(0,0,0)', '#12345', '101014', '#gggggg']) {
   assert.strictEqual(systemBars(junk).themeColor, fallbackBg, `${junk} should fall back`)
 }
@@ -544,7 +544,7 @@ assert.deepStrictEqual(names(unsorted), [2, 1])
 
 assert.strictEqual(nextOrder([]), 0)
 assert.strictEqual(nextOrder([row(1, 0), row(2, 4), row(3, 2)]), 5)
-// A list of nothing but pre-field rows still appends at 0 — they sort last anyway.
+// A list of nothing but pre-field rows still appends at 0: they sort last anyway.
 assert.strictEqual(nextOrder([row(1), row(2)]), 0)
 
 console.log('checkPalette ok')

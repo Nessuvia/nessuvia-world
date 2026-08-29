@@ -20,7 +20,7 @@ export interface CastMember {
   exampleDialogue?: string
 }
 
-/** The enabled cast as one block of reference text — one member per stanza, blank fields dropped. */
+/** The enabled cast as one block of reference text: one member per stanza, blank fields dropped. */
 export function castText(members: CastMember[]): string {
   return members
     .map((m) =>
@@ -33,7 +33,7 @@ export function castText(members: CastMember[]): string {
 }
 
 /** The text a bound source stands for. `story` varies between the two render passes. `tokens` is
- *  the Story token table — see storyTokens.ts. */
+ *  the Story token table, see storyTokens.ts. */
 interface Bound {
   cast: string
   chapterGuide: string
@@ -59,7 +59,7 @@ function wrap(block: PromptBlock, inner: string, bound: Bound): string {
 
 /**
  * A block's text: own content, children, then its closing text. Bound sources resolve to their
- * content wherever they sit — a Cast block nested inside a `<character>` wrapper contributes the
+ * content wherever they sit: a Cast block nested inside a `<character>` wrapper contributes the
  * same text it would at the top level, just indented into the parent's join.
  */
 function blockText(block: PromptBlock, bound: Bound): string {
@@ -98,7 +98,7 @@ function hasStory(blocks: PromptBlock[]): boolean {
 /**
  * Keep the newest prose that fits, dropping whole lines from the top. Mirrors trimHistory's
  * end-backward rule for the single Story-context blob.
- * line-granular, no mid-line truncation — a single line bigger than the budget drops
+ * line-granular, no mid-line truncation. A single line bigger than the budget drops
  * everything, same as trimHistory. Upgrade to sentence/char granularity if that ever bites.
  */
 export function fitEndBackward(text: string, available: number): string {
@@ -121,7 +121,7 @@ export function fitEndBackward(text: string, available: number): string {
  *
  * The trailing text is priced in the fixed pass, so every token of it is a token `fitEndBackward`
  * can't spend on Story context. What the model actually needs is the passage it has to join up
- * with — the sentences immediately after the caret — so a few hundred tokens carries the job, and
+ * with (the sentences immediately after the caret), so a few hundred tokens carries the job, and
  * a caret placed near the top of a long Chapter must not push the whole preceding Story out of the
  * window. Raise it if joins start reading as though the model couldn't see far enough ahead.
  */
@@ -158,7 +158,7 @@ export const guideSharePct = 10
 
 /**
  * The Chapter guide, capped at its share of the budget. Both Story-prompt callers go through this
- * one function — `generate` and the preview panel must not diverge on what the guide says.
+ * one function: `generate` and the preview panel must not diverge on what the guide says.
  *
  * No budget means no cap, matching how the rest of this file treats a missing budget.
  */
@@ -180,18 +180,18 @@ export interface BuildStoryArgs {
   /** The Story token table (`storyTokens`), substituted into every block's own text. */
   tokens: Record<string, string>
   /** The rendered Chapter guide (see chapterGuide.ts). Part of the fixed prefix, already fitted by
-   *  the caller — see `fitChapterGuide`. */
+   *  the caller, see `fitChapterGuide`. */
   chapterGuide: string
   storyText: string
   /** Prose after the caret, to the end of the active Chapter. '' when generating at the end, which
-   *  is the common case — the block then renders empty and drops out. */
+   *  is the common case. The block then renders empty and drops out. */
   storyTrailing?: string
   direction: string
 }
 
 export interface BuiltStoryPrompt {
   messages: ChatMessage[]
-  /** Everything except the Story prose — the fixed prefix + the Direction. */
+  /** Everything except the Story prose: the fixed prefix + the Direction. */
   fixedTokens: number
   storyTokens: number
   storyIncluded: string
@@ -230,7 +230,7 @@ export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltSt
   const fixed = render('')
   let fixedTokens = fixed.reduce((n, m) => n + countTokens(m.content) + perMessageOverhead, 0)
 
-  // The Direction is fixed — always in, counted against the budget, never trimmed.
+  // The Direction is fixed: always in, counted against the budget, never trimmed.
   const dir = direction.trim()
   if (dir) fixedTokens += countTokens(dir) + perMessageOverhead
 

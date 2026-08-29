@@ -1,4 +1,4 @@
-# Prose Slop Linter — Implementation Plan
+# Prose Slop Linter: Implementation Plan
 
 ## 1. Overview
 
@@ -10,7 +10,7 @@ A deterministic prose linter with auto-fix, shipped as a self-contained feature 
 - No integration with the rest of the frontend. Isolated feature module, own route/panel, own state. Prose enters by paste, leaves by copy.
 - Browser-only. No server, no network calls except the dynamic chunk fetch for the optional parser.
 - Declarative rules only (regex + POS patterns). No JS-tier rules.
-- Single shipped rule pack of 3–5 rules with deep guards. Breadth is deferred; precision is the v1 goal.
+- Single shipped rule pack of 3-5 rules with deep guards. Breadth is deferred; precision is the v1 goal.
 
 **Three tabs:**
 | Tab | Purpose |
@@ -63,7 +63,7 @@ interface ParsedDoc {
 ```
 
 - **compromise** is the default, statically imported (already in the bundle).
-- **wink-nlp** loads via `import()` on toggle, together with `wink-eng-lite-web-model`. It's a multi-MB chunk — show a loading state, and fall back to compromise on failure with a visible notice.
+- **wink-nlp** loads via `import()` on toggle, together with `wink-eng-lite-web-model`. It's a multi-MB chunk. Show a loading state, and fall back to compromise on failure with a visible notice.
 - The two engines will disagree. Tag every result with the adapter id that produced it and surface that in the UI. Do not attempt to reconcile them.
 - POS pattern syntax: adopt compromise's `#Adjective` convention as the canonical form; the wink adapter translates. Rules are written once.
 
@@ -73,19 +73,19 @@ Synchronous, on the main thread, with a size cap (suggest ~50k chars) and a debo
 
 Two passes, because document-level frequency is a first-class signal:
 
-1. **Scan** — run all matchers over the doc, collect candidate matches, compute per-rule occurrence counts.
-2. **Resolve** — apply guards (including frequency guards, which need pass-1 counts), sort, deselect overlaps, build the final edit list.
+1. **Scan**: run all matchers over the doc, collect candidate matches, compute per-rule occurrence counts.
+2. **Resolve**: apply guards (including frequency guards, which need pass-1 counts), sort, deselect overlaps, build the final edit list.
 
 ### 2.4 Edit model
 
-Never mutate text incrementally — index invalidation from overlapping edits is the classic bug here.
+Never mutate text incrementally: index invalidation from overlapping edits is the classic bug here.
 
 ```ts
 type Tier = 'safe' | 'aggressive' | 'suggest';
 
 type Candidate =
   | { kind: 'derived';   text: string; tier: Tier }
-  | { kind: 'generated'; text: string; poolIds: string[] }  // no tier — cannot auto-apply
+  | { kind: 'generated'; text: string; poolIds: string[] }  // no tier: cannot auto-apply
   | { kind: 'user';      text: string };
 
 interface Edit {
@@ -98,7 +98,7 @@ interface Edit {
 }
 ```
 Edits are collected against original offsets, then applied right-to-left in a single pass. The edit list is the source of truth; accept/reject flips `status`; output is recomputed by replaying accepted edits. Undo is free.
-Only derived candidates carry a tier, and only tiered candidates are eligible for auto-application. generated and user candidates are structurally incapable of entering the auto-apply path — this is enforced by the type, not by convention. user is live in v1 (free-text override in review mode); generated is reserved for Phase 2 and unused until then.
+Only derived candidates carry a tier, and only tiered candidates are eligible for auto-application. generated and user candidates are structurally incapable of entering the auto-apply path; this is enforced by the type, not by convention. user is live in v1 (free-text override in review mode); generated is reserved for Phase 2 and unused until then.
 
 ---
 
@@ -129,7 +129,7 @@ fix:
     - 'it was ${y}'
     - '${y|capitalize}'
 
-# Reserved for Phase 2. Not implemented in v1 — parsed and ignored.
+# Reserved for Phase 2. Not implemented in v1: parsed and ignored.
 # slots:
 #   y:                                    # named capture from match
 #     pos: '#Adjective'                   # constrains the eligible pool
@@ -146,25 +146,25 @@ tests:
 
 - **`match.type`**: `literal` | `regex` | `pos`. Literal is a plain string table entry (Tier 3 substitutions). POS uses compromise match syntax and may embed literal alternations: `with a #Adjective (precision|ease|weight)`.
 - **`fix.candidates`**: ordered. Auto-fix takes the first that passes invariants; review mode shows all as a menu. A rule with `fix.type: none` is detect-only.
-- **Template filters**: `capitalize`, `lowercase`, `lemma`, `indefinite` (a/an agreement). These five cover the mechanical repairs from splicing. Resist adding more without a concrete need.
-- **`tests`**: required, minimum one positive and one negative. Enforce in the schema — a rule with no negative fixture is visibly untrustworthy and the validator should say so.
+- **Template filters** are `capitalize`, `lowercase`, `lemma`, `indefinite` (a/an agreement). These five cover the mechanical repairs from splicing. Resist adding more without a concrete need.
+- **`tests`**: required, minimum one positive and one negative. Enforce in the schema; a rule with no negative fixture is visibly untrustworthy and the validator should say so.
 - **`tier`**: drives which mode applies the rule. Not a synonym for severity.
-- **`slots`** (Phase 2, reserved): maps a named capture to a curated replacement pool. Slots are keyed per capture, not per rule — a pattern with two variable positions needs independent pools, and retrofitting that shape later would touch every rule. In v1 the schema accepts and ignores this key; do not implement pool resolution.
+- **`slots`** (Phase 2, reserved): maps a named capture to a curated replacement pool. Slots are keyed per capture, not per rule; a pattern with two variable positions needs independent pools, and retrofitting that shape later would touch every rule. In v1 the schema accepts and ignores this key; do not implement pool resolution.
 
 ### 3.2 Guard stdlib (v1)
 
 `notInQuotes` · `notInCode` · `notInHeading` · `notProperNoun` · `notSpanningSentence` · `minDocFrequency: n` · `sentenceLengthOver: n`
 
-`notInQuotes` is the highest-value guard — characters are allowed to speak in clichés, and blanket-fixing dialogue will wreck fiction. Implement it carefully: handle straight and curly quotes, nested quotes, and apostrophe-vs-quote ambiguity.
+`notInQuotes` is the highest-value guard: characters are allowed to speak in clichés, and blanket-fixing dialogue will wreck fiction. Implement it carefully: handle straight and curly quotes, nested quotes, and apostrophe-vs-quote ambiguity.
 
 `minDocFrequency` deserves emphasis: a construction appearing once is style, six times is a tic. This is the single best slop signal available without semantics, and it should be easy to express declaratively.
 
 ### 3.3 Validation and safety
 
 - **Schema validation** via zod on every load and every user paste. Reject with field-level errors, never partially load a malformed pack.
-- **Regex linting** before compilation: reject nested quantifiers (`(a+)+`), unbounded `.*` adjacent to alternation, and patterns exceeding a length cap. Reject, don't warn — a ReDoS on the main thread freezes the tab.
-- **Timeout guard**: wrap each rule's execution and abort past a budget (suggest 50ms/rule). On timeout, disable the rule for the session and surface which rule stalled.
-- **YAML parsed in safe mode** — no custom tags, no anchor expansion.
+- **Regex linting** before compilation: reject nested quantifiers (`(a+)+`), unbounded `.*` adjacent to alternation, and patterns exceeding a length cap. Reject, don't warn: a ReDoS on the main thread freezes the tab.
+- **Timeout guard** wraps each rule's execution and aborts past a budget (suggest 50ms/rule). On timeout, disable the rule for the session and surface which rule stalled.
+- **YAML** parses in safe mode: no custom tags, no anchor expansion.
 
 ### 3.4 Conflict resolution
 
@@ -194,26 +194,26 @@ A single mode selector governs auto-application:
 | Aggressive | `safe` + `aggressive` pre-accepted |
 | Review-only | Nothing pre-accepted |
 
-Mode persists to localStorage. Changing mode recomputes `status` on pending edits only — never overrides an explicit user accept/reject.
+Mode persists to localStorage. Changing mode recomputes `status` on pending edits only, never overrides an explicit user accept/reject.
 
 ### 4.2 Tabs
 
-**Review** — prose with highlighted spans; a side list of edits grouped by rule. Each entry: matched text, proposed replacement, rule id, tier, accept/reject/choose-alternative. Bulk accept/reject per rule. Suppressed matches in a collapsed section with reasons.
+The **Review** tab shows prose with highlighted spans, plus a side list of edits grouped by rule. Each entry: matched text, proposed replacement, rule id, tier, accept/reject/choose-alternative. Bulk accept/reject per rule. Suppressed matches in a collapsed section with reasons.
 
-**Diff** — original vs. output with accepted edits applied. Word-level diff. Copy button on the output.
+The **Diff** tab shows original vs. output with accepted edits applied. Word-level diff. Copy button on the output.
 
-**Playground** — YAML editor pane, sample prose pane, live match highlighting and fix preview. Inline schema/regex-lint errors. A "run fixtures" action showing pass/fail per test for the rule being edited.
+The **Playground** tab has a YAML editor pane, a sample prose pane, live match highlighting and fix preview. Inline schema/regex-lint errors. A "run fixtures" action showing pass/fail per test for the rule being edited.
 
 Rule authoring is iterative guessing; the tightness of this loop determines whether anyone writes a second rule. If one piece of UI gets extra polish, make it this one.
 
 ### 4.3 Persistence
 
 localStorage keys, namespaced under `slopLinter:`:
-- `draft` — textarea contents, debounced
-- `mode` — safe/aggressive/review-only
-- `parser` — compromise/wink
-- `userRules` — normalized JSON
-- `disabledRuleIds` — core rules the user turned off
+- `draft`: textarea contents, debounced
+- `mode`: safe/aggressive/review-only
+- `parser`: compromise/wink
+- `userRules`: normalized JSON
+- `disabledRuleIds`: core rules the user turned off
 
 Version the persisted shape from day one and write a migration stub. Rule schema changes are inevitable.
 
@@ -227,11 +227,11 @@ Import (YAML or JSON, paste or file), export (both formats), enable/disable per 
 
 Three to five rules, chosen for guard depth over coverage. Suggested starting set:
 
-1. **`core/not-x-but-y`** — `it wasn't X, but Y` → `it was Y`. Template inversion, `tier: safe`, guarded by `notInQuotes` + `minDocFrequency: 2`.
-2. **`core/trailing-with-a`** — trailing `, with a [adj] [abstract noun]`. Excision. Requires a curated noun list (`precision`, `ease`, `weight`, `intensity`, `finality`) — the closed list is where the precision comes from, not the POS pattern. `tier: safe`.
-3. **`core/not-just-but`** — `X isn't just A — it's B` → `X is B`. Template inversion, `tier: aggressive` (the discarded half more often carries meaning).
-4. **`core/wordy-phrases`** — closed substitution table (`in order to` → `to`, `due to the fact that` → `because`). Boring, high-yield, near-zero risk. `tier: safe`.
-5. *(optional)* **`core/sentence-initial-adverb`** — `Indeed,` / `Ultimately,` / `Importantly,` at sentence start. Excision, `tier: aggressive`, `minDocFrequency: 2`.
+1. **`core/not-x-but-y`**: `it wasn't X, but Y` → `it was Y`. Template inversion, `tier: safe`, guarded by `notInQuotes` + `minDocFrequency: 2`.
+2. **`core/trailing-with-a`**: trailing `, with a [adj] [abstract noun]`. Excision. Requires a curated noun list (`precision`, `ease`, `weight`, `intensity`, `finality`); the closed list is where the precision comes from, not the POS pattern. `tier: safe`.
+3. **`core/not-just-but`**: `X isn't just A, it's B` → `X is B`. Template inversion, `tier: aggressive` (the discarded half more often carries meaning).
+4. **`core/wordy-phrases`**: closed substitution table (`in order to` → `to`, `due to the fact that` → `because`). Boring, high-yield, near-zero risk. `tier: safe`.
+5. *(optional)* **`core/sentence-initial-adverb`**: `Indeed,` / `Ultimately,` / `Importantly,` at sentence start. Excision, `tier: aggressive`, `minDocFrequency: 2`.
 
 Each ships with at least one positive and one negative fixture. Rule 4 is the best first implementation target: it exercises the full pipeline end to end with the least matcher complexity.
 
@@ -239,13 +239,13 @@ Each ships with at least one positive and one negative fixture. Rule 4 is the be
 
 ## 6. Validation
 
-**Golden corpus** — input/expected-output pairs, in-repo, run under vitest.
+The **golden corpus** is input/expected-output pairs, in-repo, run under vitest.
 
-**Negative corpus** — prose that must pass through byte-identical: dialogue-heavy fiction, technical documentation, deliberately styled prose. This is the real quality metric. False positives cost trust; missed slop costs nothing. Precision over recall, without exception.
+The **negative corpus** is prose that must pass through byte-identical: dialogue-heavy fiction, technical documentation, deliberately styled prose. This is the real quality metric. False positives cost trust; missed slop costs nothing. Precision over recall, without exception.
 
 Track per-rule precision against the corpus and let measured precision drive tier assignment. That gives a principled promote/demote path instead of guessing.
 
-Also assert: idempotence across the whole corpus, and adapter parity (flag rules whose results diverge sharply between compromise and wink — divergence usually means the pattern is leaning on POS tags that aren't reliable).
+Also assert: idempotence across the whole corpus, and adapter parity (flag rules whose results diverge sharply between compromise and wink; divergence usually means the pattern is leaning on POS tags that aren't reliable).
 
 ---
 
@@ -253,21 +253,21 @@ Also assert: idempotence across the whole corpus, and adapter parity (flag rules
 
 Guesswork is intentionally light here. Sequence is a suggestion; the dependency direction is not.
 
-**Phase A — engine skeleton.** Types, edit model, zod schema, literal matcher, delete/replace transforms, right-to-left applier. Ship `core/wordy-phrases` only. No UI beyond a textarea and an output pane. Vitest against a small corpus. *Goal: prove the edit pipeline is correct before adding matcher complexity.*
+**Phase A: engine skeleton.** Types, edit model, zod schema, literal matcher, delete/replace transforms, right-to-left applier. Ship `core/wordy-phrases` only. No UI beyond a textarea and an output pane. Vitest against a small corpus. *Goal: prove the edit pipeline is correct before adding matcher complexity.*
 
-**Phase B — regex tier and safety.** Regex matcher with named captures, template filters, regex linting, timeout guard. Add `core/not-x-but-y`. *Goal: the safety machinery exists before user input touches it.*
+**Phase B: regex tier and safety.** Regex matcher with named captures, template filters, regex linting, timeout guard. Add `core/not-x-but-y`. *Goal: the safety machinery exists before user input touches it.*
 
-**Phase C — guards and invariants.** Guard stdlib, `notInQuotes` first and most carefully. Post-fix invariant checks with revert-to-suggest. Two-pass pipeline for `minDocFrequency`. *Goal: nothing mangles.*
+**Phase C: guards and invariants.** Guard stdlib, `notInQuotes` first and most carefully. Post-fix invariant checks with revert-to-suggest. Two-pass pipeline for `minDocFrequency`. *Goal: nothing mangles.*
 
-**Phase D — POS tier.** compromise adapter behind the `ParserAdapter` interface. Add `core/trailing-with-a` with its curated noun list. *Goal: the adapter boundary is real before a second engine exists.*
+**Phase D: POS tier.** compromise adapter behind the `ParserAdapter` interface. Add `core/trailing-with-a` with its curated noun list. *Goal: the adapter boundary is real before a second engine exists.*
 
-**Phase E — UI.** Three tabs, mode selector, localStorage persistence, accept/reject, diff view. *Goal: usable.*
+**Phase E: UI.** Three tabs, mode selector, localStorage persistence, accept/reject, diff view. *Goal: usable.*
 
-**Phase F — user rules.** YAML parsing via dynamic import, import/export, in-app fixture runner, playground editor. *Goal: extensible.*
+**Phase F: user rules.** YAML parsing via dynamic import, import/export, in-app fixture runner, playground editor. *Goal: extensible.*
 
-**Phase G — wink-nlp.** Dynamic import, model loading state, fallback on failure, adapter-parity reporting. *Goal: the accuracy escape hatch.*
+**Phase G: wink-nlp.** Dynamic import, model loading state, fallback on failure, adapter-parity reporting. *Goal: the accuracy escape hatch.*
 
-Phases D and E can run in parallel once C lands. G is genuinely optional for v1 — ship without it if the compromise ceiling holds.
+Phases D and E can run in parallel once C lands. G is genuinely optional for v1; ship without it if the compromise ceiling holds.
 
 **Explicitly deferred:** JS-tier rules and sandboxing · Web Worker execution · rule pack semver and extends composition · UI-based rule authoring · corpus-backed replacement suggestions (review mode only, offered but never auto-applied) · integration with the rest of the frontend · dependency parsing.
 
@@ -278,5 +278,5 @@ Phases D and E can run in parallel once C lands. G is genuinely optional for v1 
 - The engine is pure and React-free. If a change requires importing React into `engine/`, the design has drifted.
 - The no-generation constraint is load-bearing, not stylistic. A "helpful" rule that substitutes a word not present in the input breaks the tool's core guarantee.
 - When precision and recall conflict, choose precision. When a fix is uncertain, downgrade it to `suggest` rather than widening a guard.
-- Suppressed matches are data, not noise — always retain and surface them with reasons.
+- Suppressed matches are data, not noise: always retain and surface them with reasons.
 - Do not add template filters, guards, or matcher types speculatively. Each addition is a surface a rule author has to learn.

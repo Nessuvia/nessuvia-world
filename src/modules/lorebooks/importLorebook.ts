@@ -22,7 +22,7 @@ export interface ImportedBook {
  * SillyTavern's `position` numbering, which is what both an export and a card's `character_book`
  * carry. 2 and 3 are before/after the author's note; this pass has no slot for that, so they land
  * with the after-character entries rather than being dropped. The v2/v3 spec's string spelling is
- * accepted too — cards in the wild write either.
+ * accepted too, since cards in the wild write either.
  */
 function readPosition(v: unknown): EntryPosition {
   if (typeof v === 'string') {
@@ -62,7 +62,7 @@ export function mapEntry(item: unknown, index: number): ImportedEntry {
     caseSensitive: e.case_sensitive === true,
     content: str(e.content),
     always: e.constant === true,
-    // Anything but an explicit off is on — an absent flag means the author never turned it off.
+    // Anything but an explicit off is on: an absent flag means the author never turned it off.
     // Both spellings are checked: SillyTavern writes `disable`, the spec writes `enabled`.
     enabled: e.enabled !== false && e.disable !== true,
     // `extensions.scan_depth`, NOT `extensions.depth`: the latter is where SillyTavern inserts
@@ -102,7 +102,7 @@ export function mapBook(raw: Loose | undefined, fallbackName: string): ImportedB
 
 /**
  * A standalone world-info file. Accepts the bare `{name, entries}` object SillyTavern exports, a
- * `character_book` wrapper, and a whole character card with a book inside it — the three things a
+ * `character_book` wrapper, and a whole character card with a book inside it: the three things a
  * user is likely to drop on the import button.
  *
  * `fallbackName` is the file's own name, used when the book carries none: an ST export often has

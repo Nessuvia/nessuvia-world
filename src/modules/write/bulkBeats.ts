@@ -18,7 +18,7 @@ export interface BulkBeat {
  * never typed.
  *
  * Whitespace and newlines between entries are free, the separating commas are optional, and a
- * trailing one is fine — a list pasted out of a spreadsheet or a chat reply should go in as it is.
+ * trailing one is fine: a list pasted out of a spreadsheet or a chat reply should go in as it is.
  * Inside the quotes, `\"` is a literal quote and `\\` a literal backslash; every other character,
  * newlines included, stands for itself.
  */

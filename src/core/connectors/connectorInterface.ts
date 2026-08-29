@@ -9,7 +9,7 @@ export interface StreamChunk {
   reasoning?: string
   /**
    * Why the server stopped, from the final frame. 'length' means max_tokens cut the reply off
-   * mid-sentence — without this a truncated reply is indistinguishable from a finished one.
+   * mid-sentence: without this a truncated reply is indistinguishable from a finished one.
    */
   finishReason?: string
 }

@@ -1,19 +1,19 @@
 /**
  * User background HTML, gated against a tight structural allowlist. It goes inside `.pageBackground`
- * for the user's own CSS to target — but this origin holds API keys in localStorage, so raw markup
+ * for the user's own CSS to target. This origin holds API keys in localStorage, though, so raw markup
  * (which runs JS via `<img onerror>`, `<svg onload>`, inline handlers) is never trusted as-is.
  *
  * Only structural tags survive, carrying only `class`/`id` (and `src`/`alt` on images). The policy is
  * reject-the-whole-thing: if anything off the allowlist appears, `invalid` lists it and the panel
- * refuses to apply until the user removes it — no silent scrubbing that could mask an intent.
+ * refuses to apply until the user removes it. No silent scrubbing that could mask an intent.
  *
  * A `<template>` is the parser on purpose. Regex over HTML misses nested and quoted forms, which is
  * how XSS slips through; `template.innerHTML` is the native parser and its content is an inert
- * document — it runs no script and loads no resource. We only walk the parsed tree, then build a
+ * document: it runs no script and loads no resource. We only walk the parsed tree, then build a
  * fresh fragment, so no handler ever attaches to a live node even when the input turns out invalid.
  *
  * Not DOMParser: that runs the document insertion algorithm, which hoists a leading `<style>` or
- * `<title>` into `<head>`. Walking only `body` then silently dropped it — the same tag was flagged
+ * `<title>` into `<head>`. Walking only `body` then silently dropped it: the same tag was flagged
  * or ignored depending on where in the input it sat. Template parses in fragment context, so
  * everything stays where the user wrote it and every tag reaches the allowlist.
  */
@@ -33,7 +33,7 @@ const rawTextTags = new Set(['style', 'script', 'title', 'textarea', 'noscript',
 export interface SanitizeResult {
   nodes: DocumentFragment
   /** De-duplicated names of what fell outside the allowlist: `<tag>` for tags, `attr` for attributes.
-   *  Non-empty means the input is rejected — the panel won't apply it. */
+   *  Non-empty means the input is rejected; the panel won't apply it. */
   invalid: string[]
 }
 
@@ -43,7 +43,7 @@ export interface SanitizeResult {
  * at; there is only ever one image per slot, so one name is enough. Bare `image` counts too, since
  * the extension carries no meaning here.
  *
- * The CSS box takes the same name inside `url(…)` — see `substituteImageUrl` in scopeCss.ts, which
+ * The CSS box takes the same name inside `url(…)`; see `substituteImageUrl` in scopeCss.ts, which
  * asks this. One name across both boxes is what lets the four slots share a single set of HTML and
  * CSS and each still paint its own picture.
  */
@@ -55,7 +55,7 @@ export function isBackgroundImageRef(src: string): boolean {
 
 /**
  * @param imageSrc the slot's background image, substituted for `src="image.jpg"`. Omit to validate
- *   without resolving — the panel only needs `invalid`.
+ *   without resolving: the panel only needs `invalid`.
  */
 export function sanitizeBackgroundHtml(raw: string, imageSrc = ''): SanitizeResult {
   const template = document.createElement('template')
@@ -84,7 +84,7 @@ function clean(node: Node, invalid: Set<string>, imageSrc: string): Node[] {
 
   if (!allowedTags.has(tag)) {
     invalid.add(`<${tag}>`)
-    // unwrap: drop the tag, keep what it held — except raw-text elements, whose "children" are
+    // unwrap: drop the tag, keep what it held, except raw-text elements, whose "children" are
     // stylesheet or script source that would render as visible text.
     return rawTextTags.has(tag) ? [] : children
   }

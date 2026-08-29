@@ -270,7 +270,7 @@
 
 /* field-sizing grows the box to the text it holds, on open and while typing. Browsers without it
    fall back to the one row the markup asks for. */
-/* Matches .blockBeat in write.css — the two places a beat gets typed should be the same field. */
+/* Matches .blockBeat in write.css: the two places a beat gets typed should be the same field. */
 .plotBeatText {
   flex: 1;
   min-width: 0;

@@ -1,4 +1,4 @@
-// The {{tokens}} a Story stack understands. Write mode's answer to `swapTokens` — a different set
+// The {{tokens}} a Story stack understands. Write mode's answer to `swapTokens`: a different set
 // of names over different data, so it is a separate table rather than an arm of the chat one.
 //
 // Extension-ful imports on purpose: checkStoryTokens.ts runs this under
@@ -43,7 +43,7 @@ const beatLines = (blocks: TokenBlock[]) =>
 /**
  * Every Story token and its value. An unset field resolves to '' rather than being left out, so a
  * sentence built around a token that has nothing behind it comes out blank instead of showing the
- * token to the model — the same rule `castTokens` follows.
+ * token to the model, the same rule `castTokens` follows.
  */
 export function storyTokens(args: StoryTokenArgs): Record<string, string> {
   const { chapters, chapterId, blockId } = args
@@ -83,11 +83,11 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
  *
  * A line whose known tokens ALL resolve to '' is dropped whole, sentence and all. Without that,
  * "Aim for about {{beatTargetWords}} words." survives as an instruction with a hole in it every
- * time the field is unset — and a block whose every line is one of those drops out of the prompt
+ * time the field is unset, and a block whose every line is one of those drops out of the prompt
  * entirely, which is what makes a Beat block safe to leave in a stack while writing free prose.
  * A line mixing an empty token with a filled one is kept: something on it still has content.
  *
- * Only ever applied to a prompt block's own text — never to Story prose. A {{token}} the Author
+ * Only ever applied to a prompt block's own text, never to Story prose. A {{token}} the Author
  * typed into their manuscript is manuscript.
  */
 export function swapStoryTokens(text: string, values: Record<string, string>): string {

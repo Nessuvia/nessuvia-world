@@ -1,5 +1,5 @@
 // The wording of every re-roll instruction now lives in `miscPrompts.ts`, where a stack can
-// override it. What's left here is the shaping each one needs — trimming, the transcript, and the
+// override it. What's left here is the shaping each one needs: trimming, the transcript, and the
 // rule that says when there's nothing to send at all.
 // Extension-ful imports on purpose: checkPrompt.ts runs this under `node --experimental-strip-types`.
 import type { Message } from '../storage/types'
@@ -21,7 +21,7 @@ export function rewritePrompt(
 
 /**
  * What `/continue` sends. The partial reply rides along as a trailing assistant turn for the model
- * to carry on from, so this only has to say not to restart it — endpoints that ignore the prefill
+ * to carry on from, so this only has to say not to restart it. Endpoints that ignore the prefill
  * are the reason it says so at all.
  */
 export function continuePrompt(prompts?: MiscPrompts): string {
@@ -37,10 +37,10 @@ function speaker(message: Message, characterName: string): string {
 /**
  * The default instruction for re-rolling a message that isn't the last one. Regenerating an old
  * message sends only the history *before* it, so without this the model writes as if the
- * conversation ended there. Quoting what follows is the whole point — it costs tokens and the
+ * conversation ended there. Quoting what follows is the whole point: it costs tokens and the
  * budget counts them like anything else.
  *
- * `later` empty (the message *is* the last one) returns '' — nothing to warn about. That stays a
+ * `later` empty (the message *is* the last one) returns '', nothing to warn about. That stays a
  * rule here rather than something the wording has to express: an override can't make an
  * instruction appear where there is nothing to instruct about.
  */

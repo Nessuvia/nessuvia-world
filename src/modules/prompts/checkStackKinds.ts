@@ -52,7 +52,7 @@ assert.match(
   validateStack(stack('story', [b('storyContext'), b('chapterGuide'), b('chapterGuide')])),
   /Only one Chapter guide/,
 )
-// "What follows" is optional too — a Story with no caret sends nothing for it — and capped at one
+// "What follows" is optional too (a Story with no caret sends nothing for it) and capped at one
 assert.strictEqual(validateStack(stack('story', [b('storyContext'), b('storyTrailing')])), '')
 assert.match(
   validateStack(stack('story', [b('storyContext'), b('storyTrailing'), b('storyTrailing')])),

@@ -7,7 +7,7 @@ import type { TableName } from '../storage/storageInterface.ts'
  *  `putAll` that ordinary edits use, so there is no signature to distinguish them by. */
 let suppressed = false
 
-/** Called by `db.ts` on every durable write, before the write runs — a write that throws partway
+/** Called by `db.ts` on every durable write, before the write runs: a write that throws partway
  *  through still leaves its table flagged, so nothing is silently left unpushed. */
 export function markDirty(table: TableName) {
   if (suppressed) return
@@ -31,7 +31,7 @@ export async function withDirtySuppressed<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Test seam only — the app reads the set off the settings store. */
+/** Test seam only: the app reads the set off the settings store. */
 export function isSuppressed(): boolean {
   return suppressed
 }

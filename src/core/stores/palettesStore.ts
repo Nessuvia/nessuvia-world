@@ -20,7 +20,7 @@ import { remapImages } from '../palette/importPalettes'
 import { useBackgroundImages } from './backgroundImagesStore'
 import { useSettings, type Connection } from './settingsStore'
 
-/** What a palette held before LLM last overwrote it. One level, in memory only — it dies
+/** What a palette held before LLM last overwrote it. One level, in memory only, it dies
  *  on reload, and a persisted undo history is a different feature. */
 export interface PaletteSnapshot {
   paletteId: number
@@ -118,7 +118,7 @@ export const usePalettes = create<PalettesState>()((set, get) => ({
 
   load: async () => {
     // The palettes that ship with the build, seeded on first run as ordinary rows: editable, and
-    // once deleted they stay gone. The flag is what makes a delete stick — without it every load
+    // once deleted they stay gone. The flag is what makes a delete stick, without it every load
     // would write them back.
     if (!useSettings.getState().seededPalettes) {
       useSettings.getState().markPalettesSeeded()
@@ -241,8 +241,8 @@ function uniqueName(wanted: string, existing: Palette[]): string {
 }
 
 /**
- * Editing target for the appearance controls. `locked` is true when no palette row is active —
- * every one deleted, or a stale id — so the app is rendering the built-in constant and there is
+ * Editing target for the appearance controls. `locked` is true when no palette row is active:
+ * every one deleted, or a stale id, so the app is rendering the built-in constant and there is
  * nothing to write to. Every control that calls this disables itself and shows the same line.
  */
 export function usePaletteEditor(): {
@@ -265,7 +265,7 @@ export function usePaletteEditor(): {
 
 export const lockedHint = 'No preset is selected. Add one to make changes.'
 
-/** The active palette, resolved. `activePaletteId` null — or pointing at a deleted row — falls back
+/** The active palette, resolved. `activePaletteId` null, or pointing at a deleted row, falls back
  *  to the built-in default. */
 export function usePalette(): Palette {
   const palettes = usePalettes((s) => s.palettes)
@@ -276,7 +276,7 @@ export function usePalette(): Palette {
   )
 }
 
-/** The same palette, outside React — for the code that reads it once rather than rendering it. */
+/** The same palette, outside React, for the code that reads it once rather than rendering it. */
 export function activePalette(): Palette {
   const activeId = useSettings.getState().activePaletteId
   return resolvePalette(usePalettes.getState().palettes.find((p) => p.id === activeId))

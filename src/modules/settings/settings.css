@@ -82,7 +82,7 @@
 }
 
 /* The connection's plumbing fields, packed onto a four-column grid so they take a few short rows
-   instead of one field per line — the param builder underneath is what the page is really for. */
+   instead of one field per line. The param builder underneath is what the page is really for. */
 .connectionGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -90,7 +90,7 @@
   align-items: start;
 }
 
-/* #root to beat `.formPage label`, which is inline-flex and shrink-to-fit — a grid cell has to
+/* #root to beat `.formPage label`, which is inline-flex and shrink-to-fit. A grid cell has to
    fill its track or the inputs collapse to their intrinsic width. */
 #root .connectionGrid > label {
   display: flex;
@@ -158,7 +158,7 @@
   left: 0;
   right: 0;
   /* Drift: a dropdown, so this belongs at var(--zDropdown). Left at 10 until checked in the
-     browser — it may have been raised to clear something specific. */
+     browser, since it may have been raised to clear something specific. */
   z-index: 10;
   max-height: 240px;
   overflow-y: auto;
@@ -275,7 +275,7 @@
 }
 /* Tag rules and Find & Replace share a section shell. */
 /* Text Rules: one card per rule set. Three to a row on desktop, single file on a phone.
-   grid-auto-rows: 100% makes every row exactly the height of the page — the three rule sets are
+   grid-auto-rows: 100% makes every row exactly the height of the page. The three rule sets are
    one row, so they fit the screen with nothing to scroll, and a fourth would start a screen below.
    The card's own list scrolls inside it (each panel carries a .screenBody), so the page scroll only
    ever moves between rows. */
@@ -405,7 +405,7 @@
   flex: 0 0 auto;
 }
 
-/* The tag beats `.formPage label`, which makes labels inline-flex and shrink-to-fit — that was
+/* The tag beats `.formPage label`, which makes labels inline-flex and shrink-to-fit. That was
    capping the pattern input at its intrinsic width. The Action field is a div, so it was fine. */
 label.ruleField {
   display: flex;
@@ -520,7 +520,7 @@ label.ruleField {
     flex: 1 1 100%;
   }
 
-  /* Icons only — the label span is hidden by .btnText in formPage.css. */
+  /* Icons only: the label span is hidden by .btnText in formPage.css. */
   .ruleCardHead button {
     padding: 7px 8px;
     line-height: 0;

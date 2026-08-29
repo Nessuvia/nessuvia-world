@@ -1,7 +1,7 @@
 /* Shared phone drawer: a panel that leaves the layout at phone width and covers the screen, off to
    one edge until a swipe pulls it in. useSideDrawer.ts owns the gesture and puts these classes on.
 
-   A panel keeps its own stylesheet for everything else — this file only says where the drawer sits
+   A panel keeps its own stylesheet for everything else. This file only says where the drawer sits
    and how it moves, so a panel reads the same open on a phone as it does docked on a desktop. */
 @media (max-width: 700px) {
   .sideDrawer {
@@ -15,7 +15,7 @@
     z-index: 28;
     transition: transform 220ms ease;
     /* The drawer is the full height of the screen and its contents can outrun it. Sideways it
-       clips, the same as everywhere else — see the overflow rules in index.css. */
+       clips, the same as everywhere else: see the overflow rules in index.css. */
     overflow-y: auto;
     overflow-x: hidden;
   }

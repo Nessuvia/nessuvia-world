@@ -9,7 +9,7 @@ const width = 400
 assert.strictEqual(clampDrag(false, 0, width), 0)
 assert.strictEqual(clampDrag(false, 120, width), 120)
 assert.strictEqual(clampDrag(false, 900, width), width)
-// Dragging left on a closed drawer does nothing — it is already as closed as it gets.
+// Dragging left on a closed drawer does nothing: it is already as closed as it gets.
 assert.strictEqual(clampDrag(false, -120, width), 0)
 
 // Open is the mirror: pulling away brings it back, pulling further is already at rest.
@@ -32,7 +32,7 @@ assert.strictEqual(settleDrawer({ startOpen: true, pull: -20, width, elapsed: 30
 assert.strictEqual(settleDrawer({ startOpen: true, pull: -100, width, elapsed: 600 }), true)
 assert.strictEqual(settleDrawer({ startOpen: true, pull: -200, width, elapsed: 600 }), false)
 
-// A drag the wrong way leaves the state alone however fast it was — no accidental reversal.
+// A drag the wrong way leaves the state alone however fast it was: no accidental reversal.
 assert.strictEqual(settleDrawer({ startOpen: false, pull: -300, width, elapsed: 20 }), false)
 assert.strictEqual(settleDrawer({ startOpen: true, pull: 300, width, elapsed: 20 }), true)
 // Neither does a touch that never moved.

@@ -106,7 +106,7 @@ const defaultish = () =>
   assert.ok(built.droppedChars > 0, 'a tight budget drops the top of the Story')
   assert.ok(built.storyIncluded.includes('line 199'), 'the newest prose is kept')
   assert.ok(!built.storyIncluded.includes('line 0'), 'the oldest prose falls off first')
-  // Everything that survived is a contiguous tail — no reordering.
+  // Everything that survived is a contiguous tail: no reordering.
   const kept = built.storyIncluded.split('\n')
   assert.strictEqual(kept.at(-1), 'line 199')
 }
@@ -233,12 +233,12 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: '',
     tokens: {},
-    chapterGuide: 'Chapter 1 — Morning [written]',
+    chapterGuide: 'Chapter 1 - Morning [written]',
     storyText: 'prose',
     direction: 'go',
   })
   const text = built.messages.map((m) => m.content).join('\n')
-  assert.ok(text.includes('<chapters>\nChapter 1 — Morning [written]\n</chapters>'))
+  assert.ok(text.includes('<chapters>\nChapter 1 - Morning [written]\n</chapters>'))
   // Fixed prefix, not Story context: it's priced before the prose budget is worked out.
   assert.ok(built.fixedTokens > 0)
 }
@@ -249,7 +249,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: stack([block({ source: 'storyContext' })]),
     castText: '',
     tokens: {},
-    chapterGuide: 'Chapter 1 — Morning [written]',
+    chapterGuide: 'Chapter 1 - Morning [written]',
     storyText: 'prose',
     direction: 'go',
   }).messages
@@ -264,7 +264,7 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       stack: stack([block({ source: 'chapterGuide' }), block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: 'Chapter 1 — Morning [written]\n  John wakes.',
+      chapterGuide: 'Chapter 1 - Morning [written]\n  John wakes.',
       storyText: Array.from({ length: 200 }, (_, i) => `line ${i} of the prose`).join('\n'),
       direction: 'go',
     },

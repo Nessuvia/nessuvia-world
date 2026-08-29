@@ -30,7 +30,7 @@ import { budgetOf, maxTokensOf } from '../params/connectionParams'
 
 /**
  * The active session's people as `Name: description` lines, filling {{personas}}, or undefined
- * outside a session. The Narrator's instructions are not here and never were a store concern —
+ * outside a session. The Narrator's instructions are not here and never were a store concern:
  * they come from the prompt stack's `[if Narrator]` branch, the one place the user can edit them.
  */
 let _sessionPersonas: string | undefined = undefined
@@ -60,7 +60,7 @@ const lengthNotice = (maxTokens: number) =>
 
 /**
  * The stack this chat should actually use: its own override, or the globally active one. The
- * override exists so a multiplayer session's stack cannot leak into every ordinary chat — the
+ * override exists so a multiplayer session's stack cannot leak into every ordinary chat, the
  * global is what the Prompts tab and the Settings picker write, and a session must not repoint it.
  * Falls back to the global when the override names a stack that has since been deleted.
  */
@@ -74,7 +74,7 @@ export async function stackFor(chat: Chat | null): Promise<PromptStack> {
 }
 
 /**
- * The connection as this chat should actually use it — the only place override precedence is
+ * The connection as this chat should actually use it, the only place override precedence is
  * applied. It lives in the store rather than the view because the store is what sends: the
  * budget, the request body and the preview all read the same resolved object.
  */
@@ -84,7 +84,7 @@ export function resolvedConnection(character: Character, chat: Chat): Connection
 }
 
 /**
- * The character at a roster position, falling back to the chat's own character — a participant
+ * The character at a roster position, falling back to the chat's own character, a participant
  * deleted out from under the roster still leaves a turn that can be generated.
  */
 function characterAt(chat: Chat, index: number, fallback: Character): Character {
@@ -97,8 +97,8 @@ function characterAt(chat: Chat, index: number, fallback: Character): Character 
 
 /**
  * The lorebook content for a turn, from three attachment levels at once: every global book, the
- * *speaker's* books — in a group chat the character replying brings their own, not the chat's first
- * participant — and the books attached to this chat.
+ * *speaker's* books, in a group chat the character replying brings their own, not the chat's first
+ * participant, and the books attached to this chat.
  */
 export async function worldInfoFor(
   speaker: Character,
@@ -126,7 +126,7 @@ export interface CharacterSummary {
   latest: number
   /** Most recently updated chat, so the picker can resume without loading a character's chat list. */
   lastChatId?: number
-  /** `updatedAt` of that chat — only used to pick it. */
+  /** `updatedAt` of that chat, only used to pick it. */
   lastChatAt?: number
 }
 
@@ -139,19 +139,19 @@ interface ChatState {
   messages: Message[]
   streamingText: string
   /** Reasoning as it arrives, so the thinking is visible before any reply text shows up.
-   *  Only reset when a stream starts — nothing renders it while `streaming` is false. */
+   *  Only reset when a stream starts, nothing renders it while `streaming` is false. */
   streamingReasoning: string
   streaming: boolean
   /** Which chat the stream belongs to, so opening another chat mid-generation doesn't show its
    *  reply there. Null when idle. */
   streamingChatId: number | null
   /** The chat ChatView currently has open, or null when no chat is on screen. Separate from `chat`,
-   *  which stays loaded after you navigate away — this is the one that says you're *looking* at it,
+   *  which stays loaded after you navigate away, this is the one that says you're *looking* at it,
    *  and it's what decides whether a finished reply blips instead of landing quietly. */
   viewingChatId: number | null
   setViewing(chatId: number | null): void
   error: string
-  /** History messages the budget dropped on the last send — normal operation, not an error. */
+  /** History messages the budget dropped on the last send, normal operation, not an error. */
   trimmedCount: number
   /** The open chat's stack's utility-prompt overrides, for views that show one before it is sent.
    *  The send path re-reads them off the stack it loads rather than trusting this copy. */
@@ -169,17 +169,17 @@ interface ChatState {
   loadChats(characterId: number): Promise<void>
   /** One read of a character's messages, so typing a query filters in memory. */
   loadSearchIndex(characterId: number): Promise<void>
-  /** One pass over chats + messages, keyed by characterId — for the picker cards. */
+  /** One pass over chats + messages, keyed by characterId, for the picker cards. */
   loadSummaries(): Promise<void>
   /** The character's most recent chat, for the stack editor's preview. Doesn't touch chat state. */
   load(chatId: number): Promise<void>
-  /** A chat's messages in order, without opening it — what the chat list's export reads. */
+  /** A chat's messages in order, without opening it, what the chat list's export reads. */
   messagesOf(chatId: number): Promise<Message[]>
   createChat(characterId: number): Promise<number>
   renameChat(id: number, title: string): Promise<void>
   /** Write straight to the open chat: the settings panel debounces, there's no dirty state. */
   patchChat(patch: Partial<Chat>): Promise<void>
-  /** All bookmarked chats, newest first — the sidebar list. */
+  /** All bookmarked chats, newest first, the sidebar list. */
   loadBookmarks(): Promise<void>
   /** Flip a chat's bookmark by id, whether or not it's in the current per-character list. */
   toggleBookmark(id: number): Promise<void>
@@ -268,7 +268,7 @@ export const useChats = create<ChatState>()((set, get) => ({
   load: async (chatId) => {
     const chat = (await storage.get('chats', chatId)) as unknown as Chat | undefined
     const rows = (await storage.find('messages', 'chatId', chatId)) as unknown as Message[]
-    // Resolved here so the view can show the same wording the send path will use — the rewrite box
+    // Resolved here so the view can show the same wording the send path will use, the rewrite box
     // prefills with the old-message instruction, and reading it off the stack in a component would
     // mean an async lookup per message row.
     const miscPrompts = chat ? (await stackFor(chat)).miscPrompts : undefined
@@ -294,7 +294,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     })
     // The greeting seeds the first assistant message with every greeting as a swipe: swiping it
     // picks another greeting rather than calling the model. Tokens resolve here, once, as the
-    // card data becomes a real message — after that it's transcript like any other turn.
+    // card data becomes a real message, after that it's transcript like any other turn.
     const persona = await usePersonas.getState().ensureActive()
     const greetings = character
       ? [character.firstMessage, ...character.alternateGreetings]
@@ -386,7 +386,7 @@ export const useChats = create<ChatState>()((set, get) => ({
         set({ error: 'No message after the character name.' })
         return
       }
-      // The same fields `retry` stamps on a reply, minus the request snapshot and reasoning —
+      // The same fields `retry` stamps on a reply, minus the request snapshot and reasoning:
       // there was no request. Nothing records that a human wrote it: from here on it is that
       // character's line like any other.
       await storage.put('messages', {
@@ -412,7 +412,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     }
 
     const persona = await usePersonas.getState().ensureActive()
-    // Tokens resolve as you send, and the expanded text is what's stored — the message becomes
+    // Tokens resolve as you send, and the expanded text is what's stored, the message becomes
     // transcript the moment it lands, and transcript is never substituted again.
     // In a group this resolves {{char}} against the chat's first participant, not whoever replies
     // next: you type before the round robin picks. Per-message speaker choice is the upgrade path
@@ -449,7 +449,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     await get().load(chat.id!)
     if (command?.name === 'noreply') return
 
-    // A chosen speaker is one reply from that participant — no round robin, no self-reply run.
+    // A chosen speaker is one reply from that participant, no round robin, no self-reply run.
     stopped = false
     if (speakerId !== undefined) {
       await get().retry(character, speakerId)
@@ -474,7 +474,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       // Params resolve against the speaker, not the chat's first participant.
       const connection = resolvedConnection(speaker, chat)
       if (!connection) {
-        set({ error: 'No active connection — pick one in Settings.' })
+        set({ error: 'No active connection, pick one in Settings.' })
         return
       }
 
@@ -528,12 +528,12 @@ export const useChats = create<ChatState>()((set, get) => ({
         abort = null
       }
 
-      // A clean stream that never produced reply text: don't vanish silently — say so, and name the
+      // A clean stream that never produced reply text: don't vanish silently, say so, and name the
       // reasoning-only case, since a reasoning model that hits its token limit while thinking is the
       // usual cause.
       if (!text && !controller.signal.aborted) {
         const message = reasoning
-          ? `The model produced ${reasoning.length} characters of reasoning but no reply — it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
+          ? `The model produced ${reasoning.length} characters of reasoning but no reply, it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
           : 'The model returned an empty response.'
         set({ streaming: false, streamingChatId: null, streamingText: '', speakingName: '', speakingId: null, error: message })
         return
@@ -562,7 +562,7 @@ export const useChats = create<ChatState>()((set, get) => ({
         })
         // The cursor only moves on a reply that happened, so a failed turn doesn't skip anyone.
         // Both of these write through the *current* chat, so skip them if you navigated to another
-        // one while this streamed — the message above already landed in the right chat.
+        // one while this streamed, the message above already landed in the right chat.
         if (get().chat?.id === chat.id) {
           await get().patchChat({ lastSpeakerIndex: -1 }) // Narrator doesn't advance round robin
           await get().load(chat.id!)
@@ -572,14 +572,14 @@ export const useChats = create<ChatState>()((set, get) => ({
       return
     }
     // Round robin, unless an avatar was clicked. A solo chat is a roster of one, so this is the
-    // same code path either way — index 0, every time.
+    // same code path either way, index 0, every time.
     const asked = speakerId === undefined ? -1 : participants(chat).indexOf(speakerId)
     const index = asked >= 0 ? asked : nextSpeakerIndex(chat)
     const speaker = characterAt(chat, index, character)
     // Params resolve against the speaker, not the chat's first participant.
     const connection = resolvedConnection(speaker, chat)
     if (!connection) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection, pick one in Settings.' })
       return
     }
 
@@ -633,12 +633,12 @@ export const useChats = create<ChatState>()((set, get) => ({
       abort = null
     }
 
-    // A clean stream that never produced reply text: don't vanish silently — say so, and name the
+    // A clean stream that never produced reply text: don't vanish silently, say so, and name the
     // reasoning-only case, since a reasoning model that hits its token limit while thinking is the
     // usual cause.
     if (!text && !controller.signal.aborted) {
       const message = reasoning
-        ? `The model produced ${reasoning.length} characters of reasoning but no reply — it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
+        ? `The model produced ${reasoning.length} characters of reasoning but no reply, it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
         : 'The model returned an empty response.'
       set({ streaming: false, streamingChatId: null, streamingText: '', speakingName: '', speakingId: null, error: message })
       return
@@ -667,7 +667,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       })
       // The cursor only moves on a reply that happened, so a failed turn doesn't skip anyone.
       // Both of these write through the *current* chat, so skip them if you navigated to another
-      // one while this streamed — the message above already landed in the right chat.
+      // one while this streamed, the message above already landed in the right chat.
       if (get().chat?.id === chat.id) {
         await get().patchChat({ lastSpeakerIndex: index })
         await get().load(chat.id!)
@@ -691,13 +691,13 @@ export const useChats = create<ChatState>()((set, get) => ({
     const target = get().messages[at]
     if (!target || target.role !== 'assistant') return
 
-    // Re-rolled as whoever said it, not as whoever is up next — so the snapshot stays truthful and
+    // Re-rolled as whoever said it, not as whoever is up next, so the snapshot stays truthful and
     // the reply keeps the same voice, card and params.
     const speaker =
       useCharacters.getState().characters.find((c) => c.id === target.speakerId) ?? character
     const connection = resolvedConnection(speaker, chat)
     if (!connection) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection, pick one in Settings.' })
       return
     }
 
@@ -733,7 +733,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       const persona = await usePersonas.getState().ensureActive()
       await loadTokenizer(tokenizerFor(connection))
       // As if this message didn't exist yet: history is everything before it. Anything after it
-      // is neither sent nor touched — it only reaches the model through the instruction above.
+      // is neither sent nor touched, it only reaches the model through the instruction above.
       const prompt = buildPrompt(
         {
           stack,
@@ -793,7 +793,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     const updated = regenerated(target, text, snapshot, reasoning)
     if (updated) {
       await storage.put('messages', updated as unknown as StoredRecord)
-      // Same as retry: don't reload if you've moved to another chat mid-stream — blip instead.
+      // Same as retry: don't reload if you've moved to another chat mid-stream, blip instead.
       if (get().chat?.id === chat.id) await get().load(chat.id!)
       if (get().viewingChatId !== chat.id) {
         useBlips.getState().mark(target.speakerId ?? chat.characterId)
@@ -806,14 +806,14 @@ export const useChats = create<ChatState>()((set, get) => ({
     if (!chat) return
     const target = get().messages.at(-1)
     if (!target || target.role !== 'assistant') {
-      set({ error: 'Nothing to continue — the last message is not a reply.' })
+      set({ error: 'Nothing to continue, the last message is not a reply.' })
       return
     }
     // Trailing whitespace is not part of what was said, and some endpoints reject a prefill that
     // ends in it. Trimmed once here so the text sent and the text appended to are the same string.
     const prefix = target.content.replace(/\s+$/, '')
     if (!prefix) {
-      set({ error: 'Nothing to continue — the last reply is empty.' })
+      set({ error: 'Nothing to continue, the last reply is empty.' })
       return
     }
 
@@ -822,7 +822,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       useCharacters.getState().characters.find((c) => c.id === target.speakerId) ?? character
     const connection = resolvedConnection(speaker, chat)
     if (!connection) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection, pick one in Settings.' })
       return
     }
 
@@ -831,7 +831,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     set({
       streaming: true,
       streamingChatId: chat.id ?? null,
-      // The bubble renders streamingText in place of the message, so it carries the partial too —
+      // The bubble renders streamingText in place of the message, so it carries the partial too:
       // otherwise the reply would appear to vanish and regrow from the join.
       streamingText: prefix,
       streamingReasoning: '',
@@ -851,7 +851,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       await loadTokenizer(tokenizerFor(connection))
       // History is everything before this message; the message itself goes in as the prefill, so
       // it appears once rather than twice. Deliberately unlabelled in a group chat, where history
-      // turns carry a `Name:` prefix — the continuation should come back as bare text.
+      // turns carry a `Name:` prefix, the continuation should come back as bare text.
       const prompt = buildPrompt(
         {
           stack,
@@ -908,7 +908,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       regeneratingId: null,
       speakingName: '',
       // A continuation can hit the limit as readily as the reply did, and then it can be continued
-      // again — the notice is the same one either way.
+      // again, the notice is the same one either way.
       error: finishReason === 'length' ? lengthNotice(maxTokensOf(connection)) : '',
     })
     // Joined raw. What the model sent is what's stored, and it decides its own leading space.

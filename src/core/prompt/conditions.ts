@@ -8,8 +8,8 @@ import { castSlots } from './swapTokens.ts'
  * The conditions a prompt can branch on, by lowercased name. Deliberately a flat table of
  * booleans rather than an expression language: `[if]` reads like code without becoming one.
  *
- * `narrator` — the speaker this turn is the Narrator.
- * `char1`…`char4` — that cast slot is filled. Matches the {{charN}} tokens one for one.
+ * `narrator`: the speaker this turn is the Narrator.
+ * `char1`…`char4`: that cast slot is filled. Matches the {{charN}} tokens one for one.
  */
 export interface PromptConditions {
   [name: string]: boolean
@@ -35,7 +35,7 @@ const directivePattern = /^\[(if|elseif|else|endif)(?:\s+(?:(not)\s+)?([A-Za-z0-
 
 /**
  * A directive only when the whole trimmed line is one. Prose on the same line, a missing name on
- * [if], or a name on [else] all read as literal text — same forgiveness as an unknown {{token}}.
+ * [if], or a name on [else] all read as literal text, same forgiveness as an unknown {{token}}.
  */
 function directive(line: string): Directive | undefined {
   const match = directivePattern.exec(line.trim())
@@ -53,7 +53,7 @@ function directive(line: string): Directive | undefined {
 type Node = string | Conditional
 
 interface Branch {
-  /** Absent on [else] — an else branch is always eligible. */
+  /** Absent on [else]: an else branch is always eligible. */
   name?: string
   negated: boolean
   /** The directive line as written, for putting an unclosed conditional back verbatim. */
@@ -70,7 +70,7 @@ function isConditional(node: Node): node is Conditional {
 }
 
 /**
- * Lines to a tree. Directives that can't pair up — a stray [endif], an [else] with no [if] — go in
+ * Lines to a tree. Directives that can't pair up (a stray [endif], an [else] with no [if]) go in
  * as literal text, and an [if] left open at the end is flattened back to its own lines.
  */
 function parse(lines: string[]): Node[] {
@@ -152,7 +152,7 @@ function render(nodes: Node[], flags: PromptConditions, out: string[]): void {
  * before token substitution, so a token inside a dropped branch is never swapped and no token
  * value can be mistaken for a condition name.
  *
- * Directive lines are consumed whole — a taken branch comes out with no blank line where the
+ * Directive lines are consumed whole: a taken branch comes out with no blank line where the
  * `[if]` was. Nesting works. An unknown condition name is false, so a typo drops a branch rather
  * than breaking the prompt, and malformed structure stays literal rather than throwing.
  */

@@ -4,7 +4,7 @@
  * replacing them.
  *
  * Its own file, extension-ful imports and all, so checkShareable.ts can run it under
- * `node --experimental-strip-types` — backup.ts pulls in Dexie and can't.
+ * `node --experimental-strip-types`, backup.ts pulls in Dexie and can't.
  */
 
 type SettingsBlob = { state?: { connections?: { id?: string; name?: string }[] } }

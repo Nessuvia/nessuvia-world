@@ -2,9 +2,9 @@
  * What the OS paints its own chrome with, derived from the active palette's background.
  *
  * Android, in a standalone PWA: `<meta name="theme-color">` colors the status bar and Chrome reads
- * it live, so a palette swap repaints it. The navigation bar at the bottom is not directly settable
- * — Chrome derives it from the manifest's `background_color` at launch and from the page's own
- * background after that, so the honest lever there is `body { background: var(--bg) }`, which
+ * it live, so a palette swap repaints it. The navigation bar at the bottom is not directly settable:
+ * Chrome derives it from the manifest's `background_color` at launch and from the page's own
+ * background after that; so the honest lever there is `body { background: var(--bg) }`, which
  * index.css already sets.
  *
  * iOS, from the home screen: `apple-mobile-web-app-status-bar-style` takes a style name rather than
@@ -16,7 +16,7 @@
  */
 import { isLight } from './palette.ts'
 
-/** The `--bg` in index.css's `:root` — what a palette that leaves `bg` cleared shows through to. */
+/** The `--bg` in index.css's `:root`: what a palette that leaves `bg` cleared shows through to. */
 export const fallbackBg = '#101014'
 
 /** `default` is dark text on a light bar, `black` is light text on a black one. `black-translucent`
@@ -30,8 +30,8 @@ export interface SystemBars {
 }
 
 /**
- * The bar values for a palette background. Anything that isn't a `#rgb`/`#rrggbb` color — cleared,
- * or junk from an imported file — falls back to the stylesheet's background, which is what the page
+ * The bar values for a palette background. Anything that isn't a `#rgb`/`#rrggbb` color (cleared,
+ * or junk from an imported file) falls back to the stylesheet's background, which is what the page
  * paints in that case anyway.
  */
 export function systemBars(bg: string): SystemBars {

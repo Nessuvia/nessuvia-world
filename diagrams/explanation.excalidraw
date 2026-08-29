@@ -27,7 +27,7 @@
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Xenia Nessuvia — how the code fits together",
+      "originalText": "Xenia Nessuvia: how the code fits together",
       "autoResize": true,
       "lineHeight": 1.25,
       "strokeColor": "#1e1e1e",
@@ -37,7 +37,7 @@
       "y": -80,
       "width": 662.2,
       "height": 35,
-      "text": "Xenia Nessuvia — how the code fits together"
+      "text": "Xenia Nessuvia: how the code fits together"
     },
     {
       "angle": 0,
@@ -435,7 +435,7 @@
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Four special cases:\n· bodyMap — plugin, off until enabled in Settings\n· learn — button only shows on dev builds\n· sync — import commented out in main.tsx\n· join — mounted in App.tsx, outside the sidebar",
+      "originalText": "Four special cases:\n· bodyMap: plugin, off until enabled in Settings\n· learn: button only shows on dev builds\n· sync: import commented out in main.tsx\n· join: mounted in App.tsx, outside the sidebar",
       "autoResize": true,
       "lineHeight": 1.25,
       "strokeColor": "#666",
@@ -445,7 +445,7 @@
       "y": 20,
       "width": 350.35,
       "height": 81.25,
-      "text": "Four special cases:\n· bodyMap — plugin, off until enabled in Settings\n· learn — button only shows on dev builds\n· sync — import commented out in main.tsx\n· join — mounted in App.tsx, outside the sidebar"
+      "text": "Four special cases:\n· bodyMap: plugin, off until enabled in Settings\n· learn: button only shows on dev builds\n· sync: import commented out in main.tsx\n· join: mounted in App.tsx, outside the sidebar"
     },
     {
       "angle": 0,
@@ -517,7 +517,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "mods",
-      "originalText": "/src/modules — one folder per feature\nchat · write · multiplayer · ask · characters\npersonas · prompts · appearance · settings\n(React components — what you see on screen)",
+      "originalText": "/src/modules: one folder per feature\nchat · write · multiplayer · ask · characters\npersonas · prompts · appearance · settings\n(React components: what you see on screen)",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1e1e1e",
@@ -527,7 +527,7 @@
       "y": 177.5,
       "width": 624,
       "height": 75,
-      "text": "/src/modules — one folder per feature\nchat · write · multiplayer · ask · characters\npersonas · prompts · appearance · settings\n(React components — what you see on screen)"
+      "text": "/src/modules: one folder per feature\nchat · write · multiplayer · ask · characters\npersonas · prompts · appearance · settings\n(React components: what you see on screen)"
     },
     {
       "angle": 0,
@@ -733,7 +733,7 @@
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "/src/core — the logic. Components call into this; it never imports a component.",
+      "originalText": "/src/core: the logic. Components call into this; it never imports a component.",
       "autoResize": true,
       "lineHeight": 1.25,
       "strokeColor": "#1e1e1e",
@@ -743,7 +743,7 @@
       "y": 300,
       "width": 782.1,
       "height": 22.5,
-      "text": "/src/core — the logic. Components call into this; it never imports a component."
+      "text": "/src/core: the logic. Components call into this; it never imports a component."
     },
     {
       "angle": 0,
@@ -3215,7 +3215,7 @@
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Note on step 6: the stored text is exactly what the model said. Formatting is a display concern —\nnothing rewrites stored content.",
+      "originalText": "Note on step 6: the stored text is exactly what the model said. Formatting is a display concern:\nnothing rewrites stored content.",
       "autoResize": true,
       "lineHeight": 1.25,
       "strokeColor": "#666",
@@ -3225,7 +3225,7 @@
       "y": 1270,
       "width": 800.2500000000001,
       "height": 37.5,
-      "text": "Note on step 6: the stored text is exactly what the model said. Formatting is a display concern —\nnothing rewrites stored content."
+      "text": "Note on step 6: the stored text is exactly what the model said. Formatting is a display concern:\nnothing rewrites stored content."
     }
   ],
   "appState": {

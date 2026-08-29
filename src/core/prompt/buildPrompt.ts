@@ -22,7 +22,7 @@ import type { MiscPrompts } from './miscPrompts.ts'
 import { emptyWorldInfo, type ResolvedWorldInfo } from './worldInfo.ts'
 
 /**
- * The card's text, or the block's own content when the card has none — which is the spec's
+ * The card's text, or the block's own content when the card has none. That is the spec's
  * "empty string means use the frontend's own" rule. {{original}} in the card's text resolves to
  * that same content, so a card can extend the stack's instruction instead of replacing it.
  *
@@ -30,7 +30,7 @@ import { emptyWorldInfo, type ResolvedWorldInfo } from './worldInfo.ts'
  */
 function cardOverride(cardText: string, block: PromptBlock): string {
   const fallback = activeContent(block)
-  // Not substituted into the fallback itself — {{original}} inside it would resolve to itself.
+  // Not substituted into the fallback itself: {{original}} inside it would resolve to itself.
   if (!cardText.trim()) return fallback
   return cardText.replace(/\{\{\s*original\s*\}\}/gi, fallback)
 }
@@ -74,7 +74,7 @@ function boundText(
   }
 }
 
-/** Two spaces per level, on non-blank lines only — blank lines stay blank, not trailing spaces. */
+/** Two spaces per level, on non-blank lines only. Blank lines stay blank, not trailing spaces. */
 function indentLines(text: string, depth: number): string {
   if (depth <= 0) return text
   const pad = '  '.repeat(depth)
@@ -87,7 +87,7 @@ function indentLines(text: string, depth: number): string {
 /**
  * A block's whole text, children included: own text, then each child, then the closing text,
  * newline-joined. Blank parts drop out, so a bare group is just its children and an empty
- * bound field never leaves a stray blank line — but a wrapper's tags stay even with no children.
+ * bound field never leaves a stray blank line, but a wrapper's tags stay even with no children.
  *
  * `indent` is display-only (the preview): each nesting level shifts its children right. The sent
  * prompt never passes it, so what goes over the wire has no indentation.
@@ -110,7 +110,7 @@ function blockText(
   if (block.input) own = swapBlockVals(own, block.input)
   const parts = [
     indentLines(own, depth),
-    // Nested chat history resolves to '' — it's many messages with their own roles, it can't
+    // Nested chat history resolves to '': it's many messages with their own roles, it can't
     // live inside one text span. The editor refuses to nest it in the first place.
     ...(block.children ?? []).map((child) =>
       blockText(child, character, persona, authorNote, worldInfo, indent, indent ? depth + 1 : 0),
@@ -188,15 +188,15 @@ export interface BuildPromptArgs {
   speaker?: Character
   /** Source of the author's note text for `authorNote` blocks. */
   chat?: Chat
-  /** Matched lorebook content. Resolved by the caller with `resolveWorldInfo` — matching needs
+  /** Matched lorebook content. Resolved by the caller with `resolveWorldInfo`: matching needs
    *  entries out of storage, and this function stays pure, exactly as it does for `authorNote`.
    *  `.before` and `.after` fill the two block slots; `.atDepth` entries are spliced into history
    *  instead, with the role of the `worldInfoDepth` block if the stack carries one. */
   worldInfo?: ResolvedWorldInfo
-  /** A system turn appended after everything else — the rewrite instruction. Counted against
+  /** A system turn appended after everything else: the rewrite instruction. Counted against
    *  the budget like any other text, never exempted. */
   appendSystem?: string
-  /** A partial reply left as the last turn for the model to carry on from — what `/continue` sends.
+  /** A partial reply left as the last turn for the model to carry on from: what `/continue` sends.
    *  Goes after `appendSystem` because a prefill only works while it is the final turn. Counted
    *  against the budget like any other text. */
   appendAssistant?: string
@@ -214,7 +214,7 @@ export interface BuildPromptArgs {
   personas?: string
 }
 
-/** A block that contributed nothing, and the reason — the preview lists these. */
+/** A block that contributed nothing, and the reason. The preview lists these. */
 export interface SkippedBlock {
   label: string
   reason: 'disabled' | 'empty'
@@ -236,7 +236,7 @@ export interface BuiltPrompt {
 
 /**
  * Walks the active zone in order and produces the exact request body messages.
- * With a budget, history is trimmed from the top first — the preview and the send
+ * With a budget, history is trimmed from the top first: the preview and the send
  * call this same function so they can't drift apart.
  */
 export function buildPrompt(
@@ -274,12 +274,12 @@ export function buildPrompt(
     : emptyWorldInfo
   // Labels only once there's more than one character to tell apart: a solo chat's prompt is
   // byte-identical to what Phase 1 produced. `chat.nameSpeakers` forces them on for a chat that
-  // several *people* speak in — every buildPrompt caller passes `chat`, so a session's labels
+  // several *people* speak in. Every buildPrompt caller passes `chat`, so a session's labels
   // reach the send path and the preview without either being told about multiplayer. The
   // `nameSpeakers` argument stays for callers with no chat record.
   const group = (chat ? isGroup(chat) || chat.nameSpeakers === true : false) || nameSpeakers === true
 
-  // Authored card data only — character fields, persona info, freeform blocks. Chat history is
+  // Authored card data only: character fields, persona info, freeform blocks. Chat history is
   // transcript, not card data: it is never substituted. {{user}} is always the *active* persona,
   // even where older turns were sent as someone else.
   // {{charDescription}} follows the speaker too, so in a group each character's blocks paste
@@ -291,7 +291,7 @@ export function buildPrompt(
 
   // [if Narrator] and friends. Resolved per block, before substitution: a token inside a dropped
   // branch never gets swapped, and no token's value can be read back as a condition name. A
-  // conditional cannot span two blocks — each block's text is parsed on its own, so an [if] in one
+  // conditional cannot span two blocks: each block's text is parsed on its own, so an [if] in one
   // block and its [endif] in the next are both literal text.
   const conditions = promptConditions(who, cast)
 
@@ -312,7 +312,7 @@ export function buildPrompt(
       resolved.push('history')
       continue
     }
-    // Holds no text of its own — its entries are spliced into history below, taking this block's
+    // Holds no text of its own: its entries are spliced into history below, taking this block's
     // role. It leaves the loop here so it isn't reported as an empty block every turn.
     if (block.source === 'worldInfoDepth') {
       if (!resolvedWorldInfo.atDepth.length) skipped.push({ label: block.label, reason: 'empty' })
@@ -326,7 +326,7 @@ export function buildPrompt(
       ),
     )
 
-    // A blank bound field must not become a blank system turn — an empty author's note included.
+    // A blank bound field must not become a blank system turn, an empty author's note included.
     if (!text.trim()) {
       skipped.push({ label: block.label, reason: 'empty' })
       continue
@@ -347,7 +347,7 @@ export function buildPrompt(
     resolved.push(message)
   }
 
-  // Lorebook entries positioned at a depth. They never sit in the stack's own order — each entry's
+  // Lorebook entries positioned at a depth. They never sit in the stack's own order: each entry's
   // `depth` places it, counted from the end of history, same splice as a depth-limited author's
   // note. The `worldInfoDepth` block gives them a role and a switch: no such block means the role
   // is `system`, which is what every stack written before the block existed already did, and a
@@ -372,7 +372,7 @@ export function buildPrompt(
   }
 
   // Not swapped here: appendSystem quotes transcript around the instruction, and transcript is
-  // exempt. The authored half — what you typed into the rewrite box — is swapped by the caller
+  // exempt. The authored half (what you typed into the rewrite box) is swapped by the caller
   // before it's wrapped, so a {{char}} the model wrote stays a literal.
   if (appendSystem?.trim()) {
     resolved.push({ role: 'system', content: appendSystem })
@@ -380,7 +380,7 @@ export function buildPrompt(
   }
 
   // Last, and after the merge below it stays last: a prefill the model is meant to continue only
-  // works as the final turn. Not swapped — it is transcript the model already wrote.
+  // works as the final turn. Not swapped: it is transcript the model already wrote.
   if (appendAssistant?.trim()) {
     resolved.push({ role: 'assistant', content: appendAssistant })
     fixedTokens += countTokens(appendAssistant) + perMessageOverhead
@@ -402,7 +402,7 @@ export function buildPrompt(
 
   // History plus any depth notes, in final order. Depth counts messages from the end, clamped to
   // the top. Notes are inserted deepest-last so each depth is read against the trimmed history.
-  // The label is added here and only here — stored `content` never carries a speaker prefix.
+  // The label is added here and only here: stored `content` never carries a speaker prefix.
   // the prefix isn't in the trim arithmetic, only in the final count. A name per turn is
   // noise against the reply reserve; count it in trimHistory if long group chats start overflowing.
   const history: ChatMessage[] = trimmed.messages.map((m, idx) => {

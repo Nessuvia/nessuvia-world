@@ -16,5 +16,5 @@ export async function wipeEverything() {
   )
   localStorage.clear()
   sessionStorage.clear()
-  // no caches/service-worker sweep — this app registers neither.
+  // no caches/service-worker sweep, this app registers neither.
 }

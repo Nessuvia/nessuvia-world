@@ -1,6 +1,6 @@
 /**
  * The only file that touches Centrifugo. Same job as `supabaseChannel.ts`, against a relay the user
- * runs themselves — see `resources/self-hosted-relay.md` for the server side.
+ * runs themselves. See `resources/self-hosted-relay.md` for the server side.
  *
  * A transport and nothing more: events are opaque typed payloads here. No decision belongs in this
  * file.
@@ -9,13 +9,13 @@
  *
  * Nobody signs in, host included, so every connection here is anonymous. Centrifugo fills a
  * presence entry's `user` and `connInfo` from the connection's JWT, and an anonymous connection has
- * neither — so a presence row says a connection exists and nothing about *whose* it is. The
+ * neither, so a presence row says a connection exists and nothing about *whose* it is. The
  * handlers need whose: `onLeave(member)` is what drops a participant from the roster.
  *
  * What a publication does carry is `info.client`, the publisher's connection id. So identity is
  * correlated rather than read: each client announces `{clientId → PresenceMember}` on the channel,
  * everyone keeps the map, and a `leave` push is resolved through it. `onJoin` fires on the
- * announcement, not on the raw join push — an unidentified connection is nobody yet, and the host
+ * announcement, not on the raw join push: an unidentified connection is nobody yet, and the host
  * admits nobody on presence alone in any case.
  */
 import { Centrifuge } from 'centrifuge'
@@ -30,7 +30,7 @@ const connectTimeoutMs = 10_000
 /**
  * What travels on the channel. Exactly one field is set: `e` is a protocol event, `a` is this
  * layer's own identity announcement. Keeping the announcement out of `e` is what lets `protocol.ts`
- * stay untouched — `parseEvent` never sees a frame it does not know, and `protocolVersion` does not
+ * stay untouched: `parseEvent` never sees a frame it does not know, and `protocolVersion` does not
  * move for a transport detail.
  */
 interface Envelope {
@@ -94,7 +94,7 @@ export function openCentrifugoChannel(
 
   sub.on('publication', (ctx: PublicationContext) => {
     // Centrifugo echoes our own publications back. The host applies its own actions locally and
-    // then broadcasts, so an echo would double-apply — the same reason the Supabase side sets
+    // then broadcasts, so an echo would double-apply: the same reason the Supabase side sets
     // `broadcast: { self: false }`.
     if (ctx.info?.client && ctx.info.client === myClientId) return
 

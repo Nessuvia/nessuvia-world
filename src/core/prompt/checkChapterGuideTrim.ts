@@ -32,7 +32,7 @@ const free = (content: string): Block => ({
   context: 'both',
 })
 
-/** `beats` and `prose` are shorthands for the Blocks a Chapter is made of — the trim only cares
+/** `beats` and `prose` are shorthands for the Blocks a Chapter is made of. The trim only cares
  *  that a Chapter has beats, a summary, and whether it has been written. */
 function ch(
   c: Partial<GuideChapter> & { id: number; beats?: Block[]; prose?: string },
@@ -84,20 +84,20 @@ assert.strictEqual(lines(renderChapterGuide(chapters, 3)), 11)
 {
   const out = fit(8)
   assert.ok(!out.includes('recap one'))
-  assert.ok(out.includes('Chapter 1 — One'))
+  assert.ok(out.includes('Chapter 1 - One'))
   assert.ok(out.includes('recap two')) // still on the gentler rung
   assert.strictEqual(lines(out), 8)
 
   const tighter = fit(7)
   assert.ok(!tighter.includes('recap two'))
-  assert.ok(tighter.includes('Chapter 2 — Two'))
+  assert.ok(tighter.includes('Chapter 2 - Two'))
 }
 
 // --- stage 3: the earliest Chapters go entirely --------------------------------
 {
   const out = fit(6)
   assert.ok(!out.includes('Chapter 1'))
-  assert.ok(out.includes('Chapter 2 — Two'))
+  assert.ok(out.includes('Chapter 2 - Two'))
   assert.strictEqual(lines(out), 6)
 
   const tighter = fit(5)
@@ -109,10 +109,10 @@ assert.strictEqual(lines(renderChapterGuide(chapters, 3)), 11)
   // Well under what the floor alone costs: the guide overruns rather than dropping the Chapter
   // being written.
   const out = fit(1)
-  assert.ok(out.includes('Chapter 3 — Three [writing now]'))
+  assert.ok(out.includes('Chapter 3 - Three [writing now]'))
   assert.ok(out.includes('three beat'))
   // Chapter 4 is after the active one, so the trim never reaches it either.
-  assert.ok(out.includes('Chapter 4 — Four'))
+  assert.ok(out.includes('Chapter 4 - Four'))
   assert.ok(out.includes('four beat'))
   assert.ok(lines(out) > 1)
 }
@@ -132,7 +132,7 @@ assert.strictEqual(lines(renderChapterGuide(chapters, 3)), 11)
   }
   // A Chapter set to `beats` has no summary to fall back to, so stage 1 leaves it at its title row.
   const demoted = renderChapterGuideWithin(overridden, 3, 6, lines)
-  assert.ok(demoted.includes('Chapter 2 — Two'))
+  assert.ok(demoted.includes('Chapter 2 - Two'))
   assert.ok(!demoted.includes('two beat a'))
 }
 
@@ -148,14 +148,14 @@ assert.strictEqual(lines(renderChapterGuide(chapters, 3)), 11)
   // Chapter 2 is the earliest that renders, so it is what gets demoted.
   assert.ok(out.includes('recap two') && !out.includes('two beat a'))
   // Numbering still counts position in the Story.
-  assert.ok(out.includes('Chapter 2 — Two'))
+  assert.ok(out.includes('Chapter 2 - Two'))
   assert.strictEqual(renderChapterGuideWithin([withOff[0]], null, 1, lines), '')
 }
 
 // --- no active Chapter: the last rendered one is the floor ---------------------
 {
   const out = renderChapterGuideWithin(chapters, null, 1, lines)
-  assert.ok(out.includes('Chapter 4 — Four'))
+  assert.ok(out.includes('Chapter 4 - Four'))
   assert.ok(out.includes('four beat'))
   assert.ok(!out.includes('Chapter 1'))
 }

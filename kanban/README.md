@@ -1,7 +1,7 @@
 # kanban
 
 Idea board at kanban.nessuvia.com. Lists: Ideas, In Consideration, Rejected, Approved, In Progress,
-Done. No auth — the cards are committed as a `.nbx` file, nullboard's own export format, and are
+Done. No auth: the cards are committed as a `.nbx` file, nullboard's own export format, and are
 readable by anyone with the repo.
 
 [Nullboard](https://github.com/apankrat/nullboard) vendored at `db65363`, BSD-2-Clause, `LICENSE`
@@ -33,7 +33,7 @@ No build step. `npx wrangler dev --config kanban/wrangler.jsonc` to run it local
 deploy created it. The app's own Worker uses a plain route instead, because `xenia.nessuvia.com`
 already had a record made by hand.
 
-Neither Worker deploys on push today — the API reports `last_deployed_from: "wrangler"` for
+Neither Worker deploys on push today: the API reports `last_deployed_from: "wrangler"` for
 `xenia-nessuvia-dev`, so both go live by someone running the command by hand.
 
 To put the kanban on a push trigger, connect a Workers Build to this repo in the Cloudflare

@@ -31,7 +31,7 @@ function seeded(message: Swipeable): string[] {
 
 /**
  * A finished regeneration: the new text lands as the last swipe and becomes the selected one.
- * `null` means nothing to store — a failed request leaves the message exactly as it was.
+ * `null` means nothing to store, a failed request leaves the message exactly as it was.
  */
 export function regenerated<T extends Swipeable>(
   message: T,
@@ -49,7 +49,7 @@ export function regenerated<T extends Swipeable>(
   const requestSnapshots = [...(message.requestSnapshots ?? [])]
   requestSnapshots.length = swipes.length - 1
   requestSnapshots.push(snapshot)
-  // reasonings pad the same way — old swipes without a captured reasoning stay holes.
+  // reasonings pad the same way, old swipes without a captured reasoning stay holes.
   const reasonings = [...(message.reasonings ?? [])]
   reasonings.length = swipes.length - 1
   reasonings.push(reasoning || undefined)
@@ -57,7 +57,7 @@ export function regenerated<T extends Swipeable>(
 }
 
 /**
- * A finished continuation: `text` is the whole reply — the partial plus what the model just added —
+ * A finished continuation: `text` is the whole reply, the partial plus what the model just added,
  * and it replaces the selected swipe in place. A continuation is not a new take on the message, so
  * it must not become a swipe of its own; re-rolling still does that.
  *
@@ -96,7 +96,7 @@ export function reasoningFor(message: Swipeable): string | undefined {
 }
 
 /**
- * Drop swipes by index. Returns null when nothing would be left — the caller deletes the message.
+ * Drop swipes by index. Returns null when nothing would be left, the caller deletes the message.
  * The selection slides back to the nearest surviving swipe at or before where it was.
  */
 export function deletedSwipes<T extends Swipeable>(message: T, indices: number[]): T | null {

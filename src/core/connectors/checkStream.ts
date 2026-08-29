@@ -13,7 +13,7 @@ function sse(chunks: string[]) {
 
 const delta = (t: string) => `data: {"choices":[{"delta":{"content":"${t}"}}]}\n\n`
 
-// Split mid-event on purpose — the parser must buffer across reads.
+// Split mid-event on purpose: the parser must buffer across reads.
 const wire = (delta('Hel') + delta('lo') + 'data: [DONE]\n\n').match(/.{1,7}/gs)!
 
 const out: string[] = []

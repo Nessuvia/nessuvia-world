@@ -25,7 +25,7 @@ if (-not $Config) { $Config = Join-Path $scriptDir 'config.json' }
 
 function Find-Binary {
     param([string]$Name)
-    # PATH first, then beside this script, then a bin/ subfolder — so dropping the two exes next to
+    # PATH first, then beside this script, then a bin/ subfolder, so dropping the two exes next to
     # the script works without touching PATH.
     $cmd = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($cmd) { return $cmd.Source }
@@ -222,7 +222,7 @@ try {
             $failure = $_.Exception.Message
         }
         # 400 is the success case: Centrifugo rejecting a non-handshake request proves the path
-        # reached it. 530 means the edge has the hostname but no tunnel yet — retry.
+        # reached it. 530 means the edge has the hostname but no tunnel yet, so retry.
         if ($code -eq 400) { break }
         Start-Sleep -Seconds 2
     }

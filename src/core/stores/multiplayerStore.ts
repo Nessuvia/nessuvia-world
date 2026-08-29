@@ -42,7 +42,7 @@ export interface MultiplayerState {
   /** True when guests may not edit their own persona. The host owns it; guests read it. */
   personaLock: boolean
 
-  /** Guest-side: the whole transcript, in memory. Host-side: empty — the host reads Dexie. */
+  /** Guest-side: the whole transcript, in memory. Host-side: empty, the host reads Dexie. */
   messages: GuestMessage[]
   /** The in-flight reply, keyed as in StreamEvent. Null between replies. */
   streaming: { key: string; text: string; speakerName: string } | null

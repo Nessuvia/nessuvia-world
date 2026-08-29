@@ -1,5 +1,5 @@
 // Chapters as prompt text: the Chapter guide (the list, stamped with each Chapter's state) and the
-// Story prose the guide sits over. Pure and check-testable — the store resolves rows, this decides
+// Story prose the guide sits over. Pure and check-testable: the store resolves rows, this decides
 // wording and shape.
 //
 // Extension-ful imports on purpose: checkChapterGuide.ts runs this under
@@ -15,13 +15,13 @@ export type GuideChapter = Pick<Chapter, 'id' | 'title' | 'summary' | 'blocks' |
  *
  * The test is `!== ''`, not `.trim() !== ''`: a beat the Author has just added and not yet written
  * is still a beat, and it has to keep its box and its row. What it sends to the model is a separate
- * question, answered in `renderOne` — an unwritten beat says nothing, so it contributes no line.
+ * question, answered in `renderOne`: an unwritten beat says nothing, so it contributes no line.
  * Emptying the field outright is how a beat becomes free prose, and that is an explicit action.
  */
 export const beatBlocks = (chapter: Pick<Chapter, 'blocks'>): Block[] =>
   chapter.blocks.filter(isBeat)
 
-/** Whether a Block is a beat at all — see `beatBlocks` for why the test is `!== ''`. Exported so
+/** Whether a Block is a beat at all: see `beatBlocks` for why the test is `!== ''`. Exported so
  *  nothing spells it a second way: a caller that tests `.trim()` instead disagrees about a beat the
  *  Author has just added, and disagreeing about which Blocks are beats corrupts any write that maps
  *  an edited beat list back onto `blocks`. */
@@ -38,7 +38,7 @@ export const chapterProse = (chapter: Pick<Chapter, 'blocks'>): string =>
 /** The line marking a Chapter boundary inside the Story prose, so the model can see where the
  *  boundaries fall as the prose scrolls past them. Prompt wording; keep it here with the rest. */
 export const chapterDivider = (index: number, title: string): string =>
-  `— Chapter ${index + 1}${title.trim() ? `: ${title.trim()}` : ''} —`
+  `- Chapter ${index + 1}${title.trim() ? `: ${title.trim()}` : ''} -`
 
 /** What a Chapter is doing right now, from two facts: has prose, and is the active Chapter. */
 export type ChapterState = 'written' | 'writingNow' | 'notYetWritten'
@@ -71,7 +71,7 @@ type Detail = 'full' | 'summaryOnly' | 'titleOnly' | 'dropped'
 
 /**
  * One Chapter's lines: its title row, then its summary (recap), then its beats (intent). Summary
- * before beats — what happened, then what is meant to happen.
+ * before beats: what happened, then what is meant to happen.
  *
  * `guideSend` decides which halves exist at all; `detail` decides how many of them survive the
  * trim. The two are independent: the trim reads the mode, it never rewrites it, so a Chapter set
@@ -85,7 +85,7 @@ function renderOne(
 ): string[] {
   if (detail === 'dropped' || chapter.guideSend === 'off') return []
   const title = chapter.title.trim()
-  const lines = [`Chapter ${index + 1}${title ? ` — ${title}` : ''} ${stateLabels[chapterState(chapter, activeId)]}`]
+  const lines = [`Chapter ${index + 1}${title ? ` - ${title}` : ''} ${stateLabels[chapterState(chapter, activeId)]}`]
   if (detail === 'titleOnly') return lines
 
   const wantsSummary = chapter.guideSend === 'summary' || chapter.guideSend === 'both'
@@ -110,7 +110,7 @@ function renderOne(
  * Every sending Chapter, in order, stamped with its state. Numbering counts position in the Story,
  * not position in the guide, so a Chapter set to `off` doesn't renumber the rest.
  *
- * Every Chapter contributes what its `guideSend` says it does — beats are not the active Chapter's
+ * Every Chapter contributes what its `guideSend` says it does. Beats are not the active Chapter's
  * privilege, because what's planned three Chapters out is exactly the pacing context the guide is
  * for.
  */
@@ -132,7 +132,7 @@ export function renderChapterGuide(chapters: GuideChapter[], activeId: number | 
  * 2. Still over: reduce those to title rows, earliest first.
  * 3. Still over: drop them, earliest first.
  *
- * If even the active Chapter and its successors exceed the allowance, that is what comes back —
+ * If even the active Chapter and its successors exceed the allowance, that is what comes back:
  * the guide never drops the Chapter being written. With no active Chapter the last rendered one
  * stands in as the floor, matching the "no cursor means the last Chapter" fallback the callers
  * already share.
@@ -188,7 +188,7 @@ export function renderChapterGuideWithin(
 /**
  * The Story prose the Co-Writer sees: every Chapter up to and including the active one, divider
  * lines between them. Chapters after the active one are the future and contribute only their guide
- * rows — their prose (if any, after a reorder) would be text the passage hasn't reached yet.
+ * rows: their prose (if any, after a reorder) would be text the passage hasn't reached yet.
  *
  * Nothing is trimmed here. The budget fills backward from the end of this blob, across Chapter
  * lines: Chapters do not partition the context window. What scrolls off the top is covered by the
@@ -200,7 +200,7 @@ export function storyProse(chapters: GuideChapter[], activeId: number | null): s
 
 /**
  * The same prose, split around one Block: `text` is everything before it (the Story context as
- * `storyProse` has always built it), `trailing` is the rest of the active Chapter after it — what
+ * `storyProse` has always built it), `trailing` is the rest of the active Chapter after it: what
  * the model has to write its way back to. The Block's own content is in neither: it is what the
  * generation is replacing.
  *
@@ -211,7 +211,7 @@ export function storyProse(chapters: GuideChapter[], activeId: number | null): s
  * the whole of the per-Block context feature: `buildStoryPrompt` already took these two strings.
  *
  * With `blockId` null (a preview with no Block picked) the split falls at the end of the active
- * Chapter — `trailing` is '' and `text` is the whole prose, the shape this returned before Blocks.
+ * Chapter, `trailing` is '' and `text` is the whole prose, the shape this returned before Blocks.
  */
 export function storyProseSplit(
   chapters: GuideChapter[],

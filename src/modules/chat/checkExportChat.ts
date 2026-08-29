@@ -35,7 +35,7 @@ const names: Names = {
   personaName: 'Dom',
 }
 
-// Order comes from createdAt, then id — the rows arrive from Dexie in whatever order it likes.
+// Order comes from createdAt, then id: the rows arrive from Dexie in whatever order it likes.
 const messages = [
   message({ id: 2, role: 'user', content: '"Speech" she said. *Woah!*', createdAt: 20 }),
   message({
@@ -54,7 +54,7 @@ assert.deepEqual(
   t.turns.map((x) => `${x.name}:${x.content}`),
   ['Damien:picked', 'Dom:"Speech" she said. *Woah!*'],
 )
-// The selected swipe, not swipes[0] — content mirrors it and that mirror is what we read.
+// The selected swipe, not swipes[0]: content mirrors it and that mirror is what we read.
 assert.equal(t.turns[0].content, 'picked')
 
 // A live card outranks the stamped name; a stamped name survives the card's deletion.

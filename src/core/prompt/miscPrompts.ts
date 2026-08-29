@@ -1,4 +1,4 @@
-// The small utility prompts — the instructions the app sends on its own behalf, as opposed to the
+// The small utility prompts: the instructions the app sends on its own behalf, as opposed to the
 // blocks a stack assembles. A prompt is a row here, not a string in the code that sends it, so
 // adding one is a row and a call site and needs no UI work.
 //
@@ -20,7 +20,7 @@ export interface MiscPromptDef {
   label: string
   /** One line under the label in the editor: when this prompt gets sent. */
   hint: string
-  /** The built-in wording. An empty override means this — same rule as `palettePrompt`. */
+  /** The built-in wording. An empty override means this, same rule as `palettePrompt`. */
   text: string
   slots: MiscPromptSlot[]
   kind: MiscPromptKind
@@ -92,7 +92,7 @@ The premise:
  * A stack's overrides, keyed by def id. Passed around rather than read off a store so every
  * function that builds prompt text stays pure and check-testable.
  *
- * Undefined is the honest default for the callers that have no stack to resolve against — Ask has
+ * Undefined is the honest default for the callers that have no stack to resolve against. Ask has
  * no prompt stack at all, and a preview can run before one is loaded. Those get the built-in text.
  */
 export type MiscPrompts = Record<string, string> | undefined
@@ -102,7 +102,7 @@ export const miscPromptDef = (id: string): MiscPromptDef | undefined =>
 
 /**
  * The wording to send: the stack's override, or the built-in. Blank (or whitespace) is not an
- * override — it is how the editor's Reset says "use the built-in", the same rule `palettePrompt`
+ * override: it is how the editor's Reset says "use the built-in", the same rule `palettePrompt`
  * follows. An unknown id returns '' rather than throwing: a stack can carry a row for a prompt a
  * later build removed, and that must not break sending.
  */
@@ -113,8 +113,8 @@ export function miscPrompt(id: string, prompts?: MiscPrompts): string {
 }
 
 /**
- * Fill `{{token}}` slots. One pass, so a value that itself contains `{{…}}` — model output, which
- * every one of these quotes — is never rescanned and never substituted again. An unknown token is
+ * Fill `{{token}}` slots. One pass, so a value that itself contains `{{…}}` (model output, which
+ * every one of these quotes) is never rescanned and never substituted again. An unknown token is
  * left as written: it is more likely a typo the user wants to see than a slot to blank out.
  */
 export function fillSlots(text: string, values: Record<string, string>): string {
@@ -129,7 +129,7 @@ export function fillSlots(text: string, values: Record<string, string>): string 
  * from wherever the user got it, so it can't just be spread onto the record: a nested object or a
  * number would reach `miscPrompt` and be sent, or break the editor's textarea.
  *
- * An id this build doesn't know is kept, not dropped — a file from a later build round-trips, and
+ * An id this build doesn't know is kept, not dropped. A file from a later build round-trips, and
  * `miscPrompt` already ignores an id with no def.
  */
 export function coerceMiscPrompts(raw: unknown): Record<string, string> | undefined {

@@ -26,7 +26,7 @@ const byOrder = (a: WorldInfoEntry, b: WorldInfoEntry) =>
   a.order - b.order || (a.id ?? 0) - (b.id ?? 0)
 
 interface WorldInfoState {
-  /** Entries for the book currently open in the editor — not the ones being sent for. */
+  /** Entries for the book currently open in the editor, not the ones being sent for. */
   entries: WorldInfoEntry[]
   bookId: number | null
   loadFor(bookId: number): Promise<void>
@@ -36,7 +36,7 @@ interface WorldInfoState {
   remove(id: number): Promise<void>
   /** Import: writes a whole book's entries against a book that now has an id. */
   addAll(bookId: number, entries: ImportedEntry[]): Promise<void>
-  /** Delete a book's entries — the lorebook cascade calls this. */
+  /** Delete a book's entries, the lorebook cascade calls this. */
   removeFor(bookId: number): Promise<void>
   /** The send path. Reads storage without touching `entries`, because the books in play for a turn
    *  are usually not the one open in the editor. */
@@ -67,7 +67,7 @@ export const useWorldInfo = create<WorldInfoState>()((set, get) => ({
     if (!moved) return
     list.splice(to, 0, moved)
     // Renumbered in hundreds, whole book at a time. Gaps leave room to type an order between two
-    // rows later without rewriting the book, and the numbers stay meaningful across books — the
+    // rows later without rewriting the book, and the numbers stay meaningful across books, the
     // send path sorts every attached book's entries as one list by `order`.
     for (const [i, entry] of list.entries()) {
       const order = (i + 1) * 100

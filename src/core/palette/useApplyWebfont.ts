@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { usePalette } from '../stores/palettesStore'
 
 /**
- * Loads the Fontsource CSS for the active palette's two webfonts — the chat/story font and the app
- * font — and clears the matching var on failure so the app falls back to the stack rather than
+ * Loads the Fontsource CSS for the active palette's two webfonts (the chat/story font and the app
+ * font), and clears the matching var on failure so the app falls back to the stack rather than
  * rendering in a font that never arrived.
  *
  * Mounted once, in App, alongside `useApplyPalette`. `useApplyPalette` writes `--chatFont` and

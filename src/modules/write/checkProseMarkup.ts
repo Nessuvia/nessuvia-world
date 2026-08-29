@@ -1,5 +1,5 @@
 // node --experimental-strip-types src/modules/write/checkProseMarkup.ts
-// Parser only — decorateProse/saveCaret/restoreCaret need a DOM and are exercised in the browser.
+// Parser only: decorateProse/saveCaret/restoreCaret need a DOM and are exercised in the browser.
 import assert from 'node:assert'
 import { parseProse, pieceText } from './proseMarkup.ts'
 import type { ProsePiece } from './proseMarkup.ts'
@@ -42,7 +42,7 @@ assert.equal(shape(parseProse('****')), '****')
 assert.equal(shape(parseProse('5 * 3 = 15')), '5 * 3 = 15')
 
 // Quotes are a marker like the others, so dialogue can take its own color. The quote characters
-// stay inside the span — they read as part of the dialogue, unlike an asterisk.
+// stay inside the span: they read as part of the dialogue, unlike an asterisk.
 assert.equal(shape(parseProse('"Get down," he said.')), 'quote[Get down,] he said.')
 assert.equal(shape(parseProse('"*Now*," she hissed.')), 'quote[em[Now],] she hissed.')
 // An unpaired quote is literal, same as a lone asterisk.

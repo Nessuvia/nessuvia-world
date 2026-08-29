@@ -173,7 +173,7 @@ h3.storyPreviewTitle {
   cursor: text;
 }
 
-/* One row, equal widths — same shape as the Export row above it. */
+/* One row, equal widths: same shape as the Export row above it. */
 .storyPreviewActions {
   display: flex;
   gap: 0.5rem;
@@ -190,7 +190,7 @@ h3.storyPreviewTitle {
 }
 
 /* The Story's facts as a marquee plaque: rules top and bottom, letterspaced billing labels, and a
-   dotted leader carrying each label across to its value. Presentation only — the markup stays a
+   dotted leader carrying each label across to its value. Presentation only: the markup stays a
    plain `dl`. */
 .storyPreviewFacts {
   margin: 0;
@@ -448,7 +448,7 @@ h3.storyPreviewTitle {
   margin: 0 auto;
 }
 
-/* Inline markers. The marker spans are always in the DOM — hiding them is presentation only, and
+/* Inline markers. The marker spans are always in the DOM: hiding them is presentation only, and
    the prose read back out of the editor still carries every asterisk. .showMarkers is Toggle
    Styling in its off state: markers visible, no weight or slant applied. */
 .chapterEditor .proseBold {
@@ -502,8 +502,8 @@ h3.storyPreviewTitle {
   color: inherit;
 }
 
-/* Styling off means the raw text: no weight, no slant, no color. Quotes keep theirs — the quote
-   marks are prose either way, so the run never looked decorated. */
+/* Styling off means the raw text: no weight, no slant, no color. Quotes keep theirs, since the
+   quote marks are prose either way, so the run never looked decorated. */
 .chapterEditor.showMarkers [data-win='emphasis'],
 .chapterEditor.showMarkers [data-win='bold'] {
   color: inherit;
@@ -584,7 +584,7 @@ h3.storyPreviewTitle {
   padding: 0.25rem;
 }
 
-/* The beat's control row. Reads as chrome, not prose — solid ground, so it never sits translucent
+/* The beat's control row. Reads as chrome, not prose: solid ground, so it never sits translucent
    over the text it labels. */
 .blockHead {
   display: flex;
@@ -624,7 +624,7 @@ h3.storyPreviewTitle {
 }
 
 /* A collapsed beat keeps its head and hides everything below it. The prose element stays in the
-   DOM — it is the source of truth for typing, so it must not unmount. */
+   DOM, since it is the source of truth for typing and must not unmount. */
 .blockRegion.collapsed .storyProse,
 .blockRegion.collapsed .blockPreview,
 .blockRegion.collapsed .streamingTail,
@@ -633,7 +633,7 @@ h3.storyPreviewTitle {
 }
 
 /* Where the beat is written. It reads as the Story's own type on a raised field, not as another
-   row of chrome — this is composition, not a checklist entry.
+   row of chrome: this is composition, not a checklist entry.
 
    `min-height` next to `field-sizing: content` is what stops the card from resizing under the
    cursor: the field opens three lines tall and only ever grows from there. */
@@ -1052,7 +1052,7 @@ h3.storyPreviewTitle {
   gap: 0.5rem;
 }
 
-/* Same row shape as .entityPickerList buttons — the whole row is the on/off toggle. */
+/* Same row shape as .entityPickerList buttons: the whole row is the on/off toggle. */
 .castRow {
   display: flex;
   align-items: center;
@@ -1075,7 +1075,7 @@ h3.storyPreviewTitle {
   color: var(--textMuted);
 }
 
-/* The gear is a Link, the remove is a button — same square icon slot either way. */
+/* The gear is a Link, the remove is a button. Same square icon slot either way. */
 .castRowAction {
   flex: none;
   display: grid;

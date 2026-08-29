@@ -28,7 +28,7 @@ function readNessu(ext: Loose) {
     num(crop.x) !== undefined && num(crop.y) !== undefined && num(crop.w) !== undefined && num(crop.h) !== undefined
   return {
     displayName: str(n.displayName),
-    // Only the four known keys, and only strings — a color goes straight into a CSS var.
+    // Only the four known keys, and only strings: a color goes straight into a CSS var.
     colors: {
       textColor: str(colors.textColor),
       emphasisColor: str(colors.emphasisColor),
@@ -88,7 +88,7 @@ export function importCard(json: unknown): Character {
     characterVersion: str(d.character_version),
     alternateGreetings: strList(d.alternate_greetings),
     // Verbatim: no case folding, no dedupe, no cap. Card sites emit junk, and the review screen on
-    // import plus the Tags page are where that gets sorted out — not here.
+    // import plus the Tags page are where that gets sorted out, not here.
     tags: strList(d.tags),
     rawCard: json,
     // The book itself is a record of its own now. charactersStore writes it and links the id, so

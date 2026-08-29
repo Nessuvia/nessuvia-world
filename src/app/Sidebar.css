@@ -94,7 +94,7 @@
 }
 
 /* Tabs of a page, in a panel beside the rail while the nav item or the panel is hovered.
-   Fixed-positioned from JS off the nav item's rect (see Sidebar.tsx) — the rail is overflow:hidden,
+   Fixed-positioned from JS off the nav item's rect (see Sidebar.tsx), since the rail is overflow:hidden,
    so a panel laid out inside it would be clipped. Opening is immediate; .closing fades it over
    500ms while it stays mounted and hoverable, so a mouse that comes back inside the grace window
    picks it up again rather than starting over from the nav item. */

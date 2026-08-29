@@ -3,8 +3,8 @@ import { parsePngCard, pngDataUrl } from '../../core/connectors/pngCard'
 import type { Character } from '../../core/storage/types'
 
 /**
- * Character cards that ship with the build. Drop a v2/v3 (or bare) card into `bundled/` — a `.json`
- * file, or a Tavern `.png` with the card in its tEXt chunk — and it seeds itself on a fresh install.
+ * Character cards that ship with the build. Drop a v2/v3 (or bare) card into `bundled/` (a `.json`
+ * file, or a Tavern `.png` with the card in its tEXt chunk) and it seeds itself on a fresh install.
  * No list to edit. Empty folder seeds nothing.
  *
  * Runs through the same importCard() as a user import, so custom `extensions` fields are picked

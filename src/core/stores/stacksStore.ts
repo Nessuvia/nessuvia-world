@@ -4,7 +4,7 @@ import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import type { PromptBlock, PromptStack } from '../storage/types'
 import { useSettings } from './settingsStore'
-// core reaching into a module, same as charactersStore — the stack file parser and the
+// core reaching into a module, same as charactersStore, the stack file parser and the
 // bundled file both live with the prompts module.
 import { parseStack } from '../../modules/prompts/stackFile'
 import storyStackFile from '../../modules/prompts/defaultStoryStack.json'
@@ -42,7 +42,7 @@ export function defaultStack(name = 'Default'): PromptStack {
  * covers two kinds of turn: the Narrator is told to write as a third party and gets the whole cast,
  * while a character is told to write as itself and gets only its own description.
  *
- * This stack is the *only* source of the Narrator's instructions — the Narrator is a speaker with a
+ * This stack is the *only* source of the Narrator's instructions, the Narrator is a speaker with a
  * name and no card, so anything not written here is not sent. Editing this text is how the Narrator
  * is changed.
  *

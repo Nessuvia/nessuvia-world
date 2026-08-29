@@ -57,7 +57,7 @@ await withDirtySuppressed(async () => {
 assert.deepStrictEqual(dirty(), [])
 assert.strictEqual(isSuppressed(), false, 'suppression must not outlive the wrapper')
 
-// A throw inside the wrapper still restores tracking — the whole reason it is a wrapper.
+// A throw inside the wrapper still restores tracking: the whole reason it is a wrapper.
 await assert.rejects(
   withDirtySuppressed(async () => {
     throw new Error('mid-restore failure')

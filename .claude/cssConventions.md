@@ -1,7 +1,7 @@
 # CSS conventions
 
 Read this before writing or editing any `.css` file or any `className` in this repo. It is the long
-form of the Style section in CLAUDE.md — that section is the summary, this is the rulebook.
+form of the Style section in CLAUDE.md: that section is the summary, this is the rulebook.
 
 Every rule is a pair. The failure this file exists to stop is **drift**: values that are each
 defensible on their own and wrong next to their neighbours. A 7px gap in a wall of 8px, a
@@ -62,7 +62,7 @@ Need a tint of an existing var rather than a new one? Use `color-mix`, do not in
 /* Yes */ background: color-mix(in srgb, var(--surface) 80%, var(--accent));
 ```
 
-**The only standing exceptions**, all of which are already in the tree — do not add a sixth without
+**The only standing exceptions**, all of which are already in the tree, do not add a sixth without
 a comment saying why:
 
 - `#000` inside a `mask` / `-webkit-mask` gradient (`chat.css`), where the value is an alpha channel
@@ -117,9 +117,9 @@ When a size genuinely has to differ from its parent, take it from **11 · 12 · 
 | `14px` | emphasis inside a panel, small headings |
 
 Anything larger is a heading and belongs to the small set already in use (`15px`, `18px`, `22px`,
-`28px`) — pick one of those, do not add a new one.
+`28px`); pick one of those, do not add a new one.
 
-Units: **px for chrome.** `rem` and `em` appear in ~40 rules and are correct in exactly two places —
+Units: **px for chrome.** `rem` and `em` appear in ~40 rules and are correct in exactly two places:
 inside message and story content, where the user's own font scaling should apply, and where an `em`
 is deliberately relative to the parent (`0.85em` on a nested label). Do not sprinkle `rem` through UI
 chrome for tidiness.
@@ -145,7 +145,7 @@ border-radius: calc(var(--radius) + 4px);   /* full panels */
 border-radius: calc(var(--radius) - 2px);   /* a chip inside a card */
 ```
 
-`50%` for circles and `999px` for pills are fine as literals — they are shapes, not sizes.
+`50%` for circles and `999px` for pills are fine as literals: they are shapes, not sizes.
 
 ---
 
@@ -163,7 +163,7 @@ Every `z-index` comes from the ladder in `index.css`. Do not invent a number.
 | `--zSplash` | 100 | the boot splash |
 
 - **No:** `z-index: 40;` because 30 was not enough.
-- **Yes:** `z-index: var(--zFlyout);` — and if nothing on the ladder fits, that is a design question
+- **Yes:** `z-index: var(--zFlyout);` If nothing on the ladder fits, that is a design question
   to raise, not a number to pick.
 
 **27–30 is reserved** for the phone drawer stack: `drawerOpenButtons` 27, `.sideDrawer` 28,
@@ -175,7 +175,7 @@ A small `z-index` used purely to order siblings inside one container (the 2/3 pa
 `.chatExportMenu` in `chat.css`) is not a tier and does not use a var. It gets a comment saying what
 it is ordering against.
 
-**Known drift** — each is marked with a comment where it lives. Fix deliberately, with the browser
+**Known drift.** Each is marked with a comment where it lives. Fix deliberately, with the browser
 open, not in passing:
 
 - `.quickActionsMenu` (`chat.css`) and `.modelOptions` (`settings.css`) sit at `10`; both are
@@ -189,7 +189,7 @@ open, not in passing:
 **Give every element you style its own class.** No bare-tag descendant selectors in new work.
 
 ```css
-/* No — catches any button that ever lands inside .prompts, including shared components */
+/* No: catches any button that ever lands inside .prompts, including shared components */
 .prompts button { padding: 6px 10px; }
 
 /* Yes */
@@ -204,7 +204,7 @@ That is the cost, in full: a module's generic selector reached a shared componen
 specificity escape hatch that now has to be maintained. Nine `#root` prefixes exist in the tree and
 every one of them is a descendant selector that overreached.
 
-There are 297 existing descendant selectors. They stay. Do not convert them wholesale — but when you
+There are 297 existing descendant selectors. They stay. Do not convert them wholesale, but when you
 touch a rule that uses one and it is fighting you, adding the class is the fix.
 
 **`#root` is the last resort, not a tool.** It is for a shared rule in `/app` that has to beat a
@@ -223,8 +223,8 @@ Never reach for `#root` to win a fight against a rule you just wrote. Fix the se
 
 ## 8. Class names
 
-camelCase, prefixed with the module or component that owns it. All CSS here is global — no CSS
-Modules, no scoping — so a name is a claim on the whole app.
+camelCase, prefixed with the module or component that owns it. All CSS here is global, no CSS
+Modules and no scoping, so a name is a claim on the whole app.
 
 - **No:** `.row` · `.editorActions` · `.sidebar-item` (kebab-case) · `.libraryRow` in two modules
 - **Yes:** `.chatComposerRow` · `.promptsEditorActions` · `.sidebarItem` · `.paramsLibraryRow`
@@ -264,7 +264,7 @@ Four other widths already exist (560, 720, 900, 1200). They stay, but do not cop
 is nearby.
 
 CSS handles anything a stylesheet can say on its own. Reach for `useMediaQuery('(max-width: 700px)')`
-only where the layout changes **shape** rather than style — a panel becoming a drawer, a list
+only where the layout changes **shape** rather than style: a panel becoming a drawer, a list
 becoming a picker. Never to change a color or a size.
 
 `prefers-reduced-motion: reduce` is honoured in four places. Any transition you add that moves an
@@ -274,10 +274,10 @@ element, rather than fading it, belongs in one of those blocks.
 
 ## 10. Bans
 
-**`!important` — never.** Zero uses across 33 files, and it stays zero. A specificity problem is
+**`!important`: never.** Zero uses across 33 files, and it stays zero. A specificity problem is
 fixed at the selector: add the class, or use the documented `#root` prefix with its comment.
 
-**Native CSS nesting (`&`) — never.** Zero uses, and it stays zero. Every selector in this codebase
+**Native CSS nesting (`&`): never.** Zero uses, and it stays zero. Every selector in this codebase
 can be found by grepping for its full name, and nesting breaks that.
 
 ```css
@@ -292,28 +292,28 @@ can be found by grepping for its full name, and nesting breaks that.
 .chatRowLabel { color: var(--textMuted); }
 ```
 
-**Transitions and animations you were not asked for — never.** CLAUDE.md's "keep styling light until
+**Transitions and animations you were not asked for: never.** CLAUDE.md's "keep styling light until
 the polishing phase" applies here first. A screen that works and looks plain is done. No fade-ins on
 mount, no hover lifts, no easing on a thing that was static a moment ago. The exceptions already in
 the tree are deliberate and commented: the palette-swap fade, the drawer slide, the collapse chevron.
 
-**Emoji or unicode glyphs standing in for icons — never.** Icons come from `@remixicon/react`.
+**Emoji or unicode glyphs standing in for icons: never.** Icons come from `@remixicon/react`.
 Typography characters (`…`, `·`, `→`) in text are fine.
 
-**`dangerouslySetInnerHTML` — never**, for any reason, anywhere. This origin holds API keys in
+**`dangerouslySetInnerHTML`: never**, for any reason, anywhere. This origin holds API keys in
 localStorage. User markup has exactly one vetted route: `palette/sanitizeHtml.ts` attached with
 `replaceChildren` in `PageBackground.tsx`, and `palette/scopeCss.ts` for user CSS.
 
-### Inline `style={{}}` — allowed, but narrowly
+### Inline `style={{}}`: allowed, but narrowly
 
 Thirteen uses exist and all are values a stylesheet cannot know: a palette swatch's color, a slider
 thumb's `left: %`, a computed row count. That is the bar.
 
 ```tsx
-/* No — this belongs in the stylesheet */
+/* No: this belongs in the stylesheet */
 <div style={{ marginTop: 8, border: 'none' }}>
 
-/* Yes — the value is computed */
+/* Yes: the value is computed */
 <span className="paletteSwatch" style={{ background: c }} />
 
 /* Better, when several properties depend on one computed value: set a var, style in CSS */
@@ -325,7 +325,7 @@ thumb's `left: %`, a computed row count. That is the bar.
 ## 11. Skins
 
 A skin is the structural half of a palette: `data-skin` on the root, and a stylesheet of
-`[data-skin='x'] #root .panel { … }` rules. Four classes are the whole contract — `panel`, `navbar`,
+`[data-skin='x'] #root .panel { … }` rules. Four classes are the whole contract: `panel`, `navbar`,
 `card`, `bubble`.
 
 A skin may only change **how a surface is painted**: background, border, shadow, filter. Radius,

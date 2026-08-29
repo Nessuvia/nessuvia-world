@@ -1,4 +1,4 @@
-/* The frame holds two independently scrolling columns, so it doesn't scroll itself — this beats the
+/* The frame holds two independently scrolling columns, so it doesn't scroll itself. This beats the
    overflow .screenBody sets on the same element. */
 .twoColumn {
   display: flex;

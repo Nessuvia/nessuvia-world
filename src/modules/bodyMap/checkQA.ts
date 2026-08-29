@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types src/modules/bodyMap/checkQA.ts
 // Section 9 scenarios that are testable without a browser. Persistence round-trip and the
-// accessibility floor need the real app — handed off for manual check.
+// accessibility floor need the real app, handed off for manual check.
 import assert from 'node:assert'
 import { defaultBodyMap } from './defaultMap.ts'
 import { buildBlock } from './output.ts'

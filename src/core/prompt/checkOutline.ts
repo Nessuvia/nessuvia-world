@@ -21,7 +21,7 @@ assert.deepStrictEqual(plain, [
   { title: 'The Arrival', summary: 'She lands.', beats: ['off the boat', 'the inn'] },
 ])
 
-// A fenced object, and one wrapped in a sentence, both parse — models do this constantly.
+// A fenced object, and one wrapped in a sentence, both parse: models do this constantly.
 assert.deepStrictEqual(
   parseOutlineReply('```json\n{"chapters":[{"title":"A","summary":"","beats":[]}]}\n```'),
   [{ title: 'A', summary: '', beats: [] }],

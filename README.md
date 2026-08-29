@@ -36,7 +36,7 @@ The Chat is the most "standard" feature I have. It's got support for everything 
 
 Write is the long-form half of the app, and it's the feature I've torn down and rebuilt the most. Exports come out as HTML, plain text, or JSON.
 
-The part I actually care about is the Plot Layout. A Chapter is a row of beats, each with a word target, so the model gets a plan instead of a shrug and the word "continue." A Premise sits before the first Chapter and an Ending after the last one, so it knows where this started and where it's supposed to land. Every Chapter also has a summary and a switch for what it hands over — summary and beats, beats only, summary only, or nothing at all — which is how old Chapters shrink down to a recap while the one you're in stays whole. There's a Direction box too, for the standing note that isn't a beat and isn't a prompt, the "stop having them sigh" kind of thing.
+The part I actually care about is the Plot Layout. A Chapter is a row of beats, each with a word target, so the model gets a plan instead of a shrug and the word "continue." A Premise sits before the first Chapter and an Ending after the last one, so it knows where this started and where it's supposed to land. Every Chapter also has a summary and a switch for what it hands over (summary and beats, beats only, summary only, or nothing at all), which is how old Chapters shrink down to a recap while the one you're in stays whole. There's a Direction box too, for the standing note that isn't a beat and isn't a prompt, the "stop having them sigh" kind of thing.
 
 **Prompts**
 

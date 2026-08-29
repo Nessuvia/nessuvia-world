@@ -18,7 +18,7 @@ export interface Backup {
 
 /**
  * What a shareable export keeps: the things a user made, not what they did with them. lorebooks and
- * worldInfo ride along as a pair — the entries are meaningless without the book they are keyed to.
+ * worldInfo ride along as a pair, the entries are meaningless without the book they are keyed to.
  */
 const shareableTables: TableName[] = [
   'characters',
@@ -56,7 +56,7 @@ export async function buildBackup({ keys, shareable }: BackupOptions = {}): Prom
 
 /**
  * One table, ready to push: the payload, the exact JSON that goes over the wire, and its hash.
- * Serialized once — the push path needs the string for its size check and as the request body, and
+ * Serialized once, the push path needs the string for its size check and as the request body, and
  * the hash to skip a table that has not changed since its last push.
  *
  * Settings are deliberately absent. They never enter a table payload, which is what keeps API keys
@@ -117,7 +117,7 @@ export async function restoreBackup(backup: Backup) {
   const settings = backup.localStorage?.[settingsKey]
   const text = typeof settings === 'string' ? settings : null
   // A shareable file's settings blob has no keys in it. Overwriting with it would blank the
-  // importer's own — so take only its connections, appended to theirs.
+  // importer's own, so take only its connections, appended to theirs.
   localStorage.setItem(
     settingsKey,
     withSeedFlags(partial ? mergeConnections(localStorage.getItem(settingsKey), text) : text),
@@ -127,7 +127,7 @@ export async function restoreBackup(backup: Backup) {
 
 /**
  * A restore replaces everything, so the bundled characters, palettes and sampler defs must not be
- * written on the next load — they would show up as extras in a save the user expected to be exactly their file.
+ * written on the next load, they would show up as extras in a save the user expected to be exactly their file.
  * The flags are forced on even when the backup carries no settings blob, which is what the seeding
  * checks in charactersStore/palettesStore/paramDefsStore read.
  */

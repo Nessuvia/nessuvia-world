@@ -24,7 +24,7 @@ function asMember(raw: unknown): PresenceMember | undefined {
 }
 
 /**
- * Open the channel for a session. `me` is this client's presence identity — the host's id or a
+ * Open the channel for a session. `me` is this client's presence identity: the host's id or a
  * guest's client-generated guestId. Throws when Realtime is not configured in this build.
  */
 export function openSupabaseChannel(
@@ -40,7 +40,7 @@ export function openSupabaseChannel(
   // Public channel: nobody signs in, host included, so no client here has a Supabase session. If
   // the project enforces private channels that is a dashboard setting, not something to work
   // around here.
-  // `self: false` — the host applies its own actions locally and broadcasts them; receiving them
+  // `self: false`: the host applies its own actions locally and broadcasts them; receiving them
   // back would double-apply.
   const channel: RealtimeChannel = client.channel(`mp:${sessionId}`, {
     config: { broadcast: { self: false }, presence: { key: me.id } },

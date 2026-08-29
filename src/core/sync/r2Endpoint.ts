@@ -11,7 +11,7 @@ const r2Host = '.r2.cloudflarestorage.com'
 /** R2 ignores the region but SigV4 signs it, so it has to be the value R2 expects. */
 export const r2Region = 'auto'
 
-/** '' for a blank account ID, not a hostname with nothing in front of it — that would read as a
+/** '' for a blank account ID, not a hostname with nothing in front of it: that would read as a
  *  filled-in endpoint to bucketConfigured and enable Test connection on an empty form. */
 export function r2Endpoint(accountId: string): string {
   const id = accountId.trim()

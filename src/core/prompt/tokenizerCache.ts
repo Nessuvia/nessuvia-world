@@ -34,7 +34,7 @@ export async function hasVocab(id: ResolvedTokenizerId): Promise<boolean> {
   return Boolean((await store.match(urls.json)) && (await store.match(urls.config)))
 }
 
-/** Both files, or null if either is missing. Never fetches — that is fetchVocab's job. */
+/** Both files, or null if either is missing. Never fetches, that is fetchVocab's job. */
 export async function readVocab(id: ResolvedTokenizerId) {
   const urls = keys(id)
   const cache = open()

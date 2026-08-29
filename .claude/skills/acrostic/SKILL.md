@@ -6,7 +6,7 @@ description: Draw random starting letters for each paragraph and sentence, then 
 # Acrostic
 
 Writing is drawn against random constraints so the prose can't fall into the usual openers
-("There's no X and no Y", "Whether you're a…", parallel negation pairs). Every sentence has to
+("There's no X and no Y", "Whether you're a...", parallel negation pairs). Every sentence has to
 start with an assigned letter, so each one gets rebuilt rather than autocompleted.
 
 ## Run it
@@ -31,7 +31,7 @@ are rare but do land.
 
 1. Count the paragraphs in the target text and how many sentences each should have. If the user
    gave no shape, pick one that fits the piece and say what you picked.
-2. Run the script once. Use that draw — no rerolling for an easier letter.
+2. Run the script once. Use that draw, no rerolling for an easier letter.
 3. Write each sentence starting with its assigned letter, in order.
 4. Report the draw as a table mapping letters to what each sentence opens with, so the user can
    check it.
@@ -40,7 +40,7 @@ Rules while writing:
 
 - The letter constraint never outranks meaning. A sentence that reads as forced is a failed
   sentence; rewrite it, don't ship the awkward one.
-- A hard letter usually has an escape hatch — a proper noun, the product name, a normal word most
+- A hard letter usually has an escape hatch: a proper noun, the product name, a normal word most
   writers forget ("Zero", "Every", "Come"). Look before giving up.
 - If a letter genuinely can't work after real effort, say which one and rerun for that slot only.
 - Keep the voice warm and plain. The constraint is for freshness, not for showing off.

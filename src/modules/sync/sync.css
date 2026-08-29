@@ -15,7 +15,7 @@
 }
 
 /* The formal layer: one measured column, sections divided by rules rather than cards, and no
-   decoration. Everything in here is spacing and type — the colors are the same vars as the rest
+   decoration. Everything in here is spacing and type: the colors are the same vars as the rest
    of the app, so it still follows the palette. */
 .syncFormal {
   display: flex;
@@ -231,7 +231,7 @@
   color: var(--textMuted);
 }
 
-/* Import and Export fill the section, half each. Both are buttons in every way but the markup —
+/* Import and Export fill the section, half each. Both are buttons in every way but the markup:
    Import is a label wrapping a hidden file input. */
 .syncBackupRow {
   display: flex;

@@ -84,7 +84,7 @@ for (const sample of samples) {
   assert.ok(!/ [.;:!?]/.test(text), `space before punct in ${JSON.stringify(text)}`)
 }
 
-// Property: original text is recoverable — stripText never mutates its input argument.
+// Property: original text is recoverable. stripText never mutates its input argument.
 const original = 'She runs with a graceful elegance.'
 stripWith(original, [r1], 'assistant', tagger)
 assert.equal(original, 'She runs with a graceful elegance.')

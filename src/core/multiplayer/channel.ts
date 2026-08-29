@@ -1,7 +1,7 @@
 /**
  * The transport a session runs over: one interface, two implementations, one entry point.
  *
- * Everything above this — `hostSession.ts`, `JoinView`, the store, the room — holds a `Channel` and
+ * Everything above this (`hostSession.ts`, `JoinView`, the store, the room) holds a `Channel` and
  * never learns which relay is underneath. `supabaseChannel.ts` is the default and needs no setup;
  * `centrifugoChannel.ts` talks to a relay the user runs (`resources/self-hosted-relay.md`).
  */
@@ -33,7 +33,7 @@ export interface Channel {
 }
 
 /**
- * Open the channel for a session. `me` is this client's presence identity — the host's id or a
+ * Open the channel for a session. `me` is this client's presence identity: the host's id or a
  * guest's client-generated guestId. Throws when the chosen relay is not usable, which is a state
  * the caller presents rather than an error to swallow.
  */

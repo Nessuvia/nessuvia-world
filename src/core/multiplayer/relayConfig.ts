@@ -20,7 +20,7 @@ export const emptyRelayConfig: RelayConfig = { kind: 'supabase', url: '' }
 
 /**
  * Whether this config can open a channel. Supabase depends on the build's env values, which this
- * file cannot see, so the caller passes that in — `channel.ts` has it from `realtimeClient.ts`.
+ * file cannot see, so the caller passes that in: `channel.ts` has it from `realtimeClient.ts`.
  */
 export function relayConfigured(c: RelayConfig, supabaseAvailable: boolean): boolean {
   if (c.kind === 'supabase') return supabaseAvailable
@@ -29,7 +29,7 @@ export function relayConfigured(c: RelayConfig, supabaseAvailable: boolean): boo
 
 /**
  * `wss://` only. This runs on the invite link's `?r=`, which is untrusted input arriving from
- * whoever sent the link — the same rule as an imported card. `ws://` is rejected rather than
+ * whoever sent the link: the same rule as an imported card. `ws://` is rejected rather than
  * allowed and left to fail: the app is served over https, so a browser blocks the plaintext socket
  * as mixed content anyway, and saying so early beats a silent connection failure.
  */

@@ -39,7 +39,7 @@ interface LorebooksState {
   counts: Record<number, number>
   /** Character names holding each book id, for the Bundled group in the list. Read here for the
    *  same reason `counts` is: attachment lives on the character row, and the view must not reach
-   *  into storage itself. A book attached to a chat is not bundled — only characters travel with
+   *  into storage itself. A book attached to a chat is not bundled, only characters travel with
    *  a card. */
   bundledTo: Record<number, string[]>
   loading: boolean
@@ -100,7 +100,7 @@ export const useLorebooks = create<LorebooksState>()((set, get) => ({
   remove: async (id) => {
     // Cascade: an entry with no book is unreachable and unmatchable, so it goes with it, and so do
     // the attachments. A dead id used to sit on the character, where it resolved to no row but
-    // still counted — the tab read "1 lorebook" over an empty list, and the next attach made 2.
+    // still counted, the tab read "1 lorebook" over an empty list, and the next attach made 2.
     await useWorldInfo.getState().removeFor(id)
     await storage.remove('lorebooks', id)
     await detachEverywhere(id)

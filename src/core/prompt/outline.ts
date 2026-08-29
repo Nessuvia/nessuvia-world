@@ -1,5 +1,5 @@
 // Generate outline: the request the Plot Layout's button sends, and the parse of what comes back.
-// Pure — no store, no fetch — so checkOutline.ts can run it.
+// Pure: no store, no fetch, so checkOutline.ts can run it.
 //
 // Extension-ful imports on purpose: the check scripts run this under
 // `node --experimental-strip-types`.
@@ -53,7 +53,7 @@ export function buildOutlineMessages(req: OutlineRequest, prompts?: MiscPrompts)
  * parsed whole, every field is coerced, and an entry that holds no title and no summary and no
  * beats is dropped rather than becoming an empty Chapter.
  *
- * Throws with a readable message when there is nothing usable — the dialog shows it, and the store
+ * Throws with a readable message when there is nothing usable. The dialog shows it, and the store
  * only deletes the existing chapters after this has returned.
  */
 export function parseOutlineReply(text: string): OutlineChapter[] {
@@ -93,7 +93,7 @@ export function parseOutlineReply(text: string): OutlineChapter[] {
 }
 
 /** A field as a single-line string. A number or a boolean is written out rather than dropped;
- *  anything else — an object, an array, null — is not text and becomes nothing. */
+ *  anything else (an object, an array, null) is not text and becomes nothing. */
 function str(value: unknown): string {
   if (typeof value === 'string') return value.replace(/\s*\n\s*/g, ' ').trim()
   if (typeof value === 'number' || typeof value === 'boolean') return String(value)
@@ -102,7 +102,7 @@ function str(value: unknown): string {
 
 /**
  * The chapter's word target split across its beats. Whole words, with the remainder spread one each
- * over the earliest beats, so the parts add back up to `total` exactly — the Plot Layout shows the
+ * over the earliest beats, so the parts add back up to `total` exactly. The Plot Layout shows the
  * sum as the chapter target, and a rounded split that misses by a few words shows there.
  *
  * `total` of 0 (unset) gives zeroes, which is what `Block.targetWords` means by unset.

@@ -30,12 +30,12 @@ export function castBlock(members: CastMember[]): string {
 }
 
 /**
- * A Character-shaped Narrator for `buildPrompt` — a speaker with a name and an id, and nothing
+ * A Character-shaped Narrator for `buildPrompt`: a speaker with a name and an id, and nothing
  * else. Every instruction the Narrator gets comes from the prompt stack's `[if Narrator]` branch,
  * so there is deliberately no description here: a card field would be a second, invisible source
  * of narrator instructions that the stack editor could not show or override.
  *
- * Never written to Dexie — `ownerId` is '' so it does not look like a persistable record.
+ * Never written to Dexie: `ownerId` is '' so it does not look like a persistable record.
  */
 export function narratorCharacter(): Character {
   return {

@@ -15,7 +15,7 @@ import { defaultBodyMap } from './defaultMap'
 
 // Host-side glue for the body map widget. Owns persistence (one TrackerState per chat, in Dexie)
 // and exposes the current output block to whoever sends messages. The widget component itself
-// stays decoupled — it takes state + callbacks as props (see the plugin's host contract).
+// stays decoupled: it takes state + callbacks as props (see the plugin's host contract).
 
 interface TrackerRow extends StoredRecord {
   id?: number

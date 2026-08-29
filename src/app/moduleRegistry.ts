@@ -12,11 +12,11 @@ export interface AppModule {
   // Listed in Settings > Miscellaneous > Plugins, and off until enabled there.
   plugin?: boolean
   // Sections contributed to the chat sidebar. Order follows module registration order in main.tsx,
-  // same as the sidebar. A panel that shouldn't show renders null — no visibility API.
+  // same as the sidebar. A panel that shouldn't show renders null; there is no visibility API.
   chatPanels?: readonly { label: string; component: ComponentType }[]
   // Text appended to the outgoing user message, before token substitution. '' contributes nothing.
   // ctx is exactly what the one current caller (body map) needs. Widen it when a second
-  // contributor wants more — it's a compile error in one place, so guessing wider now buys nothing.
+  // contributor wants more: it's a compile error in one place, so guessing wider now buys nothing.
   decorateMessage?(ctx: MessageContext): string | Promise<string>
 }
 

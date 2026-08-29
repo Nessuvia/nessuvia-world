@@ -1,17 +1,17 @@
 /**
  * The structural half of a palette. Colors come from the palette's own vars; a skin decides how the
- * app's surfaces are built out of them — translucency, blur, borders, shadows.
+ * app's surfaces are built out of them: translucency, blur, borders, shadows.
  *
  * Applied as `data-skin` on the root element, so a skin's stylesheet is a block of
  * `[data-skin='glass'] #root .panel { … }` rules and nothing else. Four classes are the whole
  * contract:
  *
- *   panel   a bordered surface region — side panels, settings panes, section bodies, dialogs
- *   navbar  nav chrome — the sidebar rail, module bars, tab strips
- *   card    a repeated list item — character tiles, chat rows, persona rows
+ *   panel   a bordered surface region: side panels, settings panes, section bodies, dialogs
+ *   navbar  nav chrome: the sidebar rail, module bars, tab strips
+ *   card    a repeated list item: character tiles, chat rows, persona rows
  *   bubble  a chat message
  *
- * A skin may reach past those four where a surface has a shape the class alone can't express — glass
+ * A skin may reach past those four where a surface has a shape the class alone can't express. Glass
  * names `.navbar.sidebar` to turn the rail's shadow and hairlines onto the vertical axis. Keep such
  * rules rare and commented; a skin that lists module classes has stopped being a skin.
  *

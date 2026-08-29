@@ -62,7 +62,7 @@ function matchName(rest: string, names: string[]): string | undefined {
 
 /**
  * A leading slash command, or null when the text is an ordinary message. Only a `/` in the very
- * first column counts, and `//` escapes it — `//me` is a message that starts with a slash, which
+ * first column counts, and `//` escapes it, `//me` is a message that starts with a slash, which
  * `stripEscape` below takes care of.
  *
  * An unknown command name is not an error: it parses to null and sends verbatim, so a message that
@@ -132,7 +132,7 @@ export function menuFor(raw: string, targets: CharacterTarget[]): CommandMenu | 
   return items.length ? { kind: 'characters', items } : null
 }
 
-/** The text after accepting a menu item — what the composer writes back into the draft. */
+/** The text after accepting a menu item, what the composer writes back into the draft. */
 export function completeWith(raw: string, item: SlashCommand | CharacterTarget): string {
   if ('usage' in item) return `/${item.name} `
   const body = raw.slice(1)

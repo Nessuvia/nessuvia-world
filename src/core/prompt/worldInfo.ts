@@ -17,7 +17,7 @@ const bookOf = (entry: WorldInfoEntry, books?: BookMap) => books?.get(entry.book
 const window = (entry: WorldInfoEntry, book?: Lorebook) =>
   entry.scanDepth ?? book?.scanDepth ?? defaultDepth
 
-// substring, not word boundary — a key of "BA" fires inside "abandon". Upgrade to a
+// substring, not word boundary: a key of "BA" fires inside "abandon". Upgrade to a
 // \b-anchored regex per key if that bites in practice.
 const mentions = (haystack: string, keys: string[], caseSensitive?: boolean) =>
   keys.some((key) => haystack.includes(caseSensitive ? key : key.toLowerCase()))
@@ -36,9 +36,9 @@ function secondaryPasses(entry: WorldInfoEntry, haystack: string): boolean {
     haystack.includes(entry.caseSensitive ? key : key.toLowerCase()),
   )
   switch (entry.selectiveLogic) {
-    case 1: // NOT_ALL — blocked only when every secondary is there
+    case 1: // NOT_ALL: blocked only when every secondary is there
       return present.length < keys.length
-    case 2: // NOT_ANY — blocked as soon as one is there
+    case 2: // NOT_ANY: blocked as soon as one is there
       return present.length === 0
     case 3: // AND_ALL
       return present.length === keys.length
@@ -52,7 +52,7 @@ function secondaryPasses(entry: WorldInfoEntry, haystack: string): boolean {
  * appears within its own scan window of recent history and whose secondary keys let it through.
  *
  * Each entry gets its own window because the depth is per entry, so the text being searched differs
- * from one to the next — there's no single haystack to build up front. Case folding is per entry
+ * from one to the next, there's no single haystack to build up front. Case folding is per entry
  * too: a case-sensitive entry searches the messages as they were written.
  */
 export function matchedEntries(
@@ -91,9 +91,9 @@ const byPlacement = (a: WorldInfoEntry, b: WorldInfoEntry) =>
 
 /** What the matched entries contribute, split by where they go. */
 export interface ResolvedWorldInfo {
-  /** `beforeChar` entries — the `worldInfo` block's text. */
+  /** `beforeChar` entries: the `worldInfo` block's text. */
   before: string
-  /** `afterChar` entries — the `worldInfoAfter` block's text. */
+  /** `afterChar` entries: the `worldInfoAfter` block's text. */
   after: string
   /** Entries placed in history instead, one per distinct depth, deepest first. */
   atDepth: { depth: number; text: string }[]
@@ -143,7 +143,7 @@ export function resolveWorldInfo(
     if (budget !== undefined && budget > 0) {
       const used = spent.get(entry.bookId) ?? 0
       // The first match of a book always goes in, over budget or not. Real books set budgets
-      // smaller than a single entry — the reference book allows 500 tokens for entries of 700 —
+      // smaller than a single entry (the reference book allows 500 tokens for entries of 700)
       // and a book that silently injects nothing at all reads as broken rather than as thrifty.
       // Skips rather than stops: with several books interleaved by `order`, one long entry
       // exhausting its book is no reason to drop everything after it.
@@ -154,7 +154,7 @@ export function resolveWorldInfo(
     // The prompt-wide cap, applied after the book's own. Stops rather than skips: `matched` is in
     // priority order, so letting a small late entry jump the queue past the one that didn't fit
     // would make `order` mean less than it says.
-    // Unlike a book budget this has no first-match exemption — the user set the number, and a cap
+    // Unlike a book budget this has no first-match exemption: the user set the number, and a cap
     // that quietly overspends is worse than one that yields nothing.
     if (capped && poolSpent + cost > cap) {
       dropped.push({ name: entry.name, tokens: cost })

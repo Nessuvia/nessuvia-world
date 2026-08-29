@@ -39,7 +39,7 @@ function newStory(title: string): Story {
   }
 }
 
-/** A blank Block. A free stretch by default — `beat` is what makes one a planned section, and the
+/** A blank Block. A free stretch by default, `beat` is what makes one a planned section, and the
  *  Author writes that. */
 export function newBlock(beat = ''): Block {
   return { id: crypto.randomUUID(), beat, targetWords: 0, done: false, content: '', context: 'both' }
@@ -64,7 +64,7 @@ function newChapter(storyId: number, order: number, title: string): Chapter {
 }
 
 /** Stamp the open Story as edited. Prose lives on the Chapter, so without this a Story's updatedAt
- *  would only move on rename/cover/cast — and the shelf sorts by it. */
+ *  would only move on rename/cover/cast, and the shelf sorts by it. */
 async function touchStory(
   get: () => WriteState,
   set: (partial: Partial<WriteState>) => void,
@@ -98,8 +98,8 @@ export function resolveCast(cast: CastEntry[]): CastMember[] {
   return out
 }
 
-/** The fields of a Chapter the Author edits. Every structural change to the prose — add a Block,
- *  remove one, reorder, convert free↔beat, tick done, retarget, change its context mode — is a
+/** The fields of a Chapter the Author edits. Every structural change to the prose, add a Block,
+ *  remove one, reorder, convert free↔beat, tick done, retarget, change its context mode, is a
  *  `blocks` patch. Blocks get no structural actions of their own; only the three that stream or
  *  swipe do. */
 export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'summary' | 'blocks' | 'guideSend'>>
@@ -110,7 +110,7 @@ interface WriteState {
   /** The open Story and its Chapters in order; null/empty on the Shelf. */
   story: Story | null
   chapters: Chapter[]
-  /** The Chapter the cursor is in. Generation appends to it. Session state — never stored; opening
+  /** The Chapter the cursor is in. Generation appends to it. Session state, never stored; opening
    *  a Story with no cursor yet defaults to the last Chapter. */
   activeChapterId: number | null
   /** Per Block, bumped when that Block's content changes from outside the editor (open, generate,
@@ -137,7 +137,7 @@ interface WriteState {
    *  the DOM away, so a caret that should survive a commit has to be handed over deliberately. */
   pendingCaret: { blockId: string; offset: number } | null
   /** Whether the editor renders inline markers as bold/italic (markers hidden) or shows the raw
-   *  asterisks. global and in-memory — it's a way of looking at prose, not a property of
+   *  asterisks. global and in-memory, it's a way of looking at prose, not a property of
    *  one Story, and it resets on reload. Upgrade path if it should stick: a field on appearance in
    *  settingsStore, which is the persisted display-preference home. */
   styling: boolean
@@ -149,7 +149,7 @@ interface WriteState {
   collapsedBeats: string[]
   setCollapsedBeats(ids: string[]): void
   /** The Story's standing instruction, sent as the final user turn on every generation. Per
-   *  Story. Debounced by the caller — this writes to the database. */
+   *  Story. Debounced by the caller, this writes to the database. */
   setDirection(text: string): Promise<void>
   load(): Promise<void>
   /** Create a Story plus its first Chapter. Returns the new Story id. */
@@ -162,9 +162,9 @@ interface WriteState {
   remove(id: number): Promise<void>
   /** Load a Story + its Chapters into the editor. Also loads characters/personas for the cast. */
   openStory(id: number): Promise<void>
-  /** Words across every Chapter of a Story, for the shelf preview. Not stored — counted on read. */
+  /** Words across every Chapter of a Story, for the shelf preview. Not stored, counted on read. */
   wordCount(id: number): Promise<number>
-  /** A Story's Chapters in order, without opening it — what the shelf's export reads. */
+  /** A Story's Chapters in order, without opening it, what the shelf's export reads. */
   chaptersOf(id: number): Promise<Chapter[]>
   closeStory(): void
   /** Sampling overrides for this Story, over the connection. Per Story. */
@@ -207,9 +207,9 @@ interface WriteState {
   generateOutline(req: OutlineRequest): Promise<void>
   /**
    * Stream prose for one Block. The result lands as a new swipe and becomes the selected one, so
-   * every generation is undoable by swiping back — there are no spans to splice or validate.
+   * every generation is undoable by swiping back, there are no spans to splice or validate.
    *
-   * `direction` defaults to the Direction box verbatim — the Story's standing instruction. The
+   * `direction` defaults to the Direction box verbatim, the Story's standing instruction. The
    * beat is NOT folded in; it reaches the model through {{beat}}, wherever the stack places it.
    * Pass one to override (that is what "Regen with instructions" does).
    */
@@ -302,7 +302,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
 
   rename: async (id, title) => {
     // Renaming happens from the shelf and from the editor's title, where the shelf list may not
-    // have been loaded yet — fall back to the open Story.
+    // have been loaded yet, fall back to the open Story.
     const open = get().story
     const story = get().stories.find((s) => s.id === id) ?? (open?.id === id ? open : undefined)
     if (!story) return
@@ -522,7 +522,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
       const stack = await useStacks.getState().ensureActive('story')
       const messages = buildOutlineMessages(req, stack.miscPrompts)
       // An outline for a long Story runs well past a 512-token default, and an object cut off
-      // halfway parses as nothing at all — so this request gets its own floor, like generatePalette.
+      // halfway parses as nothing at all, so this request gets its own floor, like generatePalette.
       const wide = withParam(connection, 'max_tokens', Math.max(maxTokensOf(connection), 2000))
       for await (const chunk of sendMessage(messages, wide, controller.signal)) {
         if (chunk.content) reply += chunk.content
@@ -706,7 +706,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     // The chat's re-roll wording, unchanged: quote what it said, then the instruction. An empty
     // Block has nothing to rewrite, so the instruction steers a first draft instead. Either way the
     // beat still arrives through {{beat}}, so it is not repeated here.
-    // The Story stack's own override, if it set one — `writeBlock` resolves the same stack again to
+    // The Story stack's own override, if it set one, `writeBlock` resolves the same stack again to
     // build the prompt, so both halves of this request read the same row.
     const stack = await useStacks.getState().ensureActive('story')
     await get().writeBlock(

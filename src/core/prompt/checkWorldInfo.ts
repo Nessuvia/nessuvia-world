@@ -107,7 +107,7 @@ const textOf = (entries: WorldInfoEntry[], messages: Message[], map?: Map<number
 
   // No secondary keys means no gate, whatever the logic value says.
   assert.strictEqual(matchedEntries([gated(3, [])], primaryOnly).length, 1)
-  // An always-on entry is never gated either — it never had a primary hit to gate.
+  // An always-on entry is never gated either: it never had a primary hit to gate.
   assert.strictEqual(
     matchedEntries([entry({ always: true, secondaryKeys: ['nope'], selectiveLogic: 3 })], []).length,
     1,
@@ -171,7 +171,7 @@ const textOf = (entries: WorldInfoEntry[], messages: Message[], map?: Map<number
   const text = textOf([first, second], [], books({ tokenBudget: 60 }))
   assert.ok(text.includes('alpha'), 'the first entry survives')
   assert.ok(!text.includes('beta'), 'the entry that would cross the budget is dropped')
-  // A budget smaller than one entry still yields that entry — see the comment in resolveWorldInfo.
+  // A budget smaller than one entry still yields that entry, see the comment in resolveWorldInfo.
   const tight = textOf([first, second], [], books({ tokenBudget: 5 }))
   assert.ok(tight.includes('alpha') && !tight.includes('beta'), 'the first match is never dropped')
   // No budget means no dropping.

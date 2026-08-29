@@ -4,7 +4,7 @@ import type { Chat } from '../storage/types'
 
 /**
  * The characters in the room, in speaking order. A solo chat is a roster of one, so the send path
- * never needs an `isGroup` branch — `characterId` stays pinned to the first participant.
+ * never needs an `isGroup` branch, `characterId` stays pinned to the first participant.
  */
 export function participants(chat: Chat): number[] {
   return chat.participantIds?.length ? chat.participantIds : [chat.characterId]

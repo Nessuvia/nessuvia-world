@@ -123,7 +123,7 @@ assert.deepStrictEqual(back.avatarCrop, mine.avatarCrop)
 assert.deepStrictEqual(back.paramOverrides, mine.paramOverrides)
 assert.equal(back.activeDescriptionIndex, 2)
 assert.deepStrictEqual(back.altDescriptions, mine.altDescriptions)
-// Titles stay lined up with the greetings they name — index is the only thing joining them.
+// Titles stay lined up with the greetings they name: index is the only thing joining them.
 assert.deepStrictEqual(back.alternateGreetings, mine.alternateGreetings)
 assert.deepStrictEqual(back.greetingTitles, ['', 'Formal'])
 

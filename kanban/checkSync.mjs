@@ -62,7 +62,7 @@ assert.equal(Object.keys(seeded).length, boards.length * 2 + 1, 'seeded keys nul
 // number, which is what nullboard looks up in its board index.
 assert.deepEqual(JSON.parse(seeded['nullboard.config']), { board: boards[0].id })
 
-// A bare board object, not an array — nullboard exports both shapes.
+// A bare board object, not an array. nullboard exports both shapes.
 const single = run(new FakeStorage(), JSON.stringify(boards[0]))
 assert.equal(single[`nullboard.board.${boards[0].id}`], String(boards[0].revision))
 

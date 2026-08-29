@@ -150,7 +150,7 @@
 }
 
 /* Scoped to the author's Region list (not BodyMapPanel's runtime .bodyState, which is already
-   inside an outer scrolling sidebar) — bodyAuthorBar stays fixed above as the list grows. */
+   inside an outer scrolling sidebar): bodyAuthorBar stays fixed above as the list grows. */
 .bodyPanel .bodyState {
   max-height: 360px;
   overflow-y: auto;
@@ -231,7 +231,7 @@
 }
 
 /* The state label is the edit control, so it fills the row and reads as text rather than a
-   button — only the hover tells you it's clickable. */
+   button. Only the hover tells you it's clickable. */
 .bodyStatePart li .bodyStateEdit {
   flex: 1 1 auto;
   min-width: 0;
@@ -297,7 +297,7 @@
 
 /* The figure fills the space left of the controls and centers within it. The figure box itself
    shrinks to the image (the inset:0 overlay must match the image exactly), so the image is scaled
-   up to 80vh tall — capped at half the viewport wide — to use the room. */
+   up to 80vh tall (capped at half the viewport wide) to use the room. */
 .bodyFigureCol {
   flex: 1 1 auto;
   display: flex;

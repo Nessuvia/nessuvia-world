@@ -75,7 +75,7 @@
   font-size: 14px;
 }
 
-/* The character sheet — header over the editor, one column. */
+/* The character sheet: header over the editor, one column. */
 .characterSheet {
   display: flex;
   flex-direction: column;
@@ -698,7 +698,7 @@
 }
 
 /* The panel's gap only reaches its own children; inside a <details> they're plain block flow.
-   Not `display: flex` on the details itself — that costs the disclosure marker. */
+   Not `display: flex` on the details itself: that costs the disclosure marker. */
 .chatSettings details > *:not(summary) {
   margin-top: 8px;
 }
@@ -776,7 +776,7 @@
   gap: 4px;
 }
 
-/* The prompt preview's own styles live in app/promptPreviewPanel.css — Chat and Story share it. */
+/* The prompt preview's own styles live in app/promptPreviewPanel.css. Chat and Story share it. */
 
 .messageList {
   flex: 1;
@@ -1062,7 +1062,7 @@
   position: absolute;
   right: 0;
   /* Drift: a dropdown, so this belongs at var(--zDropdown). Left at 10 until checked in the
-     browser — it may have been raised to clear something specific. */
+     browser: it may have been raised to clear something specific. */
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -1209,7 +1209,7 @@
   gap: 8px;
 }
 
-/* .personaSwitch* live in app/personaSwitcher.css — the sidebar uses them too. */
+/* .personaSwitch* live in app/personaSwitcher.css. The sidebar uses them too. */
 
 .composer textarea {
   flex: 1;

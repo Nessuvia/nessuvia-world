@@ -96,11 +96,11 @@ const messages = [{ role: 'user' as const, content: 'hello' }]
   const text = 'http://h:5000/v1/completions'
   assert.strictEqual(completionUrl('http://h:5000', 'text'), text)
   assert.strictEqual(completionUrl('http://h:5000/v1', 'text'), text)
-  // A path that already names either endpoint is taken at its word, whatever the type says —
-  // local backends live under paths no rule here could guess.
+  // A path that already names either endpoint is taken at its word, whatever the type says.
+  // Local backends live under paths no rule here could guess.
   assert.strictEqual(completionUrl(text, 'chat'), text)
   assert.strictEqual(completionUrl(chat, 'text'), chat)
-  // A base under a prefix keeps the prefix — the tail goes on the /v1 the user typed.
+  // A base under a prefix keeps the prefix: the tail goes on the /v1 the user typed.
   assert.strictEqual(completionUrl('http://h:5000/api/v1', 'text'), 'http://h:5000/api/v1/completions')
 }
 
