@@ -181,7 +181,6 @@ open, not in passing:
 - `.quickActionsMenu` (`chat.css`) and `.modelOptions` (`settings.css`) sit at `10`; both are
   dropdowns and belong at `--zDropdown`.
 - `.dialogBackdrop` (`chat.css`) sits at `200`; it is a modal and belongs at `--zModal`.
-- `.colorPopover` (`ColorInput.css`) sits at `30`, inside the reserved drawer band.
 
 ---
 

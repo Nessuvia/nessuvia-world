@@ -47,14 +47,16 @@
   cursor: pointer;
 }
 
+/* Fixed, not absolute: the picker opens inside side panels that scroll and clip, which cut the box
+   off whenever the panel was narrow or on a phone. ColorInput.tsx measures the swatch and sets top
+   and left. */
 .colorPopover {
-  position: absolute;
-  top: calc(100% + 6px);
+  position: fixed;
+  top: 0;
   left: 0;
-  /* Drift: 30 is inside the band reserved for the phone drawer stack (see index.css). The picker
-     opens inside panels that can be drawers, so raising it may have been deliberate — check in the
-     browser before moving it to var(--zFlyout). */
-  z-index: 30;
+  /* Above the phone drawer stack (27-30, see index.css), since the picker opens inside panels that
+     become drawers. --zModal is the next rung up and dialogs don't hold a picker. */
+  z-index: var(--zModal);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -63,12 +65,6 @@
   border-radius: var(--radius);
   background: var(--surfaceRaised);
   box-shadow: 0 6px 16px var(--overlay);
-}
-
-/* Compact swatches sit at the right edge of their row, so the popover hangs left of them. */
-.colorInput.compact .colorPopover {
-  left: auto;
-  right: 0;
 }
 
 /* The drag surface. react-colorful sets touch-action on its own handles; this covers the padding
