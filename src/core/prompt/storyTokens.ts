@@ -9,7 +9,6 @@ export interface TokenBlock {
   id: string
   beat: string
   targetWords: number
-  done: boolean
 }
 
 /** The Chapter fields a token reads. `Chapter` satisfies this structurally. */
@@ -72,8 +71,9 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
     // 0 is "unset" on the Block, and a prompt saying "about 0 words" is worse than one saying
     // nothing, so it resolves blank like every other unset field.
     beatTargetWords: block && block.targetWords > 0 ? String(block.targetWords) : '',
-    beatsDone: beatLines(others.filter((b) => b.done)),
-    beatsRemaining: beatLines(others.filter((b) => !b.done)),
+    // Every other beat in the Chapter, in order. There is no covered/remaining split: nothing
+    // tracks which beats are written, and the plan reads the same either way.
+    otherBeats: beatLines(others),
   }
 }
 

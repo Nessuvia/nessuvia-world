@@ -91,30 +91,11 @@
       "info": "Wrapper around the Story's enabled cast. Children inherit this block's role."
     },
     {
-      "id": "ks-guide-wrap",
-      "label": "Chapter guide",
-      "source": "text",
-      "role": "system",
-      "content": "<outline>\nThe arc of the work so far. Chapters marked as summaries are compressed; their prose is not in front of you.",
-      "closeContent": "</outline>",
-      "children": [
-        {
-          "id": "ks-guide",
-          "label": "Guide body",
-          "source": "chapterGuide",
-          "role": "system",
-          "content": ""
-        }
-      ],
-      "toggleable": true,
-      "info": "The Chapter list with state stamps. Capped at a share of the context window."
-    },
-    {
       "id": "ks-where",
       "label": "Where we are",
       "source": "text",
       "role": "system",
-      "content": "<position>\nYou are writing inside Chapter {{chapterNumber}} of {{chapterCount}}, \"{{chapterTitle}}\".\nWhat the previous Chapter came to: {{previousChapterSummary}}\nWhat this Chapter has covered so far: {{beatsDone}}\nStill to come in this Chapter: {{beatsRemaining}}\nThe Chapter after this one is \"{{nextChapterTitle}}\", planned as:\n{{nextChapterBeats}}\n</position>",
+      "content": "<position>\nYou are writing inside Chapter {{chapterNumber}} of {{chapterCount}}, \"{{chapterTitle}}\".\nWhat the previous Chapter came to: {{previousChapterSummary}}\nThe rest of this Chapter's plan:\n{{otherBeats}}\nThe Chapter after this one is \"{{nextChapterTitle}}\", planned as:\n{{nextChapterBeats}}\n</position>",
       "toggleable": true,
       "info": "The Story's shape around the caret. Every line here blanks out on its own when there is nothing behind it, so an unplanned Story sends none of them."
     },
@@ -123,7 +104,7 @@
       "label": "Story lead-in",
       "source": "text",
       "role": "system",
-      "content": "The text so far. Continue from its final line.",
+      "content": "The work so far. Chapters too far back to fit are given as their plan, one line per beat, instead of their prose. Continue from the final line.",
       "toggleable": true
     },
     {

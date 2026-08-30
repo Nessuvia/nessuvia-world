@@ -1,4 +1,4 @@
-// Run: node --experimental-strip-types src/modules/write/checkBeatSlots.ts
+﻿// Run: node --experimental-strip-types src/modules/write/checkBeatSlots.ts
 import assert from 'node:assert'
 import { beatText, emptyBeat, storedBeat, withBeats } from './beatSlots.ts'
 import { beatBlocks } from '../../core/prompt/chapterGuide.ts'
@@ -8,7 +8,6 @@ let n = 0
 const beat = (beat: string, content = ''): Block => ({
   id: `b${++n}`,
   beat,
-  done: false,
   targetWords: 0,
   content,
   context: 'both',
@@ -16,7 +15,6 @@ const beat = (beat: string, content = ''): Block => ({
 const free = (content: string): Block => ({
   id: `f${++n}`,
   beat: '',
-  done: false,
   targetWords: 0,
   content,
   context: 'both',
@@ -102,8 +100,11 @@ const ids = (blocks: Block[]) => blocks.map((b) => b.id).join(',')
   assert.strictEqual(beatText('Mary escapes'), 'Mary escapes')
   assert.strictEqual(storedBeat('Mary escapes'), 'Mary escapes')
   assert.strictEqual(beatText('Mary escapes '), 'Mary escapes ')
-  // A pasted newline flattens: a beat is one line in the Chapter guide.
-  assert.strictEqual(storedBeat('Mary escapes\n  the checkpoint'), 'Mary escapes the checkpoint')
+  // Newlines survive: instructions can run to a paragraph.
+  assert.strictEqual(
+    storedBeat('Mary escapes\n  the checkpoint'),
+    'Mary escapes\n  the checkpoint',
+  )
   // Whitespace-only input is still an empty beat, not a Block that quietly became free prose.
   assert.strictEqual(storedBeat('\n'), emptyBeat)
   assert.notStrictEqual(storedBeat(''), '')

@@ -1,4 +1,4 @@
-// Run: node --experimental-strip-types src/core/prompt/checkStoryProseSplit.ts
+﻿// Run: node --experimental-strip-types src/core/prompt/checkStoryProseSplit.ts
 //
 // The split around a Block, and the four context modes. This is the whole of the per-Block context
 // feature (buildStoryPrompt already took these two strings), so it is the thing worth covering.
@@ -10,7 +10,6 @@ let b = 0
 const block = (content: string, beat = ''): Block => ({
   id: `b${++b}`,
   beat,
-  done: false,
   targetWords: 0,
   content,
   context: 'both',

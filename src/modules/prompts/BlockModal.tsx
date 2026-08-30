@@ -31,10 +31,9 @@ const tokenGuide: Record<StackKind, [string, string][]> = {
     ['{{previousChapterSummary}}', "The Chapter before it, recapped"],
     ['{{nextChapterTitle}}', 'The Chapter after it'],
     ['{{nextChapterBeats}}', 'Its planned beats, one per line'],
-    ['{{beat}}', "The plan line of the Block being written"],
+    ['{{beat}}', 'The instructions for the Block being written'],
     ['{{beatTargetWords}}', 'Its word target. Blank when unset'],
-    ['{{beatsDone}}', 'Other beats in this Chapter that are ticked'],
-    ['{{beatsRemaining}}', 'Other beats in this Chapter that are not'],
+    ['{{otherBeats}}', 'Every other beat in this Chapter, one per line'],
   ],
 }
 

@@ -106,11 +106,6 @@
   white-space: nowrap;
 }
 
-.plotBlockBeats li.done {
-  text-decoration: line-through;
-  color: var(--textMuted);
-}
-
 .plotBlockEmpty,
 .plotBlockWords {
   color: var(--textMuted);
@@ -256,6 +251,17 @@
   gap: 0.35rem;
 }
 
+/* Only this starts the drag. `draggable` on the row would stop Chrome placing the caret in the
+   beat textarea; see the comment at the row in PlotLayout.tsx. */
+.plotBeatHandle {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  flex: none;
+  color: var(--textMuted);
+  cursor: grab;
+}
+
 .plotBeatTools {
   display: flex;
   align-items: center;
@@ -283,7 +289,8 @@
   field-sizing: content;
   min-height: 3.5rem;
   resize: none;
-  max-height: 8rem;
+  max-height: 16rem;
+  overflow-y: auto;
 }
 
 .plotBeatTarget {

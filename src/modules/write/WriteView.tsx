@@ -566,12 +566,6 @@ function BlockHead({
     <div className="blockHead" contentEditable={false}>
       {/* The beat's name plate. Nothing here is editable, so it never moves. */}
       <div className="blockPlan">
-        <input
-          type="checkbox"
-          checked={block.done}
-          title="Mark this beat done. Nothing ticks it for you."
-          onChange={(e) => onPatch({ done: e.target.checked })}
-        />
         <span className="blockCrumb">{crumb}</span>
         {block.targetWords > 0 && <span className="blockTarget">{block.targetWords}w</span>}
       </div>
@@ -583,14 +577,6 @@ function BlockHead({
         placeholder="What happens in this beat"
         onChange={(e) => editBeat(e.target.value)}
         onBlur={flushBeat}
-        // A beat is one line in the Chapter guide, storedBeat collapses newlines anyway, so
-        // Enter saves instead of inserting one the field would lose.
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            e.currentTarget.blur()
-          }
-        }}
       />
 
       {/* Every control that acts on the Block, on its own row under the plan line. */}

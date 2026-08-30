@@ -26,7 +26,7 @@ export const boundSources: Record<StackKind, BlockSource[]> = {
   ],
   // No authorNote: a Story's standing instruction is the Direction box, and its premise/ending
   // reach the prompt as {{premise}} / {{ending}}.
-  story: ['cast', 'storyContext', 'storyTrailing', 'chapterGuide'],
+  story: ['cast', 'storyContext', 'storyTrailing'],
 }
 
 /** Sources a block of this kind may take: freeform text plus the kind's bound sources. */
@@ -59,9 +59,8 @@ export function validateStack(stack: PromptStack): string {
     if (count(stack, 'authorNote') > 0) return "Story stacks have no Author's note block"
     if (count(stack, 'storyContext') === 0) return 'Add a Story context block'
     if (count(stack, 'storyContext') > 1) return 'Only one Story context block allowed'
-    // Optional, unlike Story context: a stack without one is valid and Stories still generate.
-    if (count(stack, 'chapterGuide') > 1) return 'Only one Chapter guide block allowed'
-    // Also optional: it renders empty whenever generation is at the end of a Chapter.
+    // Optional, unlike Story context: it renders empty whenever generation is at the end of a
+    // Chapter.
     if (count(stack, 'storyTrailing') > 1) return 'Only one What follows block allowed'
     return ''
   }

@@ -36,6 +36,11 @@ tables), `@lenml/tokenizers` (runs a downloaded `tokenizer.json` for the other m
 Dev side adds `vite-plugin-pwa` and `wrangler`.
 
 There is no drag-and-drop library. Reordering is hand-rolled in `app/useDragReorder.ts`; use it.
+`itemProps` makes the whole row draggable and is right for a row of plain content. A row holding an
+`input` or a `textarea` must use `handleProps` on a drag handle and `dropProps` on the row instead:
+`draggable` on an ancestor stops Chrome placing the caret in the field, so the caret sticks at the
+start and clicking between words does nothing. `modules/lorebooks/EntryRows.tsx` and the beat rows
+in `modules/write/PlotLayout.tsx` are the pattern.
 
 Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, imported directly.
 No utility framework, no CSS-in-JS.

@@ -5,8 +5,8 @@ import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
 import type { Block, CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
-import { buildStoryPrompt, castText, fitChapterGuide, type CastMember } from '../prompt/buildStoryPrompt'
-import { chapterProse, storyProseSplit } from '../prompt/chapterGuide'
+import { buildStoryPrompt, castText, storyFit, type CastMember } from '../prompt/buildStoryPrompt'
+import { chapterProse } from '../prompt/chapterGuide'
 import { storyTokens } from '../prompt/storyTokens'
 import { rewritePrompt } from '../prompt/rewrite'
 import { deletedSwipes, regenerated, selectSwipe, swipeIndex } from './swipes'
@@ -42,7 +42,7 @@ function newStory(title: string): Story {
 /** A blank Block. A free stretch by default, `beat` is what makes one a planned section, and the
  *  Author writes that. */
 export function newBlock(beat = ''): Block {
-  return { id: crypto.randomUUID(), beat, targetWords: 0, done: false, content: '', context: 'both' }
+  return { id: crypto.randomUUID(), beat, targetWords: 0, content: '', context: 'both' }
 }
 
 function newChapter(storyId: number, order: number, title: string): Chapter {
@@ -625,7 +625,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
       await loadTokenizer(tokenizerFor(connection))
       const current = get().chapters
       // The one thing the per-Block context setting does: blank one side of the prose or the other.
-      const split = storyProseSplit(current, chapterId, blockId, block.context)
+      const fit = storyFit(current, chapterId, blockId, block.context)
       const budget = {
         contextLimit: connection.contextLimit,
         maxTokens: maxTokensOf(connection),
@@ -644,9 +644,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
             chapterId,
             blockId,
           }),
-          chapterGuide: fitChapterGuide(current, chapterId, budget),
-          storyText: split.text,
-          storyTrailing: split.trailing,
+          ...fit,
           direction: sent,
         },
         budget,

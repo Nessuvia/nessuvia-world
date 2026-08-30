@@ -21,7 +21,6 @@ assert.deepStrictEqual(kindSources('story'), [
   'cast',
   'storyContext',
   'storyTrailing',
-  'chapterGuide',
 ])
 assert.ok(!kindSources('story').includes('chatHistory')) // story has no chat history
 assert.ok(!kindSources('story').includes('authorNote')) // nor an author's note
@@ -45,13 +44,8 @@ assert.match(validateStack(stack('story', [b('storyContext'), b('authorNote')]))
 assert.match(validateStack(stack('story', [])), /Story context/) // needs one
 assert.match(validateStack(stack('story', [b('storyContext'), b('storyContext')])), /Only one Story/)
 assert.match(validateStack(stack('story', [b('storyContext'), b('chatHistory')])), /no Chat History/)
-// the chapter guide is optional, capped at one
+// Story context alone is a valid stack: everything else a Story stack can hold is optional.
 assert.strictEqual(validateStack(stack('story', [b('storyContext')])), '')
-assert.strictEqual(validateStack(stack('story', [b('storyContext'), b('chapterGuide')])), '')
-assert.match(
-  validateStack(stack('story', [b('storyContext'), b('chapterGuide'), b('chapterGuide')])),
-  /Only one Chapter guide/,
-)
 // "What follows" is optional too (a Story with no caret sends nothing for it) and capped at one
 assert.strictEqual(validateStack(stack('story', [b('storyContext'), b('storyTrailing')])), '')
 assert.match(

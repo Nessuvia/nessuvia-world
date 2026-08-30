@@ -1,14 +1,14 @@
 // Extension-ful imports on purpose: checkBuildStoryPrompt.ts runs this under
 // `node --experimental-strip-types`, which can't resolve extensionless app imports.
 import type { ChatMessage } from '../connectors/connectorInterface'
-import type { PromptBlock, PromptStack } from '../storage/types'
+import type { BlockContext, PromptBlock, PromptStack } from '../storage/types'
 import { activeContent } from '../storage/types.ts'
+import type { GuideChapter } from './chapterGuide.ts'
+import { fitStoryProse, storyProseSplit } from './chapterGuide.ts'
 import { swapBlockVals } from './swapTokens.ts'
 import { swapStoryTokens } from './storyTokens.ts'
 import type { Budget } from './budget.ts'
 import { countTokens, perMessageOverhead } from './budget.ts'
-import type { GuideChapter } from './chapterGuide.ts'
-import { renderChapterGuide, renderChapterGuideWithin } from './chapterGuide.ts'
 
 /** An enabled cast member, flattened to the card fields the Co-Writer needs. The store resolves
  *  Character/Persona rows into this so the assembly stays pure and check-testable. */
@@ -36,7 +36,6 @@ export function castText(members: CastMember[]): string {
  *  the Story token table, see storyTokens.ts. */
 interface Bound {
   cast: string
-  chapterGuide: string
   story: string
   storyTrailing: string
   tokens: Record<string, string>
@@ -67,8 +66,6 @@ function blockText(block: PromptBlock, bound: Bound): string {
   switch (block.source) {
     case 'cast':
       return wrap(block, bound.cast, bound)
-    case 'chapterGuide':
-      return wrap(block, bound.chapterGuide, bound)
     case 'storyContext':
       return wrap(block, bound.story, bound)
     case 'storyTrailing':
@@ -147,31 +144,39 @@ export function fitStartForward(text: string, available: number): string {
   return lines.slice(0, keepTo).join('\n')
 }
 
-/**
- * Share of the usable window the Chapter guide may take, as a percent.
- *
- * Tight on purpose: every guide token is a prose token `fitEndBackward` can't spend, and the
- * three-stage ladder in `renderChapterGuideWithin` degrades gently enough that hitting the cap is
- * not a cliff. Raise it if the guide starts demoting Chapters the Author still needs.
- */
-export const guideSharePct = 10
+/** What `storyFit` hands `buildStoryPrompt`, plus a readback of what the last fit cost. */
+export interface StoryFit {
+  storyText: string
+  storyTrailing: string
+  fitStoryText: (available: number) => string
+  /** Blocks the last `fitStoryText` call degraded, and how many it could have. Read after
+   *  `buildStoryPrompt` returns; before that both are 0. */
+  degraded: () => { count: number; of: number }
+}
 
 /**
- * The Chapter guide, capped at its share of the budget. Both Story-prompt callers go through this
- * one function: `generate` and the preview panel must not diverge on what the guide says.
- *
- * No budget means no cap, matching how the rest of this file treats a missing budget.
+ * The Story prose and the ladder that fits it, in one object both Write-mode callers spread into
+ * `buildStoryPrompt`. `generate` and the preview panel share it so what the preview shows and what
+ * goes over the wire cannot diverge, the job `fitChapterGuide` used to do.
  */
-export function fitChapterGuide(
+export function storyFit(
   chapters: GuideChapter[],
   activeId: number | null,
-  budget?: Budget,
-): string {
-  if (!budget) return renderChapterGuide(chapters, activeId)
-  const margin = (budget.contextLimit * budget.safetyMarginPct) / 100
-  const usable = budget.contextLimit - budget.maxTokens - margin
-  const allowance = Math.floor((usable * guideSharePct) / 100)
-  return renderChapterGuideWithin(chapters, activeId, allowance, countTokens)
+  blockId: string | null,
+  context: BlockContext,
+): StoryFit {
+  const split = storyProseSplit(chapters, activeId, blockId, context)
+  let last = { count: 0, of: 0 }
+  return {
+    storyText: split.text,
+    storyTrailing: split.trailing,
+    fitStoryText: (available) => {
+      const fitted = fitStoryProse(chapters, activeId, blockId, context, available, countTokens)
+      last = { count: fitted.degradedCount, of: fitted.degradable }
+      return fitted.text
+    },
+    degraded: () => last,
+  }
 }
 
 export interface BuildStoryArgs {
@@ -179,10 +184,16 @@ export interface BuildStoryArgs {
   castText: string
   /** The Story token table (`storyTokens`), substituted into every block's own text. */
   tokens: Record<string, string>
-  /** The rendered Chapter guide (see chapterGuide.ts). Part of the fixed prefix, already fitted by
-   *  the caller, see `fitChapterGuide`. */
-  chapterGuide: string
   storyText: string
+  /**
+   * How to cut the Story prose down to what the budget leaves for it. Supplied by both Write-mode
+   * callers as a closure over `fitStoryProse`, which degrades oldest-first from prose to beat
+   * instructions; `generate` and the preview panel share the one closure so they cannot diverge.
+   *
+   * Left out, `fitEndBackward` chops whole lines off the top instead. That is the fallback for a
+   * caller with no Chapters to hand, which is every non-Write consumer.
+   */
+  fitStoryText?: (available: number) => string
   /** Prose after the caret, to the end of the active Chapter. '' when generating at the end, which
    *  is the common case. The block then renders empty and drops out. */
   storyTrailing?: string
@@ -200,8 +211,8 @@ export interface BuiltStoryPrompt {
 }
 
 /**
- * Assembles a Write-mode request. The active Story stack places the fixed prefix (Cast, Chapter
- * guide, freeform blocks); Story context expands to as much prose as the budget holds, end-backward;
+ * Assembles a Write-mode request. The active Story stack places the fixed prefix (Cast, freeform
+ * blocks); Story context expands to as much prose as the budget holds, cut by `fitStoryText`;
  * the Direction rides last as a separate user turn, never merged into the prose. See the master's
  * Context assembly. Budget = the active connection's contextLimit.
  *
@@ -209,9 +220,9 @@ export interface BuiltStoryPrompt {
  * placed by the stack, so a Story stack decides where the plan sits and how it is worded.
  */
 export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltStoryPrompt {
-  const { stack, castText: cast, tokens, chapterGuide, storyText, direction } = args
+  const { stack, castText: cast, tokens, storyText, direction } = args
 
-  // Priced in the fixed pass below, before fitEndBackward spends what's left on the Story prose:
+  // Priced in the fixed pass below, before the story fit spends what's left on the Story prose:
   // losing the text the model is writing towards would defeat the point of a caret insert.
   const storyTrailing = fitStartForward(args.storyTrailing ?? '', maxTrailingTokens)
 
@@ -221,7 +232,7 @@ export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltSt
   const render = (story: string) => {
     const turns: ChatMessage[] = []
     for (const block of stack.active) {
-      const content = blockText(block, { cast, chapterGuide, story, storyTrailing, tokens })
+      const content = blockText(block, { cast, story, storyTrailing, tokens })
       if (content.trim()) turns.push({ role: block.role, content })
     }
     return turns
@@ -240,7 +251,9 @@ export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltSt
     if (budget) {
       const margin = (budget.contextLimit * budget.safetyMarginPct) / 100
       const available = Math.floor(budget.contextLimit - fixedTokens - budget.maxTokens - margin)
-      storyIncluded = fitEndBackward(storyText, available)
+      storyIncluded = args.fitStoryText
+        ? args.fitStoryText(available - perMessageOverhead)
+        : fitEndBackward(storyText, available)
     } else {
       storyIncluded = storyText
     }

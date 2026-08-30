@@ -62,25 +62,19 @@ export default function EntryRows({
 
   return (
     <ul className="lorebooksEntryList">
-      {entries.map((entry, index) => {
-        // Split, unlike every other useDragReorder row in the app: `draggable` on an ancestor stops
-        // Chrome selecting text inside the inputs below, and this row is nothing but inputs. The
-        // handle starts the drag; the whole row is still a drop target.
-        const { draggable, onDragStart, onDragEnd, ...dropProps } = drag.itemProps(index)
-        return (
+      {/* Handle and row split, not itemProps: this row is nothing but inputs. See useDragReorder. */}
+      {entries.map((entry, index) => (
         <li
           key={entry.id}
           className={`card lorebooksEntry${drag.over === index ? ' dropTarget' : ''}`}
-          {...dropProps}
+          {...drag.dropProps(index)}
         >
           <div className="lorebooksEntryRow">
             <span
               className="lorebooksEntryHandle"
               aria-label="Drag to reorder"
               title="Drag to reorder"
-              draggable={draggable}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
+              {...drag.handleProps(index)}
             >
               <RiDraggable size={16} />
             </span>
@@ -252,8 +246,7 @@ export default function EntryRows({
             </p>
           )}
         </li>
-        )
-      })}
+      ))}
     </ul>
   )
 }

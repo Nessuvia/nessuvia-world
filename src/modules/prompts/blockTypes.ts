@@ -19,7 +19,6 @@ export const sourceLabels: Record<BlockSource, string> = {
   chatHistory: 'Chat history',
   cast: 'Cast',
   storyContext: 'Story context',
-  chapterGuide: 'Chapter guide',
   storyTrailing: 'What follows',
 }
 

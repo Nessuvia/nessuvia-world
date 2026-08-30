@@ -1,4 +1,4 @@
-// Run: node --experimental-strip-types src/core/prompt/checkBuildStoryPrompt.ts
+﻿// Run: node --experimental-strip-types src/core/prompt/checkBuildStoryPrompt.ts
 import assert from 'node:assert'
 import type { PromptBlock, PromptStack } from '../storage/types'
 import type { Budget } from './budget.ts'
@@ -45,7 +45,6 @@ const defaultish = () =>
     stack: defaultish(),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: 'The rain fell.',
     direction: 'Write two paragraphs.',
   }).messages
@@ -63,7 +62,6 @@ const defaultish = () =>
     stack: defaultish(),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: '',
     direction: 'Open the story.',
   })
@@ -78,7 +76,6 @@ const defaultish = () =>
     stack: stack([block({ source: 'storyContext' })]),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'once upon a time',
     direction: 'continue',
   }).messages
@@ -97,7 +94,6 @@ const defaultish = () =>
       stack: stack([block({ content: 'sys' }), block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: lines,
       direction: 'go',
     },
@@ -118,7 +114,6 @@ const defaultish = () =>
       stack: stack([block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: 'short story',
       direction: 'go',
     },
@@ -142,7 +137,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
   }).messages
@@ -163,7 +157,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
   })
@@ -188,7 +181,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       ]),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: lines,
       direction: 'go',
     },
@@ -213,66 +205,48 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
   }).messages
   assert.ok(!out.some((m) => m.content.includes('Name: Mark')))
 }
 
-// --- the Chapter guide rides in its own block, inside its wrapper -----------
+// --- fitStoryText replaces the line chop, and only when a budget exists -------
 {
-  const built = buildStoryPrompt({
-    stack: stack([
-      block({
-        source: 'chapterGuide',
-        content: '<chapters>',
-        closeContent: '</chapters>',
-      }),
-      block({ source: 'storyContext' }),
-    ]),
-    castText: '',
-    tokens: {},
-    chapterGuide: 'Chapter 1 - Morning [written]',
-    storyText: 'prose',
-    direction: 'go',
-  })
-  const text = built.messages.map((m) => m.content).join('\n')
-  assert.ok(text.includes('<chapters>\nChapter 1 - Morning [written]\n</chapters>'))
-  // Fixed prefix, not Story context: it's priced before the prose budget is worked out.
-  assert.ok(built.fixedTokens > 0)
-}
-
-// --- a stack with no Chapter guide block still builds ------------------------
-{
-  const out = buildStoryPrompt({
-    stack: stack([block({ source: 'storyContext' })]),
-    castText: '',
-    tokens: {},
-    chapterGuide: 'Chapter 1 - Morning [written]',
-    storyText: 'prose',
-    direction: 'go',
-  }).messages
-  assert.ok(!out.some((m) => m.content.includes('Chapter 1')))
-}
-
-// --- the guide survives a budget that drops prose ----------------------------
-{
+  const long = Array.from({ length: 200 }, (_, i) => `line ${i} of the prose`).join('\n')
   const tight: Budget = { contextLimit: 220, maxTokens: 60, safetyMarginPct: 0 }
+  let asked = -1
+
   const built = buildStoryPrompt(
     {
-      stack: stack([block({ source: 'chapterGuide' }), block({ source: 'storyContext' })]),
+      stack: stack([block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: 'Chapter 1 - Morning [written]\n  John wakes.',
-      storyText: Array.from({ length: 200 }, (_, i) => `line ${i} of the prose`).join('\n'),
+      storyText: long,
+      fitStoryText: (available) => {
+        asked = available
+        return 'Beat 1: he wakes'
+      },
       direction: 'go',
     },
     tight,
   )
   const text = built.messages.map((m) => m.content).join('\n')
-  assert.ok(text.includes('John wakes.'))
-  assert.ok(built.droppedChars > 0)
+  assert.strictEqual(text.includes('Beat 1: he wakes'), true)
+  assert.ok(!text.includes('line 0 of the prose'))
+  // Handed the room left after the fixed prefix, not the whole window.
+  assert.ok(asked > 0 && asked < 220)
+
+  // No budget, no fit: the whole prose goes, closure or not.
+  const whole = buildStoryPrompt({
+    stack: stack([block({ source: 'storyContext' })]),
+    castText: '',
+    tokens: {},
+    storyText: long,
+    fitStoryText: () => 'Beat 1: he wakes',
+    direction: 'go',
+  })
+  assert.ok(whole.messages.map((m) => m.content).join('\n').includes('line 0 of the prose'))
 }
 
 // --- the trailing "What follows" block ---------------------------------------
@@ -288,7 +262,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: withTrailing(),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'He opened the door.',
     storyTrailing: 'She was already gone.',
     direction: 'describe the room',
@@ -303,7 +276,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: withTrailing(),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'He opened the door.',
     storyTrailing: '',
     direction: 'describe the room',
@@ -316,7 +288,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       stack: withTrailing(),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: 'He opened the door.',
       direction: 'describe the room',
     }).messages,
@@ -346,7 +317,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: stack([block({ source: 'storyContext' }), block({ source: 'storyTrailing' })]),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'the prose so far',
     storyTrailing: huge,
     direction: 'go',
@@ -373,7 +343,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: 'Name: Mark',
     tokens: { storyTitle: 'Last Call', chapterNumber: '2', beat: 'She asks him to leave' },
-    chapterGuide: '',
     // The manuscript writes a token of its own. It is prose, and comes through untouched.
     storyText: 'He said "{{storyTitle}}" and meant it.',
     direction: '',
@@ -401,7 +370,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: '',
     tokens: { beat: '', beatTargetWords: '' },
-    chapterGuide: '',
     storyText: 'the prose so far',
     direction: '',
   })

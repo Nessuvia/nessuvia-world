@@ -34,18 +34,16 @@ const exampleTokens = storyTokens({
       title: 'Last Call',
       summary: '',
       blocks: [
-        { id: 'a', beat: 'Nessu notices the last customer', targetWords: 0, done: true },
-        { id: 'b', beat: 'She asks him to leave', targetWords: 250, done: false },
-        { id: 'c', beat: 'He does not', targetWords: 0, done: false },
+        { id: 'a', beat: 'Nessu notices the last customer', targetWords: 0 },
+        { id: 'b', beat: 'She asks him to leave', targetWords: 250 },
+        { id: 'c', beat: 'He does not', targetWords: 0 },
       ],
     },
-    { id: 3, title: 'After', summary: '', blocks: [{ id: 'd', beat: 'Dawn', targetWords: 0, done: false }] },
+    { id: 3, title: 'After', summary: '', blocks: [{ id: 'd', beat: 'Dawn', targetWords: 0 }] },
   ],
   chapterId: 2,
   blockId: 'b',
 })
-const exampleGuide =
-  'Chapter 1, Closing Time [writing now]\n  Nessu shuts the tavern.\n  Beats:\n    · the last glass\nChapter 2, The Letter [not yet written]\n  A letter arrives with no name on it.'
 
 export default function PromptPreview({
   stack,
@@ -105,7 +103,6 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
       stack,
       castText: exampleCast,
       tokens: exampleTokens,
-      chapterGuide: exampleGuide,
       storyText,
       direction,
     },

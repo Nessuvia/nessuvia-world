@@ -20,10 +20,9 @@ export const emptyBeat = ' '
 /** A beat's text for an input: the empty sentinel shows as empty, so the placeholder appears. */
 export const beatText = (beat: string): string => (beat === emptyBeat ? '' : beat)
 
-/** The inverse: what an edited beat field is stored as. A beat is one line in the Chapter guide, so
- *  a pasted newline becomes a space. */
-export const storedBeat = (text: string): string =>
-  text.replace(/\s*\n\s*/g, ' ') || emptyBeat
+/** The inverse: what an edited beat field is stored as. Newlines are kept, so instructions can run
+ *  to a paragraph; only an entirely blank field falls back to the sentinel. */
+export const storedBeat = (text: string): string => (text.trim() ? text : emptyBeat)
 
 /**
  * A `blocks` array with its beats replaced by `next`, in the same slots the old beats held. Free

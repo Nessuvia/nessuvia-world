@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { storyTokens, swapStoryTokens, type StoryTokenArgs } from './storyTokens.ts'
 
-const blk = (id: string, beat = '', targetWords = 0, done = false) => ({ id, beat, targetWords, done })
+const blk = (id: string, beat = '', targetWords = 0) => ({ id, beat, targetWords })
 
 const args: StoryTokenArgs = {
   title: '  The Long Way  ',
@@ -9,13 +9,13 @@ const args: StoryTokenArgs = {
   ending: 'She refuses the second one.',
   castNames: ['Mary', '  ', 'John'],
   chapters: [
-    { id: 1, title: 'Departure', summary: 'Mary leaves.', blocks: [blk('a', 'She packs', 0, true)] },
+    { id: 1, title: 'Departure', summary: 'Mary leaves.', blocks: [blk('a', 'She packs')] },
     {
       id: 2,
       title: 'The Road',
       summary: '',
       blocks: [
-        blk('b', 'The checkpoint', 0, true),
+        blk('b', 'The checkpoint'),
         blk('c', 'Mary is searched', 300),
         blk('d', 'She lies about the parcel'),
         blk('e'), // free prose, no beat
@@ -45,9 +45,8 @@ assert.strictEqual(t.nextChapterBeats, '- The handoff\n- The refusal')
 
 assert.strictEqual(t.beat, 'Mary is searched')
 assert.strictEqual(t.beatTargetWords, '300')
-// The current Block is in neither list, and the beatless free Block is in neither either.
-assert.strictEqual(t.beatsDone, '- The checkpoint')
-assert.strictEqual(t.beatsRemaining, '- She lies about the parcel')
+// The Block being written is left out, and so is the beatless free Block. Order is Chapter order.
+assert.strictEqual(t.otherBeats, '- The checkpoint\n- She lies about the parcel')
 
 // A target of 0 is unset, and reads blank rather than "0".
 assert.strictEqual(storyTokens({ ...args, blockId: 'd' }).beatTargetWords, '')
@@ -59,7 +58,7 @@ assert.strictEqual(none.chapterTitle, '')
 assert.strictEqual(none.previousChapterSummary, '')
 assert.strictEqual(none.nextChapterBeats, '')
 assert.strictEqual(none.beat, '')
-assert.strictEqual(none.beatsRemaining, '')
+assert.strictEqual(none.otherBeats, '')
 assert.strictEqual(none.storyTitle, 'The Long Way')
 assert.strictEqual(none.chapterCount, '3')
 

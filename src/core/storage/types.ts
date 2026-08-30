@@ -294,12 +294,11 @@ export type BlockContext = 'before' | 'after' | 'both' | 'none'
  */
 export interface Block {
   id: string // crypto.randomUUID(); Blocks have no table, so they need their own key
-  /** The plan line: what is meant to happen here. '' makes this a free stretch. */
+  /** The instructions: what is meant to happen here, one line or many. '' makes this a free
+   *  stretch. When the prose no longer fits the window, this is what the Block sends instead. */
   beat: string
   /** Words this beat is meant to run to. 0 means unset. Meaningless on a free stretch. */
   targetWords: number
-  /** Ticked by hand. Nothing auto-checks it, generating a beat does not mark it done. */
-  done: boolean
   /** The prose. Named `content` so `core/stores/swipes.ts` accepts a Block unchanged; it always
    *  mirrors `swipes[swipeIndex]`, the same denormalisation `Message` uses. */
   content: string
@@ -311,9 +310,10 @@ export interface Block {
   context: BlockContext
 }
 
-/** What a Chapter contributes to the Chapter guide. 'both' is the default and the useful one: an
- *  unwritten Chapter has no summary yet, so it sends beats; a written Chapter has both, and the
- *  trim demotes it to summary alone when the guide runs out of room. */
+/** What a Chapter contributes once its prose has been degraded to beat instructions, which is the
+ *  only time this is read: full prose is sent whatever it says. 'both' is the default and the
+ *  useful one, giving the Chapter's title-and-summary header over its beat lines. 'summary' keeps
+ *  the header alone, 'beats' the beat lines under a bare title, 'off' nothing at all. */
 export type GuideSend = 'off' | 'beats' | 'summary' | 'both'
 
 /** An ordered unit of a Story: a title, a recap, and its prose as an ordered list of Blocks. A
@@ -331,8 +331,8 @@ export interface Chapter {
    *  are prose written outside it. Never empty in practice, opening a Chapter with none seeds a
    *  free Block so there is always somewhere to type. */
   blocks: Block[]
-  /** What this Chapter contributes to the Chapter guide. Its prose still scrolls in as Story
-   *  context whatever this says. */
+  /** What this Chapter contributes once the budget has degraded its prose to beat instructions.
+   *  Its full prose sends whatever this says, for as long as it fits. */
   guideSend: GuideSend
   createdAt: number
   updatedAt: number
@@ -362,7 +362,6 @@ export type BlockSource =
   // Story-stack bound sources (Write mode). Wiring lives in sub-goal C; here they're just sources.
   | 'cast' // the Story's enabled characters/personas (full cards)
   | 'storyContext' // the scrolling Story prose; mandatory, exactly one per story stack
-  | 'chapterGuide' // the Chapter list with state stamps; optional, at most one per story stack
   | 'storyTrailing' // prose after the caret, to the end of the active Chapter; empty with no caret
 
 export interface PromptBlock {

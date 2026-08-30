@@ -652,7 +652,8 @@ h3.storyPreviewTitle {
   padding: 0.5rem 0.6rem;
   field-sizing: content;
   min-height: 5.5rem;
-  max-height: 12rem;
+  max-height: 20rem;
+  overflow-y: auto;
   resize: vertical;
   user-select: text;
 }
@@ -1030,11 +1031,6 @@ h3.storyPreviewTitle {
 
 .beatChecklistRow:hover {
   color: var(--text);
-}
-
-.beatChecklistRow.done {
-  color: var(--textMuted);
-  text-decoration: line-through;
 }
 
 .castList {

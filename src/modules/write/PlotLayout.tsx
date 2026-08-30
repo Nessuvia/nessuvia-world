@@ -8,6 +8,7 @@ import {
   RiArrowUpLine,
   RiCloseLine,
   RiDeleteBinLine,
+  RiDraggable,
   RiFileTextLine,
   RiListCheck,
 } from '@remixicon/react'
@@ -150,7 +151,7 @@ function BeatText({ value, onSave }: { value: string; onSave: (text: string) => 
       rows={1}
       value={draft}
       placeholder="What happens in this beat"
-      title="What is meant to happen in this beat. Sent to the model as part of the plan."
+      title="What is meant to happen in this beat. Sent instead of its prose when the prose no longer fits."
       onChange={(e) => {
         setDraft(e.target.value)
         window.clearTimeout(timer.current)
@@ -160,8 +161,6 @@ function BeatText({ value, onSave }: { value: string; onSave: (text: string) => 
         window.clearTimeout(timer.current)
         onSave(draft)
       }}
-      // Enter would otherwise insert a newline this field then strips.
-      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
     />
   )
 }
@@ -193,8 +192,10 @@ function PlotBlock({
       aria-pressed={selected}
       title={
         chapter.guideSend === 'off'
-          ? 'This Chapter sends nothing to the model. Open it to change that.'
-          : `Sends: ${sendLabels[chapter.guideSend].toLowerCase()}. Click to open it below.`
+          ? 'Once its prose no longer fits, this Chapter sends nothing. Open it to change that.'
+          : `Once its prose no longer fits: ${sendLabels[
+              chapter.guideSend
+            ].toLowerCase()}. Click to open it below.`
       }
       onClick={onSelect}
     >
@@ -203,9 +204,7 @@ function PlotBlock({
       <ul className="plotBlockBeats">
         {beats.length === 0 && <li className="plotBlockEmpty">No beats</li>}
         {beats.map((beat) => (
-          <li key={beat.id} className={beat.done ? 'done' : undefined}>
-            {beat.beat.trim() || 'Empty beat'}
-          </li>
+          <li key={beat.id}>{beat.beat.trim() || 'Empty beat'}</li>
         ))}
       </ul>
       <span className="plotBlockWords">
@@ -337,20 +336,23 @@ function ChapterEditor({
       </div>
 
       <ul className="plotBeatList">
+        {/* Handle and row split, not itemProps: this row holds a textarea. See useDragReorder. */}
         {beats.map((beat, bi) => (
           <li
             key={beat.id}
             data-beat={beat.id}
             className={drag.over === bi ? 'over' : undefined}
-            {...drag.itemProps(bi)}
+            {...drag.dropProps(bi)}
           >
             <div className="plotBeatMain">
-              <input
-                type="checkbox"
-                checked={beat.done}
-                title="Mark this beat done. Nothing ticks it for you."
-                onChange={(e) => patchBeat(beat.id, { done: e.target.checked })}
-              />
+              <span
+                className="plotBeatHandle"
+                aria-label="Drag to reorder"
+                title="Drag to reorder"
+                {...drag.handleProps(bi)}
+              >
+                <RiDraggable size={16} />
+              </span>
               <BeatText
                 value={beatText(beat.beat)}
                 onSave={(text) => patchBeat(beat.id, { beat: storedBeat(text) })}
@@ -431,8 +433,11 @@ function ChapterEditor({
         />
       )}
 
-      <label className="plotField plotSend" title="What this Chapter contributes to the Chapter guide.">
-        Send to the model
+      <label
+        className="plotField plotSend"
+        title="What this Chapter sends once its prose no longer fits the context window. Full prose is sent while it does fit."
+      >
+        Send once the prose no longer fits
         <select
           value={chapter.guideSend}
           onChange={(e) => updateChapter(id, { guideSend: e.target.value as GuideSend })}

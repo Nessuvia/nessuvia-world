@@ -1,4 +1,4 @@
-// Run: node --experimental-strip-types src/modules/write/checkExportStory.ts
+﻿// Run: node --experimental-strip-types src/modules/write/checkExportStory.ts
 import assert from 'node:assert'
 import type { Block, Chapter, Story } from '../../core/storage/types.ts'
 import { resolvePalette } from '../../core/palette/palette.ts'
@@ -8,7 +8,6 @@ const block = (content: string): Block => ({
   id: content || 'empty',
   beat: '',
   targetWords: 0,
-  done: false,
   content,
   context: 'both',
 })

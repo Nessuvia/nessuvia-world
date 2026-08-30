@@ -133,7 +133,6 @@ function CastSection() {
 export function StoryBeats() {
   const chapters = useWrite((s) => s.chapters)
   const activeChapterId = useWrite((s) => s.activeChapterId)
-  const updateChapter = useWrite((s) => s.updateChapter)
   const story = useWrite((s) => s.story)
   const streaming = useWrite((s) => s.streaming)
   const streamingStoryId = useWrite((s) => s.streamingStoryId)
@@ -161,13 +160,12 @@ export function StoryBeats() {
 
   if (chapters.length === 0) return <p className="placeholder">No chapters yet.</p>
 
-  const modes = ['Collapse done', 'Collapse all', 'Open all']
+  const modes = ['Collapse all', 'Open all']
   const allBeats = chapters.flatMap((c) => beatBlocks(c))
   function cycle() {
-    if (mode === 0) setCollapsedBeats(allBeats.filter((b) => b.done).map((b) => b.id))
-    else if (mode === 1) setCollapsedBeats(allBeats.map((b) => b.id))
+    if (mode === 0) setCollapsedBeats(allBeats.map((b) => b.id))
     else setCollapsedBeats([])
-    setMode((mode + 1) % 3)
+    setMode((mode + 1) % modes.length)
   }
 
   // Folding a Chapter row folds every beat under it; unfolding puts them all back.
@@ -208,21 +206,9 @@ export function StoryBeats() {
               <ul className="beatChecklist">
                 {beats.map((beat, i) => (
                   <li key={beat.id}>
-                    <input
-                      type="checkbox"
-                      checked={beat.done}
-                      title="Mark this beat done. Nothing ticks it for you."
-                      onChange={(e) =>
-                        updateChapter(chapter.id!, {
-                          blocks: chapter.blocks.map((b) =>
-                            b.id === beat.id ? { ...b, done: e.target.checked } : b,
-                          ),
-                        })
-                      }
-                    />
                     <button
                       type="button"
-                      className={beat.done ? 'beatChecklistRow done' : 'beatChecklistRow'}
+                      className="beatChecklistRow"
                       title="Go to this beat"
                       onClick={() => jump(beat.id)}
                     >

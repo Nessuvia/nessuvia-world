@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { buildRequestBody, redact } from '../../core/connectors/buildRequestBody'
-import { buildStoryPrompt, castText, fitChapterGuide } from '../../core/prompt/buildStoryPrompt'
-import { storyProseSplit } from '../../core/prompt/chapterGuide'
+import { buildStoryPrompt, castText, storyFit } from '../../core/prompt/buildStoryPrompt'
 import { storyTokens } from '../../core/prompt/storyTokens'
 import { loadTokenizer } from '../../core/prompt/budget'
 import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
@@ -66,7 +65,7 @@ export default function StoryPromptPanel() {
   // the "What follows" block the next generation would actually send, and honours that Block's own
   // context setting. The prose here is the saved text, so it trails typing.
   const activeBlock = active?.blocks.find((b) => b.id === activeBlockId)
-  const split = storyProseSplit(
+  const fit = storyFit(
     chapters,
     active?.id ?? null,
     activeBlock?.id ?? null,
@@ -94,9 +93,7 @@ export default function StoryPromptPanel() {
         chapterId: active?.id ?? null,
         blockId: activeBlock?.id ?? null,
       }),
-      chapterGuide: fitChapterGuide(chapters, active?.id ?? null, budget),
-      storyText: split.text,
-      storyTrailing: split.trailing,
+      ...fit,
       direction: typed,
     },
     budget,
@@ -134,9 +131,10 @@ export default function StoryPromptPanel() {
             </p>
           )}
 
-          {built.droppedChars > 0 && (
+          {fit.degraded().count > 0 && (
             <p className="hint">
-              {built.droppedChars} characters of older Story prose are dropped to fit the budget.
+              {fit.degraded().count} of {fit.degraded().of} earlier blocks send their beat
+              instructions instead of their prose.
             </p>
           )}
         </>
