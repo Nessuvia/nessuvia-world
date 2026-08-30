@@ -284,14 +284,52 @@
   }
 }
 
-.syncLog ol {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
+.syncProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
 }
 
-.syncLog li {
+.syncProgressTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surfaceSunken);
+  overflow: hidden;
+}
+
+.syncProgressBar {
+  height: 100%;
+  background: var(--accent);
+}
+
+.syncProgressBarFailed {
+  background: var(--danger);
+}
+
+.syncProgressRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--codeBg);
+}
+
+.syncProgressLine {
+  color: var(--codeText);
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.syncProgressLineFailed {
+  color: var(--danger);
+}
+
+.syncProgressPercent {
   color: var(--textMuted);
-  font-size: 0.85rem;
-  padding: 2px 0;
+  font-family: monospace;
+  font-size: 12px;
 }

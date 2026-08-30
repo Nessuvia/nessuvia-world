@@ -82,14 +82,15 @@ a module may declare:
 `component` is `lazy()` for route views; `chatPanels` stay eager, since they render inside the chat
 rather than behind a route.
 
-Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `prompts`,
-`appearance`, `settings`, plus four special cases:
+Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `lorebooks`,
+`prompts`, `appearance`, `settings`, plus four special cases:
 
 - `bodyMap` is a plugin: registered, but off until enabled in Settings.
 - `learn` is registered in every build; the sidebar only shows its button on dev
   (`import.meta.env.DEV` in `Sidebar.tsx`), so `/learn` resolves on live without a way in.
-- `sync` is commented out in `main.tsx`. The code works and the BYO-S3 decision is unmade;
-  unregistering is the whole switch. Re-enable by uncommenting.
+- `sync` is registered and live. It sits under Import/Export in the rail rather than the main nav,
+  and `Sidebar.tsx` guards its entries with `syncModule &&`, so commenting the import out of
+  `main.tsx` is still the whole off switch.
 - `join` is not a module. `App.tsx` mounts `/join/:sessionId` outside the app shell, so a guest
   never loads the sidebar.
 
@@ -119,13 +120,17 @@ Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas
 
 ## Data
 
-Everything durable is in Dexie (`core/storage/db.ts`), currently `db.version(12)`: `characters`,
-`personas`, `worldInfo`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`, `macros`,
+Everything durable is in Dexie (`core/storage/db.ts`): `characters`,
+`personas`, `worldInfo`, `lorebooks`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`,
 `palettes`, `backgroundImages`, `bodyTrackers`, `bodyMaps`, `paramDefs`.
 
-- Adding a table or index means appending a new `db.version(N).stores({...})` block with the
-  **complete** schema, leaving every older block in place: Dexie needs the whole chain to upgrade
-  an existing local DB. Then add the name to `TableName` in `storageInterface.ts`.
+- One `db.version(N).stores({...})` block, currently 14, holding the **complete** schema. The old
+  chain was deleted; no block ever carried an `upgrade()` callback, so an older local DB upgrades
+  straight to the current schema. Adding a table or index means editing that block and raising the
+  number, then adding the name to `TableName` in `storageInterface.ts`. The number only goes up:
+  IndexedDB refuses to open a database whose stored version is higher than the one requested.
+  Adding an `upgrade()` callback is the one thing that would bring the chain back, and this codebase
+  doesn't migrate.
 - Adding a plain field needs no version bump: put it in `types.ts` and default it in the store's
   `newX()` factory. Indexes are only for fields you query with `find()`.
 - `storage.put/remove/clear/putAll` call `markDirty` before the write, which is how sync knows what
