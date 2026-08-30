@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Chat } from '../../core/storage/types'
 import PromptToggles from '../prompts/PromptToggles'
+import { stackKind } from '../prompts/stackKinds'
 import { useChats } from '../../core/stores/chatStore'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { useSettings, useAppearance } from '../../core/stores/settingsStore'
@@ -40,6 +41,8 @@ export default function ChatSettingsPanel({
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
   const activeStackId = useSettings((s) => s.activeStackId)
   const stacks = useStacks((s) => s.stacks)
+  // Story stacks build a different prompt and have no Chat History block, so they can't run a chat.
+  const chatStacks = stacks.filter((s) => stackKind(s) === 'chat')
   // A chat with its own stack shows and edits that one. Only a chat without an override reaches
   // the global, so a multiplayer session's stack can't be repointed from here by accident.
   const ownStackId = chat?.stackId
@@ -136,8 +139,8 @@ export default function ChatSettingsPanel({
             disabled={ownStackId !== undefined}
             onChange={(e) => useSettings.setState({ activeStackId: Number(e.target.value) })}
           >
-            {stacks.length === 0 && <option value="">No stacks</option>}
-            {stacks.map((s) => (
+            {chatStacks.length === 0 && <option value="">No stacks</option>}
+            {chatStacks.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>
