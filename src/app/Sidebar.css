@@ -222,6 +222,24 @@
   cursor: pointer;
 }
 
+/* Leaves a chat or a Story. Sits beside .sidebarOpenButton (8 + its 36 + 8) in the same strip,
+   rendered only on a phone while the drawer is closed. */
+.sidebarBackButton {
+  position: fixed;
+  top: 8px;
+  left: 52px;
+  z-index: 29;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
 /* Collapse toggle */
 .sidebarCollapseToggle {
   display: grid;
@@ -310,6 +328,11 @@
   /* margin-top: auto (the desktop rule) is what's wanted here too: it only absorbs free space, so
      the block sits at the bottom of the viewport on a short rail and follows the content on a rail
      taller than the screen (Chat, Write). */
+
+  /* The fixed .sidebarBackButton replaces it on a phone. */
+  .sidebarBackLink {
+    display: none;
+  }
 
   /* Above the other drawers: the navbar is the way out of any screen. */
   .sidebar.sideDrawer {

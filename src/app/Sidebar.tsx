@@ -169,6 +169,19 @@ export default function Sidebar() {
       </button>
     )}
 
+    {/* Out of the rail on a phone: the row it took there was vertical space, and the strip beside
+        the menu button was empty. */}
+    {phone && !open && (chatId || storyId) && (
+      <Link
+        to={chatId ? back : '/write'}
+        className="sidebarBackButton"
+        title="Go back"
+        aria-label="Go back"
+      >
+        <RiArrowLeftLine size={20} />
+      </Link>
+    )}
+
     <nav
       ref={rail}
       className={`navbar sidebar ${drawer.className}${chatId || storyId ? ' inChat' : ''}${collapsed ? ' collapsed' : ''}`}
@@ -304,7 +317,7 @@ export default function Sidebar() {
           {/* An open chat takes the rail over: its settings replace the module links until you leave. */}
           {chatId ? (
             <>
-              <Link to={back} className="sidebar-item">
+              <Link to={back} className="sidebar-item sidebarBackLink">
                 <RiArrowLeftLine size={18} />
                 Go back
               </Link>
@@ -312,7 +325,7 @@ export default function Sidebar() {
             </>
           ) : storyId ? (
             <>
-              <Link to="/write" className="sidebar-item">
+              <Link to="/write" className="sidebar-item sidebarBackLink">
                 <RiArrowLeftLine size={18} />
                 Go back
               </Link>
