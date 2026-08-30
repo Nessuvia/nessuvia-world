@@ -91,6 +91,15 @@
       "info": "Wrapper around the Story's enabled cast. Children inherit this block's role."
     },
     {
+      "id": "ks-world",
+      "label": "World info",
+      "source": "worldInfo",
+      "role": "system",
+      "content": "<world>\nFacts about this world that apply to the passage you are writing.",
+      "closeContent": "</world>",
+      "info": "Entries from the Story's lorebooks that matched. Renders nothing when none did."
+    },
+    {
       "id": "ks-where",
       "label": "Where we are",
       "source": "text",

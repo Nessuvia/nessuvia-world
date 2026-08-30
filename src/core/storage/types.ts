@@ -276,6 +276,17 @@ export interface Story {
   targetWords?: number
   /** Premise and Ending render as thin markers on the Plot Layout strip when true. */
   capsCollapsed?: boolean
+  /** Standalone lorebooks the Author attached to this Story. Books a cast character carries are
+   *  not listed here: those are derived from the cast, so adding the character is what attaches
+   *  them. Absent = none. Never exported with the Story: book ids mean nothing on another device. */
+  lorebookIds?: number[]
+  /** Book ids switched off for this Story, whichever way the book got here. The row greys out and
+   *  its entries stop reaching the prompt; the attachment itself is left alone. Absent = all on. */
+  lorebookOff?: number[]
+  /** Book ids the Author removed from this Story's list that this Story did not attach itself: a
+   *  cast character's book, or a global one. Without this the next render would derive them
+   *  straight back. Absent = nothing removed. */
+  lorebookDropped?: number[]
   createdAt: number
   updatedAt: number
 }

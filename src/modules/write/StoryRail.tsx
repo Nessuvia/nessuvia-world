@@ -13,7 +13,9 @@ import ColorStack from '../../app/ColorStack'
 import EntityPicker, { type PickerItem } from '../../app/EntityPicker'
 import type { CastEntry } from '../../core/storage/types'
 import { chapterState } from '../../core/prompt/chapterGuide'
+import { attachBook, removeBook, storyBooks, toggleBook } from '../../core/prompt/storyBooks'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
+import { useLorebooks } from '../../core/stores/lorebooksStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import { lockedHint, usePaletteEditor } from '../../core/stores/palettesStore'
 import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
@@ -114,6 +116,88 @@ function CastSection() {
         ) : (
           <button type="button" className="castAddSlot" onClick={() => setPicking(true)}>
             Add Character +
+          </button>
+        ))}
+    </div>
+  )
+}
+
+/**
+ * The Story's lorebooks: every global book, the books the enabled cast carries, and any standalone
+ * book attached here. A row toggles off (greyed, entries stop being sent) or comes off the list
+ * entirely. Removing a cast character's book leaves the character in the Story; it only stops that
+ * book reaching the prompt, and it stays gone while the character is in the cast.
+ *
+ * Per Story, all three fields: which books a work draws on is a property of the work.
+ */
+function BooksSection() {
+  const story = useWrite((s) => s.story)
+  const setStoryFields = useWrite((s) => s.setStoryFields)
+  const characters = useCharacters((s) => s.characters)
+  const { books, counts, load } = useLorebooks()
+  const [picking, setPicking] = useState(false)
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (!story) return null
+
+  const rows = storyBooks(story, characters, books)
+  const listed = new Set(rows.map((r) => r.book.id))
+  const unlisted = books.filter((b) => !listed.has(b.id))
+
+  return (
+    <div className="storyBooks">
+      {rows.length === 0 && <p className="placeholder">No lorebooks.</p>}
+      <ul className="castList">
+        {rows.map((row) => (
+          <li key={row.book.id}>
+            <button
+              type="button"
+              className="castRow storyBookRow"
+              aria-pressed={row.enabled}
+              title={row.enabled ? 'Switch off for this Story' : 'Switch on'}
+              onClick={() => setStoryFields(toggleBook(story, row.book.id!))}
+            >
+              <span className="entityPickerName">{row.book.name || 'Unnamed'}</span>
+              <span className="lorebooksCount">{counts[row.book.id!] ?? 0}</span>
+              {row.origin === 'cast' && <span className="lorebooksBadge">{row.from}</span>}
+              {row.origin === 'global' && <span className="lorebooksBadge">All chats</span>}
+            </button>
+            <Link
+              to={`/lorebooks#book-${row.book.id}`}
+              className="castRowAction"
+              title="Open in Lorebooks"
+            >
+              <RiSettings3Line size={21} />
+            </Link>
+            <button
+              type="button"
+              className="castRowAction"
+              title="Remove from this Story"
+              onClick={() => setStoryFields(removeBook(story, row))}
+            >
+              <RiCloseLine size={21} />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {unlisted.length > 0 &&
+        (picking ? (
+          <EntityPicker
+            items={unlisted.map((b) => ({ key: String(b.id), label: b.name || 'Unnamed' }))}
+            placeholder="Search lorebooks..."
+            emptyText="No lorebooks."
+            onCancel={() => setPicking(false)}
+            onPick={(item) => {
+              setStoryFields(attachBook(story, Number(item.key)))
+              setPicking(false)
+            }}
+          />
+        ) : (
+          <button type="button" className="castAddSlot" onClick={() => setPicking(true)}>
+            Add Lorebook +
           </button>
         ))}
     </div>
@@ -450,6 +534,7 @@ const railSections: { id: string; label: string; body: () => ReactNode }[] = [
   { id: 'beats', label: 'Beats', body: () => <StoryBeats /> },
   { id: 'direction', label: 'Direction', body: () => <DirectionSection /> },
   { id: 'characters', label: 'Characters', body: () => <CastSection /> },
+  { id: 'lorebooks', label: 'Lorebooks', body: () => <BooksSection /> },
   { id: 'connection', label: 'Connection', body: () => <ConnectionSection /> },
   { id: 'promptStack', label: 'Prompt Stack', body: () => <PromptStackSection /> },
   { id: 'parameters', label: 'Parameters', body: () => <ParametersSection /> },

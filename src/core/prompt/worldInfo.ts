@@ -1,7 +1,13 @@
 // Extension-ful imports on purpose: checkWorldInfo.ts runs this under `node --experimental-strip-types`,
 // which can't resolve extensionless app imports.
-import type { Lorebook, Message, WorldInfoEntry } from '../storage/types'
+import type { Lorebook, WorldInfoEntry } from '../storage/types'
 import { countTokens } from './budget.ts'
+
+/** What a key is scanned against. A chat passes its `Message[]`; Write mode has no messages, so it
+ *  passes paragraphs of prose. Only the text is ever read, so one type covers both. */
+export interface ScanText {
+  content: string
+}
 
 /** Scan window when neither the entry nor its book says how far back to look. */
 export const defaultDepth = 4
@@ -57,7 +63,7 @@ function secondaryPasses(entry: WorldInfoEntry, haystack: string): boolean {
  */
 export function matchedEntries(
   entries: WorldInfoEntry[],
-  messages: Message[],
+  messages: ScanText[],
   books?: BookMap,
 ): WorldInfoEntry[] {
   return entries
@@ -113,7 +119,7 @@ export interface ResolvedWorldInfo {
  */
 export function resolveWorldInfo(
   entries: WorldInfoEntry[],
-  messages: Message[],
+  messages: ScanText[],
   books?: BookMap,
   /** The stack's `worldInfoBudget`: one pool shared by all three slots, in tokens. Undefined or 0
    *  is no cap, which is what every stack has until the user sets one. */

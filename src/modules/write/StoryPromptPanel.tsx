@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { buildRequestBody, redact } from '../../core/connectors/buildRequestBody'
-import { buildStoryPrompt, castText, storyFit } from '../../core/prompt/buildStoryPrompt'
+import { buildStoryPrompt, castText, storyFit, storyScanText } from '../../core/prompt/buildStoryPrompt'
 import { storyTokens } from '../../core/prompt/storyTokens'
 import { loadTokenizer } from '../../core/prompt/budget'
 import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
@@ -52,6 +52,19 @@ export default function StoryPromptPanel() {
     return () => clearTimeout(timer)
   }, [direction])
 
+  // Reading lorebook entries is async, so the match can't happen in the render below. It lands in
+  // the store, which is also where writeBlock reads it from: one value, one result in both places.
+  const worldInfo = useWrite((s) => s.worldInfo)
+  const refreshWorldInfo = useWrite((s) => s.refreshWorldInfo)
+  const worldInfoBudget = stack?.worldInfoBudget
+  useEffect(() => {
+    if (!story || chapters.length === 0) return
+    const active = chapters.find((c) => c.id === activeChapterId) ?? chapters.at(-1)
+    const block = active?.blocks.find((b) => b.id === activeBlockId)
+    const split = storyFit(chapters, active?.id ?? null, block?.id ?? null, block?.context ?? 'both')
+    refreshWorldInfo(storyScanText(split.storyText, [typed, block?.beat ?? '']), worldInfoBudget)
+  }, [story, chapters, activeChapterId, activeBlockId, typed, worldInfoBudget, refreshWorldInfo])
+
   if (!story || chapters.length === 0) return null
   if (!stack) return <p className="hint">No Story stack yet. It is created on the first generation.</p>
 
@@ -95,6 +108,7 @@ export default function StoryPromptPanel() {
         blockId: activeBlock?.id ?? null,
       }),
       ...fit,
+      worldInfo: { before: worldInfo.before, after: worldInfo.after },
       direction: typed,
     },
     budget,
@@ -129,6 +143,13 @@ export default function StoryPromptPanel() {
               {built.fixedTokens + built.storyTokens} of {connection.contextLimit} tokens. Fixed
               blocks {built.fixedTokens}, Story prose {built.storyTokens}, reply reserve{' '}
               {maxTokensOf(connection)}, safety margin {connection.safetyMarginPct}% ({margin}).
+            </p>
+          )}
+
+          {worldInfo.dropped.length > 0 && (
+            <p className="hint">
+              Over the world info budget, not sent:{' '}
+              {worldInfo.dropped.map((d) => d.name || 'Unnamed').join(', ')}.
             </p>
           )}
 

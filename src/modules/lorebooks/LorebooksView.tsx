@@ -108,11 +108,9 @@ export default function LorebooksView() {
           <ul className="lorebooksList">
             {/* A header only appears when its group has rows, so a library with no bundled books
                 doesn't grow a heading over nothing. */}
-            {bundled.length > 0 && (
-              <li className="lorebooksGroupHeader">Bundled with a character</li>
-            )}
+            {bundled.length > 0 && <li className="lorebooksGroupHeader">Character Lorebooks</li>}
             {bundled.map(row)}
-            {loose.length > 0 && <li className="lorebooksGroupHeader">Not bundled</li>}
+            {loose.length > 0 && <li className="lorebooksGroupHeader">Standalone</li>}
             {loose.map(row)}
           </ul>
         }

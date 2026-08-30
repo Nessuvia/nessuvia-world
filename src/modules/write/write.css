@@ -1079,6 +1079,20 @@ h3.storyPreviewTitle {
   color: var(--textSoft);
 }
 
+/* The Lorebooks section of the rail. Rows reuse .castRow: a book row toggles and dims exactly the
+   way a cast row does, and the two sit one above the other. */
+.storyBooks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* No avatar in this row, so the name needs the padding the avatar was providing. */
+.storyBookRow {
+  gap: 0.4rem;
+  padding-left: 0.5rem;
+}
+
 .storyColorRow {
   display: flex;
   align-items: center;

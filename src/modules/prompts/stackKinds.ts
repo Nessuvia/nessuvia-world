@@ -26,7 +26,9 @@ export const boundSources: Record<StackKind, BlockSource[]> = {
   ],
   // No authorNote: a Story's standing instruction is the Direction box, and its premise/ending
   // reach the prompt as {{premise}} / {{ending}}.
-  story: ['cast', 'storyContext', 'storyTrailing'],
+  // No worldInfoDepth either: it splices entries into chat history at a depth, and a Story's prose
+  // is one blob with nothing to count messages back from.
+  story: ['cast', 'worldInfo', 'worldInfoAfter', 'storyContext', 'storyTrailing'],
 }
 
 /** Sources a block of this kind may take: freeform text plus the kind's bound sources. */
@@ -56,6 +58,7 @@ export function validateStack(stack: PromptStack): string {
   if (count(stack, 'worldInfoDepth') > 1) return 'Only one World info (at depth) block allowed'
   if (stackKind(stack) === 'story') {
     if (count(stack, 'chatHistory') > 0) return 'Story stacks have no Chat History block'
+    if (count(stack, 'worldInfoDepth') > 0) return 'Story stacks have no World info (at depth) block'
     if (count(stack, 'authorNote') > 0) return "Story stacks have no Author's note block"
     if (count(stack, 'storyContext') === 0) return 'Add a Story context block'
     if (count(stack, 'storyContext') > 1) return 'Only one Story context block allowed'

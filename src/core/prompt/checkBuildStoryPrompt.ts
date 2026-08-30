@@ -8,6 +8,7 @@ import {
   fitEndBackward,
   fitStartForward,
   maxTrailingTokens,
+  storyScanText,
 } from './buildStoryPrompt.ts'
 
 let n = 0
@@ -376,6 +377,60 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
   // Free prose: no beat, no target, so no user turn at all.
   assert.ok(!built.messages.some((m) => m.role === 'user'))
   assert.ok(!built.messages.some((m) => m.content.includes('Write this next')))
+}
+
+// --- world info renders in its block, and drops out when nothing matched ----
+{
+  const withWorld = () =>
+    stack([
+      block({ label: 'sys', content: 'You are a co-writer.' }),
+      block({
+        label: 'world',
+        source: 'worldInfo',
+        content: '<world>',
+        closeContent: '</world>',
+      }),
+      block({ label: 'story', source: 'storyContext' }),
+    ])
+  const args = { castText: '', tokens: {}, storyText: 'the prose', direction: '' }
+
+  const on = buildStoryPrompt({
+    ...args,
+    stack: withWorld(),
+    worldInfo: { before: 'Ferren is a port city.', after: '' },
+  })
+  const text = on.messages.map((m) => m.content).join('\n')
+  assert.ok(text.includes('<world>'))
+  assert.ok(text.includes('Ferren is a port city.'))
+  assert.ok(text.includes('</world>'))
+
+  // Nothing matched: the wrapper goes too, rather than sending empty tags.
+  const off = buildStoryPrompt({ ...args, stack: withWorld(), worldInfo: { before: '', after: '' } })
+  assert.ok(!off.messages.some((m) => m.content.includes('<world>')))
+  // And with no worldInfo argument at all, which is every caller that has no books.
+  const none = buildStoryPrompt({ ...args, stack: withWorld() })
+  assert.ok(!none.messages.some((m) => m.content.includes('<world>')))
+
+  // World info is priced with the fixed blocks, not taken out of the Story prose's allowance.
+  assert.ok(on.fixedTokens > off.fixedTokens)
+}
+
+// --- storyScanText: paragraphs stand in for messages, newest last -----------
+{
+  assert.deepStrictEqual(storyScanText('one\n\ntwo\n\n\n  \n\nthree'), [
+    { content: 'one' },
+    { content: 'two' },
+    { content: 'three' },
+  ])
+  // Extras land after the prose, so a scan depth of 1 sees the beat and not the last paragraph.
+  assert.deepStrictEqual(storyScanText('one\n\ntwo', ['', 'the beat']), [
+    { content: 'one' },
+    { content: 'two' },
+    { content: 'the beat' },
+  ])
+  assert.deepStrictEqual(storyScanText('', []), [])
+  // A single paragraph with hard line breaks stays one unit: a blank line is what splits.
+  assert.deepStrictEqual(storyScanText('a\nb'), [{ content: 'a\nb' }])
 }
 
 console.log('ok')

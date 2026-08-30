@@ -19,6 +19,8 @@ assert.strictEqual(stackKind({ kind: 'story' }), 'story')
 assert.deepStrictEqual(kindSources('story'), [
   'text',
   'cast',
+  'worldInfo',
+  'worldInfoAfter',
   'storyContext',
   'storyTrailing',
 ])
@@ -51,6 +53,19 @@ assert.strictEqual(validateStack(stack('story', [b('storyContext'), b('storyTrai
 assert.match(
   validateStack(stack('story', [b('storyContext'), b('storyTrailing'), b('storyTrailing')])),
   /Only one What follows/,
+)
+
+// World info reaches a Story through the two block-shaped slots; the depth one has no history to
+// splice into.
+assert.strictEqual(validateStack(stack('story', [b('worldInfo'), b('storyContext')])), '')
+assert.strictEqual(validateStack(stack('story', [b('worldInfoAfter'), b('storyContext')])), '')
+assert.match(
+  validateStack(stack('story', [b('worldInfoDepth'), b('storyContext')])),
+  /no World info \(at depth\)/,
+)
+assert.match(
+  validateStack(stack('story', [b('worldInfo'), b('worldInfo'), b('storyContext')])),
+  /Only one World info/,
 )
 
 // author's note capped at one, both kinds

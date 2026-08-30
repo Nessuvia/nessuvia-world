@@ -5,7 +5,22 @@ import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
 import type { Block, CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
-import { buildStoryPrompt, castText, storyFit, type CastMember } from '../prompt/buildStoryPrompt'
+import {
+  buildStoryPrompt,
+  castText,
+  storyFit,
+  storyScanText,
+  type CastMember,
+} from '../prompt/buildStoryPrompt'
+import { enabledBookIds, storyBooks } from '../prompt/storyBooks'
+import {
+  emptyWorldInfo,
+  resolveWorldInfo,
+  type ResolvedWorldInfo,
+  type ScanText,
+} from '../prompt/worldInfo'
+import { useLorebooks } from './lorebooksStore'
+import { useWorldInfo } from './worldInfoStore'
 import { chapterProse } from '../prompt/chapterGuide'
 import { storyTokens } from '../prompt/storyTokens'
 import { rewritePrompt } from '../prompt/rewrite'
@@ -159,6 +174,14 @@ interface WriteState {
    *  a Block field is the upgrade path if it should survive a reload. */
   collapsedBeats: string[]
   setCollapsedBeats(ids: string[]): void
+  /** What the open Story's lorebooks matched on the last `refreshWorldInfo`. Held here rather than
+   *  resolved where it's needed because reading entries is async and the prompt preview renders
+   *  synchronously: this is the one value both the preview and `writeBlock` read, so what the
+   *  preview shows and what goes over the wire cannot disagree. */
+  worldInfo: ResolvedWorldInfo
+  /** Match the Story's enabled lorebooks against `scan` and keep the result. Returns it too, for
+   *  the caller that needs it in the same tick it asked for it. */
+  refreshWorldInfo(scan: ScanText[], budget?: number): Promise<ResolvedWorldInfo>
   /** The Story's standing instruction, sent as the final user turn on every generation. Per
    *  Story. Debounced by the caller, this writes to the database. */
   setDirection(text: string): Promise<void>
@@ -353,10 +376,31 @@ export const useWrite = create<WriteState>()((set, get) => ({
   pendingCaret: null,
   styling: true,
   collapsedBeats: [],
+  worldInfo: emptyWorldInfo,
 
   toggleStyling: () => set((s) => ({ styling: !s.styling })),
 
   setCollapsedBeats: (ids) => set({ collapsedBeats: ids }),
+
+  refreshWorldInfo: async (scan, budget) => {
+    const story = get().story
+    if (!story) return emptyWorldInfo
+    const lore = useLorebooks.getState()
+    // The list is loaded once and kept; a generation that races the first load would otherwise see
+    // no global books at all. Same guard chatStore's worldInfoFor uses.
+    if (!lore.books.length && !lore.loading) await lore.load()
+    const books = useLorebooks.getState().books
+    const ids = enabledBookIds(storyBooks(story, useCharacters.getState().characters, books))
+    let resolved = emptyWorldInfo
+    if (ids.length) {
+      const entries = await useWorldInfo.getState().fetchForBooks(ids)
+      if (entries.length)
+        resolved = resolveWorldInfo(entries, scan, new Map(books.map((b) => [b.id!, b])), budget)
+    }
+    // The Story may have closed or changed while the reads were in flight.
+    if (get().story?.id === story.id) set({ worldInfo: resolved })
+    return resolved
+  },
 
   setDirection: async (text) => {
     const story = get().story
@@ -710,6 +754,12 @@ export const useWrite = create<WriteState>()((set, get) => ({
       const current = get().chapters
       // The one thing the per-Block context setting does: blank one side of the prose or the other.
       const fit = storyFit(current, chapterId, blockId, block.context)
+      // Matched against the prose the caret sits after, plus what the passage was asked to be:
+      // a key named only in the beat should still fire.
+      const world = await get().refreshWorldInfo(
+        storyScanText(fit.storyText, [sent, block.beat]),
+        stack.worldInfoBudget,
+      )
       const budget = {
         contextLimit: connection.contextLimit,
         maxTokens: maxTokensOf(connection),
@@ -730,6 +780,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
             blockId,
           }),
           ...fit,
+          worldInfo: { before: world.before, after: world.after },
           direction: sent,
         },
         budget,

@@ -38,7 +38,22 @@ interface Bound {
   cast: string
   story: string
   storyTrailing: string
+  worldInfo: string
+  worldInfoAfter: string
   tokens: Record<string, string>
+}
+
+/**
+ * The Story prose as the text a lorebook key is scanned against, newest last. An entry's scan depth
+ * counts messages and a Story has none, so a paragraph stands in for one: "scan depth 4" reads as
+ * the last four paragraphs. `extra` goes on the end, for the Direction and the beat being written,
+ * which are the newest statement of what the passage is about even though they aren't prose.
+ */
+export function storyScanText(story: string, extra: string[] = []): { content: string }[] {
+  return [...story.split(/\n\s*\n/), ...extra]
+    .map((content) => content.trim())
+    .filter((content) => content)
+    .map((content) => ({ content }))
 }
 
 /**
@@ -72,6 +87,11 @@ function blockText(block: PromptBlock, bound: Bound): string {
       // Guarded rather than left to `wrap`: this block carries instruction text of its own ("must
       // lead into the text below"), and with no caret there is no text below for it to point at.
       return bound.storyTrailing.trim() ? wrap(block, bound.storyTrailing, bound) : ''
+    // Guarded for the same reason: a `<world_info>` wrapper around nothing is worse than no block.
+    case 'worldInfo':
+      return bound.worldInfo.trim() ? wrap(block, bound.worldInfo, bound) : ''
+    case 'worldInfoAfter':
+      return bound.worldInfoAfter.trim() ? wrap(block, bound.worldInfoAfter, bound) : ''
     default: {
       let own = block.source === 'text' ? ownText(activeContent(block), bound) : ''
       if (block.input) own = swapBlockVals(own, block.input)
@@ -197,6 +217,10 @@ export interface BuildStoryArgs {
   /** Prose after the caret, to the end of the active Chapter. '' when generating at the end, which
    *  is the common case. The block then renders empty and drops out. */
   storyTrailing?: string
+  /** What the Story's lorebooks matched, already budgeted. `atDepth` entries have nowhere to go in
+   *  Write mode (there is no history to splice into), so only the two block-shaped slots arrive
+   *  here. Absent = no books, or nothing matched. */
+  worldInfo?: { before: string; after: string }
   direction: string
 }
 
@@ -229,10 +253,20 @@ export function buildStoryPrompt(args: BuildStoryArgs, budget?: Budget): BuiltSt
   // Rendered twice with the same walk: once with no prose to price the fixed cost, once with the
   // prose the budget allowed. Anything but the Story text is identical between the passes, so the
   // two runs line up 1:1 and the trim can't shift a block into or out of the prompt.
+  const worldInfo = args.worldInfo?.before ?? ''
+  const worldInfoAfter = args.worldInfo?.after ?? ''
+
   const render = (story: string) => {
     const turns: ChatMessage[] = []
     for (const block of stack.active) {
-      const content = blockText(block, { cast, story, storyTrailing, tokens })
+      const content = blockText(block, {
+        cast,
+        story,
+        storyTrailing,
+        worldInfo,
+        worldInfoAfter,
+        tokens,
+      })
       if (content.trim()) turns.push({ role: block.role, content })
     }
     return turns
