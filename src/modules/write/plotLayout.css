@@ -469,4 +469,14 @@
   .plotAddChapter {
     align-self: flex-start;
   }
+
+  /* The stacked chain is taller than the screen on a phone, which pushes the caps row out of
+     reach. Order it above the chain instead; the hint stays first. */
+  .plotLayout > .hint {
+    order: -2;
+  }
+
+  .plotCapsRow {
+    order: -1;
+  }
 }

@@ -852,15 +852,24 @@
 /* The right edge lines up with the composer's textarea: leave the Send button's column empty. */
 .chatBottomBar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   padding-right: calc(var(--composerButton) + 8px);
 }
 
 .chatToolbar {
   display: flex;
+  align-items: center;
   gap: 6px;
   margin-left: auto;
+}
+
+/* Match the roster chips and the add dropdown so the row reads as one height. */
+.chatView .chatToolbar button {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 .rangeInputs {
@@ -1319,8 +1328,15 @@
     width: 100%;
   }
 
+  /* Editing a message needs the vertical room the composer and the roster row take. */
+  .chatComposerSlot.editingOpen,
+  .chatBottomBar.editingOpen {
+    display: none;
+  }
+
+  /* No composer button to clear on a phone, but the trash still needs to sit off the edge. */
   .chatBottomBar {
-    padding-right: 0;
+    padding-right: 8px;
   }
 
   /* Title on its own line, star/Rename/Delete under it. One line for all four cramps the buttons

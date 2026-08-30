@@ -1168,6 +1168,29 @@ h3.storyPreviewTitle {
 }
 
 @media (max-width: 700px) {
+  /* Icon only, fixed in the top strip beside the navbar button (.sidebarOpenButton, top-left),
+     so it stops eating a row of the title bar. 27 is the phone drawer band's floor, which is what
+     this strip sits at. */
+  .storyBar .stylingToggle {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 27;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin-left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .stylingToggleLabel {
+    display: none;
+  }
+
   /* The header's three controls each take a row: side by side the button falls off the edge.
      Order is set here rather than in the markup so the desktop row keeps its own order. */
   .shelf {

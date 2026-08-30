@@ -63,6 +63,9 @@ export default function ChatView() {
   // Which message has the regen modal open. Lives here so an empty composer submit can open it.
   const [rewritingId, setRewritingId] = useState<number | null>(null)
   const [deletingRange, setDeletingRange] = useState(false)
+  // Which message has its inline edit box open. On a phone the composer hides while it does, the
+  // edit box and the composer together leave almost no room for the message.
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
     load(chatId)
@@ -188,6 +191,9 @@ export default function ChatView() {
             rewriting={rewritingId === m.id}
             onRewriteOpen={(open) => setRewritingId(open ? m.id! : null)}
             onEdit={(content) => editMessage(m.id!, content)}
+            onEditingChange={(on) =>
+              setEditingId((cur) => (on ? m.id! : cur === m.id ? null : cur))
+            }
             onReprompt={
               m.role === 'user' && i === messages.length - 1 && !streaming
                 ? () => retry(character, chat.respondWith)
@@ -243,7 +249,7 @@ export default function ChatView() {
         </p>
       )}
 
-      <div className="chatBottomBar">
+      <div className={editingId !== null ? 'chatBottomBar editingOpen' : 'chatBottomBar'}>
         <RosterBar
           chat={chat}
           characters={characters}
@@ -286,20 +292,22 @@ export default function ChatView() {
         />
       )}
 
-      <Composer
-        streaming={streaming}
-        disabledReason={connection ? '' : 'No active connection, set one up in Settings.'}
-        commandTargets={participants(chat)
-          .map((id) => characters.find((c) => c.id === id))
-          .filter((c) => !!c)
-          .map((c) => ({ id: c.id!, name: displayName(c), avatar: c.avatar }))}
-        onSend={(text) => send(character, text, chat.respondWith)}
-        onStop={stop}
-        onRegenLast={() => {
-          const last = messages.at(-1)
-          if (last?.role === 'assistant') setRewritingId(last.id!)
-        }}
-      />
+      <div className={editingId !== null ? 'chatComposerSlot editingOpen' : 'chatComposerSlot'}>
+        <Composer
+          streaming={streaming}
+          disabledReason={connection ? '' : 'No active connection, set one up in Settings.'}
+          commandTargets={participants(chat)
+            .map((id) => characters.find((c) => c.id === id))
+            .filter((c) => !!c)
+            .map((c) => ({ id: c.id!, name: displayName(c), avatar: c.avatar }))}
+          onSend={(text) => send(character, text, chat.respondWith)}
+          onStop={stop}
+          onRegenLast={() => {
+            const last = messages.at(-1)
+            if (last?.role === 'assistant') setRewritingId(last.id!)
+          }}
+        />
+      </div>
     </div>
   )
 }

@@ -307,12 +307,9 @@
     overflow-x: hidden;
   }
 
-  /* The drawer scrolls, so pushing the backup block to the bottom of the viewport only takes
-     vertical room away from the nav items above it. It follows the content instead. */
-  .sidebar .sidebarBackup,
-  .sidebar.collapsed .sidebarBackup {
-    margin-top: 0;
-  }
+  /* margin-top: auto (the desktop rule) is what's wanted here too: it only absorbs free space, so
+     the block sits at the bottom of the viewport on a short rail and follows the content on a rail
+     taller than the screen (Chat, Write). */
 
   /* Above the other drawers: the navbar is the way out of any screen. */
   .sidebar.sideDrawer {

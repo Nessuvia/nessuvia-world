@@ -9,7 +9,7 @@ import {
   RiRefreshLine,
   RiSendPlaneLine,
 } from '@remixicon/react'
-import { useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { AvatarSource, CharacterColors, Message } from '../../core/storage/types'
 import { Avatar } from '../../app/Avatar'
 import { reasoningFor, snapshotFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
@@ -52,6 +52,7 @@ export default function MessageBubble({
   rewriting,
   onRewriteOpen,
   onEdit,
+  onEditingChange,
   onReprompt,
   onDelete,
   onRegenerate,
@@ -79,6 +80,8 @@ export default function MessageBubble({
   rewriting: boolean
   onRewriteOpen: (open: boolean) => void
   onEdit: (content: string) => void
+  /** Fires when the inline edit box opens and closes. The composer hides while it is open. */
+  onEditingChange?: (editing: boolean) => void
   /** Only passed for the last user message: generate a reply to it, as if it were just sent. */
   onReprompt?: () => void
   onDelete: () => void
@@ -91,6 +94,12 @@ export default function MessageBubble({
   readOnly?: boolean
 }) {
   const [draft, setDraft] = useState<string | null>(null)
+  const editing = draft !== null
+  // Through a ref: the parent passes a fresh closure every render, and depending on it would fire
+  // the callback on every render rather than on the open/close edge.
+  const editingCb = useRef(onEditingChange)
+  editingCb.current = onEditingChange
+  useEffect(() => editingCb.current?.(editing), [editing])
   const [pickingSwipes, setPickingSwipes] = useState(false)
   // Quick actions is a <details>, but a bare <details> only closes when its own summary is clicked
   // again, it sat open while the pointer went back to the message. Controlled so the standard

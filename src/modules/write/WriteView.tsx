@@ -1320,7 +1320,7 @@ function StoryEditor() {
               aria-pressed={styling}
               onClick={toggleStyling}
             >
-              <RiItalic size={21} /> Toggle Styling
+              <RiItalic size={21} /> <span className="stylingToggleLabel">Toggle Styling</span>
             </button>
           )}
         </div>
