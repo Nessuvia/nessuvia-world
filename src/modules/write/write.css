@@ -931,6 +931,15 @@ h3.storyPreviewTitle {
   width: 100%;
 }
 
+/* Sits above the collapsible sections, so it carries its own label. */
+.storyRail .railTopPick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
 /* The row that moves between the two tiers: full width, so it reads as a destination rather than
    one control in a row of them. */
 .storyRail .storyRailTier {

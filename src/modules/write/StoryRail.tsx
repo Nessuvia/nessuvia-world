@@ -379,13 +379,16 @@ const storyColorField: Record<MarkerKind, 'storyEmphasisColor' | 'storyBoldColor
 }
 
 // The active connection, shown here so a Story never needs a trip to Settings to switch endpoints.
-function ConnectionSection() {
+// One dropdown, so it sits at the top of the rail rather than inside a collapsible of its own,
+// matching the chat settings panel.
+function ConnectionPick() {
   const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
 
   return (
-    <label className="storyRailPick">
+    <label className="storyRailPick railTopPick">
+      Connection
       <select
         value={activeConnectionId ?? ''}
         onChange={(e) => setActiveConnection(e.target.value || null)}
@@ -535,7 +538,6 @@ const railSections: { id: string; label: string; body: () => ReactNode }[] = [
   { id: 'direction', label: 'Direction', body: () => <DirectionSection /> },
   { id: 'characters', label: 'Characters', body: () => <CastSection /> },
   { id: 'lorebooks', label: 'Lorebooks', body: () => <BooksSection /> },
-  { id: 'connection', label: 'Connection', body: () => <ConnectionSection /> },
   { id: 'promptStack', label: 'Prompt Stack', body: () => <PromptStackSection /> },
   { id: 'parameters', label: 'Parameters', body: () => <ParametersSection /> },
   { id: 'appearance', label: 'Appearance', body: () => <AppearanceSection /> },
@@ -615,6 +617,7 @@ export default function StoryRail() {
 
   return (
     <section className="panel storyRail screenBody">
+      <ConnectionPick />
       {order.map((id) => {
         const section = railSections.find((s) => s.id === id)!
         return (
