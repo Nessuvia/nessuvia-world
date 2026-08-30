@@ -13,7 +13,6 @@ let b = 0
 const prose = (tag: string) => [tag, 'x', 'x', 'x', 'x', 'x'].join('\n')
 const beat = (instructions: string, tag: string): Block => ({
   id: `b${++b}`,
-  name: '',
   beat: instructions,
   weight: 'normal',
   content: prose(tag),

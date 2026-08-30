@@ -42,9 +42,9 @@ const exampleTokens = storyTokens({
       summary: '',
       targetWords: 800,
       blocks: [
-        { id: 'a', name: 'The last customer', beat: 'Nessu notices him', weight: 'brief' },
-        { id: 'b', name: 'Closing time', beat: 'She asks him to leave', weight: 'long' },
-        { id: 'c', name: '', beat: 'He does not', weight: 'normal' },
+        { id: 'a', beat: 'Nessu notices the last customer', weight: 'brief' },
+        { id: 'b', beat: 'She asks him to leave', weight: 'long' },
+        { id: 'c', beat: 'He does not', weight: 'normal' },
       ],
     },
     {
@@ -52,7 +52,7 @@ const exampleTokens = storyTokens({
       title: 'After',
       summary: '',
       targetWords: 0,
-      blocks: [{ id: 'd', name: '', beat: 'Dawn', weight: 'normal' }],
+      blocks: [{ id: 'd', beat: 'Dawn', weight: 'normal' }],
     },
   ],
   chapterId: 2,

@@ -139,7 +139,7 @@
       "label": "The beat",
       "source": "text",
       "role": "user",
-      "content": "Write this next: {{beatName}}\n{{beat}}\nAim for about {{beatTargetWords}} words.",
+      "content": "Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.",
       "info": "The plan for the beat being written. Each line drops on its own when the field behind it is empty, and the whole block with them."
     },
     {

@@ -115,7 +115,6 @@ export interface ChapterOutlineRequest {
 /** One beat of a parsed Chapter outline. The field names follow the Bulk Add format, so a reply
  *  can be pasted into that box and an outline can be pasted out of one. */
 export interface OutlineBeat {
-  name: string
   beat: string
   weight: BeatWeight
 }
@@ -166,7 +165,7 @@ export function parseChapterOutlineReply(text: string): OutlineBeat[] {
   for (const row of rows.slice(0, maxBeats)) {
     if (typeof row === 'string') {
       const beat = str(row)
-      if (beat) out.push({ name: '', beat, weight: asWeight(undefined) })
+      if (beat) out.push({ beat, weight: asWeight(undefined) })
       continue
     }
     const r = record(row)
@@ -174,9 +173,8 @@ export function parseChapterOutlineReply(text: string): OutlineBeat[] {
     // `beat` is taken alongside `content`: a model that answers with the field named in the
     // instruction and one that reuses the older name both get their beats used.
     const beat = str(r.content) || str(r.beat)
-    const name = str(r.name)
-    if (!beat && !name) continue
-    out.push({ name, beat, weight: asWeight(r.length ?? r.weight) })
+    if (!beat) continue
+    out.push({ beat, weight: asWeight(r.length ?? r.weight) })
   }
 
   if (out.length === 0) throw new Error('The reply held no beats.')

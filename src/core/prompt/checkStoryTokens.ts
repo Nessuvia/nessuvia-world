@@ -2,12 +2,7 @@ import assert from 'node:assert'
 import type { BeatWeight } from '../storage/types.ts'
 import { storyTokens, swapStoryTokens, type StoryTokenArgs } from './storyTokens.ts'
 
-const blk = (id: string, beat = '', weight: BeatWeight = 'normal', name = '') => ({
-  id,
-  name,
-  beat,
-  weight,
-})
+const blk = (id: string, beat = '', weight: BeatWeight = 'normal') => ({ id, beat, weight })
 
 const args: StoryTokenArgs = {
   title: '  The Long Way  ',
@@ -31,7 +26,7 @@ const args: StoryTokenArgs = {
       targetWords: 1130,
       blocks: [
         blk('b', 'The checkpoint'),
-        blk('c', 'Mary is searched', 'normal', 'The search'),
+        blk('c', 'Mary is searched'),
         blk('d', 'She lies about the parcel'),
         blk('e'), // planned but not written yet: no instructions
       ],
@@ -65,7 +60,6 @@ assert.strictEqual(t.nextChapterTitle, 'Arrival')
 assert.strictEqual(t.nextChapterBeats, '- The handoff\n- The refusal')
 
 assert.strictEqual(t.beat, 'Mary is searched')
-assert.strictEqual(t.beatName, 'The search')
 // Derived from the Chapter's target and the weights, not stored on the Block: four equal beats
 // over 1130 words, and the rounding leaves this one 282.
 assert.strictEqual(t.beatTargetWords, '282')

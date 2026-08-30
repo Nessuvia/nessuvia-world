@@ -90,7 +90,6 @@ The premise:
     text: `You are outlining one chapter of a story. Reply with one JSON object and nothing else. No prose, no explanation, no code fence.
 
 The object has one field, "beats": an array of objects, in order. Each holds:
-- name: a short title for the beat, three or four words.
 - content: one line on what that stretch of the chapter covers. A plan, not prose.
 - length: how long the stretch runs against the others. One of: sketch, brief, normal, long, major.
 

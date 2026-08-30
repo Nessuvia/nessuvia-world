@@ -79,7 +79,6 @@ function Cap({
 
 const bulkExample = `[
   {
-    "name": "The Inciting Incident",
     "content": "She finds a map in her grandfather's study.",
     "length": "long"
   }
@@ -162,7 +161,7 @@ function BulkAddBeats({
         <ul className="bulkBeatsPreview">
           {resolved.map((b, i) => (
             <li key={i}>
-              <span>{b.name || b.beat || 'Empty beat'}</span>
+              <span>{b.beat || 'Empty beat'}</span>
               <span className="bulkBeatsWords">{weightLabel[b.weight]}</span>
             </li>
           ))}
@@ -185,38 +184,9 @@ function BulkAddBeats({
   )
 }
 
-// The beat's title. It holds its own draft and writes on a pause, like Cap: `updateChapter` awaits
-// the Dexie write before it sets state, so a controlled value fed straight from the store lands a
-// render late and React puts the caret back at the end of the line.
-function BeatName({ value, onSave }: { value: string; onSave: (text: string) => void }) {
-  const [draft, setDraft] = useState(value)
-  const timer = useRef<number | undefined>(undefined)
-
-  useEffect(() => {
-    if (value !== draft) setDraft(value)
-  }, [value]) // draft left out on purpose: it changes on every keystroke.
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-
-  return (
-    <input
-      className="plotBeatName"
-      value={draft}
-      placeholder="Beat name"
-      title="What to call this beat. Shown in the plan; the instructions below are what the model gets."
-      onChange={(e) => {
-        setDraft(e.target.value)
-        window.clearTimeout(timer.current)
-        timer.current = window.setTimeout(() => onSave(e.target.value), 400)
-      }}
-      onBlur={() => {
-        window.clearTimeout(timer.current)
-        onSave(draft)
-      }}
-    />
-  )
-}
-
-// One beat's instructions. Same draft-and-pause as BeatName, for the same reason.
+// One beat's text field. It holds its own draft and writes on a pause, like Cap: `updateChapter`
+// awaits the Dexie write before it sets state, so a controlled value fed straight from the store
+// lands a render late and React puts the caret back at the end of the line.
 function BeatText({ value, onSave }: { value: string; onSave: (text: string) => void }) {
   const [draft, setDraft] = useState(value)
   const timer = useRef<number | undefined>(undefined)
@@ -286,7 +256,7 @@ function PlotBlock({
       <ul className="plotBlockBeats">
         {beats.length === 0 && <li className="plotBlockEmpty">No beats</li>}
         {beats.map((beat) => (
-          <li key={beat.id}>{beat.name.trim() || beat.beat.trim() || 'Empty beat'}</li>
+          <li key={beat.id}>{beat.beat.trim() || 'Empty beat'}</li>
         ))}
       </ul>
       <span className="plotBlockWords">
@@ -471,16 +441,10 @@ function ChapterEditor({
               >
                 <RiDraggable size={16} />
               </span>
-              <div className="plotBeatFields">
-                <BeatName
-                  value={beat.name}
-                  onSave={(name) => patchBeat(beat.id, { name })}
-                />
-                <BeatText
-                  value={beat.beat}
-                  onSave={(text) => patchBeat(beat.id, { beat: text })}
-                />
-              </div>
+              <BeatText
+                value={beat.beat}
+                onSave={(text) => patchBeat(beat.id, { beat: text })}
+              />
             </div>
             <div className="plotBeatTools">
               <WeightPicker
@@ -543,7 +507,7 @@ function ChapterEditor({
         <BulkAddBeats
           onClose={() => setBulkOpen(false)}
           onAdd={(added) => {
-            setBeats([...beats, ...added.map((b) => newBlock(b.beat, b.weight, b.name))])
+            setBeats([...beats, ...added.map((b) => newBlock(b.beat, b.weight))])
             setBulkOpen(false)
           }}
         />

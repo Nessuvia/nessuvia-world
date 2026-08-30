@@ -303,9 +303,6 @@ export type BlockContext = 'before' | 'after' | 'both' | 'none'
  */
 export interface Block {
   id: string // crypto.randomUUID(); Blocks have no table, so they need their own key
-  /** What to call this beat: "The Inciting Incident". Display only, and '' on a beat that has not
-   *  been named. The instructions are what reaches the model. */
-  name: string
   /** The instructions: what is meant to happen here, one line or many. '' is a beat the Author has
    *  not planned yet. When the prose no longer fits the window, this is what the Block sends. */
   beat: string

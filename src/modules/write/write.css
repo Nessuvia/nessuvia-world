@@ -667,15 +667,6 @@ h3.storyPreviewTitle {
   color: var(--textMuted);
 }
 
-/* The beat's title in the plan line, between the crumb and the derived word count. */
-.blockName {
-  flex: none;
-  color: var(--textSoft);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .blockSwipes {
   display: flex;

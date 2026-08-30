@@ -108,28 +108,26 @@ const manyBeats = JSON.stringify({ beats: Array.from({ length: 100 }, () => ({ c
 assert.strictEqual(parseChapterOutlineReply(manyBeats).length, 40)
 
 // --- parseChapterOutlineReply --------------------------------------------------
-// The documented fields are name/content/length, the same shape Bulk Add takes.
+// The documented fields are content/length, the same shape Bulk Add takes.
 assert.deepStrictEqual(
-  parseChapterOutlineReply(
-    '{"beats":[{"name":"Off the boat","content":"She lands.","length":"brief"},{"content":"The inn"}]}',
-  ),
+  parseChapterOutlineReply('{"beats":[{"content":"She lands.","length":"brief"},{"content":"The inn"}]}'),
   [
-    { name: 'Off the boat', beat: 'She lands.', weight: 'brief' },
-    { name: '', beat: 'The inn', weight: 'normal' },
+    { beat: 'She lands.', weight: 'brief' },
+    { beat: 'The inn', weight: 'normal' },
   ],
 )
 // The older beat/weight names are taken too, so a model that reuses them still lands its beats.
 assert.deepStrictEqual(parseChapterOutlineReply('{"beats":[{"beat":"a","weight":"major"}]}'), [
-  { name: '', beat: 'a', weight: 'major' },
+  { beat: 'a', weight: 'major' },
 ])
 // A bare array of strings is accepted: the lines are the beats, all at the default weight.
 assert.deepStrictEqual(parseChapterOutlineReply('{"beats":["a","","  ","b"]}'), [
-  { name: '', beat: 'a', weight: 'normal' },
-  { name: '', beat: 'b', weight: 'normal' },
+  { beat: 'a', weight: 'normal' },
+  { beat: 'b', weight: 'normal' },
 ])
-// A name with no content is still a beat; an entry with neither is not.
-assert.deepStrictEqual(parseChapterOutlineReply('{"beats":[{"length":"major"},{"name":"A"}]}'), [
-  { name: 'A', beat: '', weight: 'normal' },
+// An entry with no content is nothing to write, however well-formed the rest of it is.
+assert.deepStrictEqual(parseChapterOutlineReply('{"beats":[{"length":"major"},{"content":"a"}]}'), [
+  { beat: 'a', weight: 'normal' },
 ])
 
 // --- buildStoryOutlineMessages: the slots are filled, none left standing -----

@@ -293,27 +293,6 @@
   overflow-y: auto;
 }
 
-.plotBeatFields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 0;
-}
-
-/* The beat's title sits over its instructions, quieter than them: the instructions are what the
-   model reads, and the name is how the Author finds the row. */
-.plotBeatName {
-  font: inherit;
-  font-weight: 600;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.35rem 0.6rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 /* The five-way length control, with the words it works out to beside it. */
 .weightPicker {
   display: inline-flex;

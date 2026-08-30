@@ -49,8 +49,8 @@ function newStory(title: string): Story {
 }
 
 /** A blank beat. Empty instructions are the ordinary state of one the Author has not planned yet. */
-export function newBlock(beat = '', weight: BeatWeight = defaultWeight, name = ''): Block {
-  return { id: crypto.randomUUID(), name, beat, weight, content: '', context: 'both' }
+export function newBlock(beat = '', weight: BeatWeight = defaultWeight): Block {
+  return { id: crypto.randomUUID(), beat, weight, content: '', context: 'both' }
 }
 
 function newChapter(storyId: number, order: number, title: string): Chapter {
@@ -652,7 +652,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
 
     // The beats replace the Chapter's own, and the prose in them goes: the caller confirmed that.
     // Nothing else about the Chapter is touched, so its title, summary and target all survive.
-    const blocks = beats.map((b) => newBlock(b.beat, b.weight, b.name))
+    const blocks = beats.map((b) => newBlock(b.beat, b.weight))
     const next = { ...chapter, blocks, targetWords: req.targetWords, updatedAt: Date.now() }
     await storage.put('chapters', next as unknown as StoredRecord)
 

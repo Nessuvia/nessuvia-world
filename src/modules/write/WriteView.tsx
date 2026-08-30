@@ -548,7 +548,7 @@ function BlockHead({
   const at = swipeIndex(block)
   const crumb = `Chapter ${chapterIndex + 1} · Beat ${beatIndex + 1}`
   // RegenDialog names the beat it is about to rewrite, so it wants the whole line.
-  const label = `${crumb}: ${block.name.trim() || block.beat.trim() || 'Empty beat'}`
+  const label = `${crumb}: ${block.beat.trim() || 'Empty beat'}`
 
   async function regen(instruction: string, weight: BeatWeight) {
     setRegen(false)
@@ -563,7 +563,6 @@ function BlockHead({
       {/* The beat's name plate. Nothing here is editable, so it never moves. */}
       <div className="blockPlan">
         <span className="blockCrumb">{crumb}</span>
-        {block.name.trim() && <span className="blockName">{block.name.trim()}</span>}
         {targetWords > 0 && <span className="blockTarget">{targetWords}w</span>}
       </div>
 

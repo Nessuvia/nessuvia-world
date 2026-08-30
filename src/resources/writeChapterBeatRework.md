@@ -55,12 +55,7 @@ carry total words, chapter count and words per chapter.
 naming them as unresearched. Real publishing norms get looked up and dropped into the table later,
 which is a data edit, not a code change.
 
-### 3. Beat names
-
-A beat gains a `name`: "The Inciting Incident". Display only, and it reaches the model through a
-new `{{beatName}}` token. It comes out of the bulk import format, which carries one per entry.
-
-### 4. Beat weights replace even division
+### 3. Beat weights replace even division
 
 `Block.targetWords` stops being hand-authored. A beat carries a weight instead:
 
@@ -79,7 +74,7 @@ Rename it `splitByWeight` and extend `checkOutline.ts`.
 
 `storyTokens.beatTargetWords` keeps reading a number, so the wire format does not change.
 
-### 5. Free prose is removed
+### 4. Free prose is removed
 
 The `emptyBeat = ' '` single-space sentinel and `isBeat = beat !== ''` are load-bearing, untrimmed,
 and have already caused a duplication bug (see the comment in `withBeats`). Free prose was a
@@ -94,7 +89,7 @@ and "Add beat". `newChapter` no longer seeds a block; `openStory` no longer back
 
 No conversion pass for existing records. Clearing site data is the answer, per CLAUDE.md.
 
-### 6. Advanced View
+### 5. Advanced View
 
 With chapters able to start empty, the setup path needs somewhere to put the fields. The eventual
 answer is a wizard. This rework does not build it.
@@ -103,7 +98,7 @@ It builds **Advanced View**: every field laid out plainly, no progressive disclo
 hand-holding. This is a permanent end feature, not scaffolding, so it gets built properly and the
 wizard later becomes a guided front door onto the same state. Nothing written here gets thrown away.
 
-### 7. chapterGuide follows
+### 6. chapterGuide follows
 
 Chapters gain a stored target and beats gain weights, so the guide that tells the model what to
 write next changes with them. The degradation ladder (`fitStoryProse` swapping oldest prose for
@@ -134,7 +129,7 @@ Modules:
 - `modules/write/WriteView.tsx` : the kebab menu loses "Convert to free prose"; "Target words"
   becomes the weight control.
 - `modules/write/bulkBeats.ts` : the hand-rolled `{"text",200}` format is gone. Bulk Add now takes
-  a JSON array of `{ name, content, length }`, the same shape the chapter outline replies in. A
+  a JSON array of `{ content, length }`, the same shape the chapter outline replies in. A
   length the parser does not recognise is not an error: `parseBulkBeats` collects the unknown values
   and the dialog draws a dropdown per value so the author remaps them before anything is added.
 - `modules/write/lengthPresets.ts` : new, the form dropdown's table. Numbers are placeholders.

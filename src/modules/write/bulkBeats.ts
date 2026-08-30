@@ -8,7 +8,6 @@ import { beatWeights, defaultWeight } from '../../core/prompt/beatWeights.ts'
 /** One parsed entry. `length` is the raw string the input carried, not a weight: an unrecognised
  *  one is remapped by the Author rather than guessed at, so it stays as written until then. */
 export interface BulkBeat {
-  name: string
   beat: string
   length: string
 }
@@ -25,12 +24,11 @@ export interface BulkParse {
  * The accepted shape is a JSON array of objects:
  *
  * ```
- * [{ "name": "The Inciting Incident", "content": "She finds the map.", "length": "long" }]
+ * [{ "content": "She finds the map.", "length": "long" }]
  * ```
  *
- * `content` is the only field that has to be there. A missing `name` is a beat with no title, and a
- * missing `length` is a normal one. A bare array of strings is accepted too: the strings are the
- * beat contents.
+ * `content` is the only field that has to be there, and a missing `length` is a normal beat. Any
+ * other field is ignored. A bare array of strings is accepted too: the strings are the contents.
  *
  * Untrusted input, and typed by hand as often as pasted, so every field is coerced and a bad entry
  * is skipped rather than taking the whole paste down with it. The one thing that fails outright is
@@ -57,18 +55,17 @@ export function parseBulkBeats(input: string): BulkParse {
   for (const row of raw) {
     if (typeof row === 'string') {
       const beat = line(row)
-      if (beat) beats.push({ name: '', beat, length: defaultWeight })
+      if (beat) beats.push({ beat, length: defaultWeight })
       continue
     }
     if (!row || typeof row !== 'object' || Array.isArray(row)) continue
     const r = row as Record<string, unknown>
     const beat = line(r.content)
-    const name = line(r.name)
-    if (!beat && !name) continue
+    if (!beat) continue
 
     const length = line(r.length) || defaultWeight
     if (!isWeight(length) && !unknown.includes(length)) unknown.push(length)
-    beats.push({ name, beat, length })
+    beats.push({ beat, length })
   }
 
   if (beats.length === 0) return { beats: [], unknown: [], error: 'Nothing to add.' }
@@ -81,9 +78,8 @@ export function parseBulkBeats(input: string): BulkParse {
 export function mapWeights(
   beats: BulkBeat[],
   mapping: Record<string, BeatWeight> = {},
-): { name: string; beat: string; weight: BeatWeight }[] {
-  return beats.map(({ name, beat, length }) => ({
-    name,
+): { beat: string; weight: BeatWeight }[] {
+  return beats.map(({ beat, length }) => ({
     beat,
     weight: isWeight(length)
       ? (length.toLowerCase() as BeatWeight)

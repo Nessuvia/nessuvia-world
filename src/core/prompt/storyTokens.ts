@@ -9,7 +9,6 @@ import { splitByWeight } from './beatWeights.ts'
 /** The Block fields a token reads. `Block` satisfies this structurally. */
 export interface TokenBlock {
   id: string
-  name: string
   beat: string
   weight: BeatWeight
 }
@@ -83,7 +82,6 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
     nextChapterBeats: next ? beatLines(next.blocks) : '',
 
     beat: block?.beat.trim() ?? '',
-    beatName: block?.name.trim() ?? '',
     // A prompt saying "about 0 words" is worse than one saying nothing, so an unset target resolves
     // blank like every other unset field.
     beatTargetWords: target > 0 ? String(target) : '',

@@ -210,7 +210,7 @@ export function StoryBeats() {
                       title="Go to this beat"
                       onClick={() => jump(beat.id)}
                     >
-                      {beat.name.trim() || beat.beat.trim() || `Beat ${i + 1}`}
+                      {beat.beat.trim() || `Beat ${i + 1}`}
                     </button>
                     {busy && streamingBlockId === beat.id ? (
                       <button type="button" className="castRowAction" title="Stop" onClick={stop}>

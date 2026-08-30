@@ -16,24 +16,27 @@ const bad = (input: string) => {
 // --- the documented shape -----------------------------------------------------
 const full = ok(`[
   {
-    "name": "The Inciting Incident",
     "content": "The protagonist discovers a hidden map.",
     "length": "long"
   },
   {
-    "name": "Crossing the Threshold",
     "content": "They board the charter boat.",
     "length": "brief"
   }
 ]`)
 assert.deepStrictEqual(full.beats, [
-  { name: 'The Inciting Incident', beat: 'The protagonist discovers a hidden map.', length: 'long' },
-  { name: 'Crossing the Threshold', beat: 'They board the charter boat.', length: 'brief' },
+  { beat: 'The protagonist discovers a hidden map.', length: 'long' },
+  { beat: 'They board the charter boat.', length: 'brief' },
 ])
 assert.deepStrictEqual(full.unknown, [])
 assert.deepStrictEqual(mapWeights(full.beats), [
-  { name: 'The Inciting Incident', beat: 'The protagonist discovers a hidden map.', weight: 'long' },
-  { name: 'Crossing the Threshold', beat: 'They board the charter boat.', weight: 'brief' },
+  { beat: 'The protagonist discovers a hidden map.', weight: 'long' },
+  { beat: 'They board the charter boat.', weight: 'brief' },
+])
+
+// A field we do not have is ignored rather than rejected: the paste came from somewhere else.
+assert.deepStrictEqual(ok('[{"name":"Act one","content":"a"}]').beats, [
+  { beat: 'a', length: 'normal' },
 ])
 
 // Casing is not the Author's problem.
@@ -41,16 +44,12 @@ assert.strictEqual(ok('[{"content":"a","length":"MAJOR"}]').unknown.length, 0)
 assert.strictEqual(mapWeights(ok('[{"content":"a","length":"Major"}]').beats)[0].weight, 'major')
 
 // --- optional fields ------------------------------------------------------------
-// No length is a normal beat; no name is an untitled one.
-assert.deepStrictEqual(ok('[{"content":"a"}]').beats, [{ name: '', beat: 'a', length: 'normal' }])
-// A name with no content is still a beat: it has been planned enough to sit in the list.
-assert.deepStrictEqual(ok('[{"name":"Act one"}]').beats, [
-  { name: 'Act one', beat: '', length: 'normal' },
-])
+// No length is a normal beat.
+assert.deepStrictEqual(ok('[{"content":"a"}]').beats, [{ beat: 'a', length: 'normal' }])
 // A bare array of strings: the strings are the contents.
 assert.deepStrictEqual(ok('["a","b"]').beats, [
-  { name: '', beat: 'a', length: 'normal' },
-  { name: '', beat: 'b', length: 'normal' },
+  { beat: 'a', length: 'normal' },
+  { beat: 'b', length: 'normal' },
 ])
 
 // --- unknown lengths: collected for remapping, never guessed --------------------
@@ -75,8 +74,8 @@ assert.deepStrictEqual(
 const messy = ok('[{"content":"Two\\n  lines","length":42},null,["nope"],{},{"content":"b"}]')
 assert.deepStrictEqual(messy.beats, [
   // Newlines fold: a beat's content is one line. A non-string length is still a value to remap.
-  { name: '', beat: 'Two lines', length: '42' },
-  { name: '', beat: 'b', length: 'normal' },
+  { beat: 'Two lines', length: '42' },
+  { beat: 'b', length: 'normal' },
 ])
 assert.deepStrictEqual(messy.unknown, ['42'])
 // Quotes and backslashes are JSON's problem now, and it handles them.
@@ -92,5 +91,7 @@ assert.match(bad('{"text",200}'), /not valid JSON/)
 // An array with nothing usable in it adds nothing, and says so.
 assert.match(bad('[]'), /Nothing to add/)
 assert.match(bad('[null,{},["x"]]'), /Nothing to add/)
+// An entry with a length and no content adds nothing.
+assert.match(bad('[{"length":"long"}]'), /Nothing to add/)
 
 console.log('checkBulkBeats ok')
