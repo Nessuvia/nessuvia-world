@@ -60,7 +60,9 @@ export default function BookAttach({
       <ul className="lorebooksAttachList">
         {attached.map((b) => (
           <li key={b.id} className="lorebooksAttachRow">
-            <span className="lorebooksName">{b.name || 'Unnamed'}</span>
+            <Link className="lorebooksName" to={`/lorebooks#book-${b.id}`} title="Open in Lorebooks">
+              {b.name || 'Unnamed'}
+            </Link>
             <span className="lorebooksCount">{counts[b.id!] ?? 0}</span>
             {b.global && <span className="lorebooksBadge">All chats</span>}
             <button

@@ -72,6 +72,17 @@
   white-space: nowrap;
 }
 
+/* In the attach list the name is a link to the book on the Lorebooks page. It reads as the row's
+   text until hovered, so the row still looks like a list and not a wall of links. */
+.lorebooksAttachRow .lorebooksName {
+  color: inherit;
+  text-decoration: none;
+}
+
+.lorebooksAttachRow .lorebooksName:hover {
+  text-decoration: underline;
+}
+
 /* The entry count, as dense metadata rather than a number in body text. */
 .lorebooksCount {
   color: var(--textMuted);

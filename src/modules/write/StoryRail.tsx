@@ -140,11 +140,11 @@ export function StoryBeats() {
   const writeBlock = useWrite((s) => s.writeBlock)
   const stop = useWrite((s) => s.stop)
 
-  // The rail shows what the document shows: a Chapter reads as open while any of its beats is
-  // unfolded, and folding it here folds those beats in the document too.
-  const collapsedBeats = useWrite((s) => s.collapsedBeats)
+  // Folding a Chapter row here is navigation, not a document edit: the rail keeps its own open set
+  // and the beats in the document keep theirs. Only the Collapse/Open all button crosses over.
   const setCollapsedBeats = useWrite((s) => s.setCollapsedBeats)
   const [mode, setMode] = useState(0)
+  const [shutChapters, setShutChapters] = useState<string[]>([])
 
   // Streaming only gates rows while it is THIS Story being written.
   const busy = streaming && streamingStoryId === (story?.id ?? null)
@@ -168,13 +168,9 @@ export function StoryBeats() {
     setMode((mode + 1) % modes.length)
   }
 
-  // Folding a Chapter row folds every beat under it; unfolding puts them all back.
-  function setChapterOpen(chapter: (typeof chapters)[number], open: boolean) {
-    const ids = beatBlocks(chapter).map((b) => b.id)
-    setCollapsedBeats(
-      open
-        ? collapsedBeats.filter((b) => !ids.includes(b))
-        : [...new Set([...collapsedBeats, ...ids])],
+  function setChapterOpen(chapterId: string, open: boolean) {
+    setShutChapters((shut) =>
+      open ? shut.filter((c) => c !== chapterId) : [...new Set([...shut, chapterId])],
     )
   }
 
@@ -190,12 +186,14 @@ export function StoryBeats() {
           <details
             key={chapter.id}
             open={
-              beats.length === 0
-                ? chapter.id === activeChapterId
-                : beats.some((b) => !collapsedBeats.includes(b.id))
+              shutChapters.includes(String(chapter.id))
+                ? false
+                : beats.length > 0 || chapter.id === activeChapterId
             }
             // currentTarget is already detached by the time this fires; read the element itself.
-            onToggle={(e) => setChapterOpen(chapter, (e.target as HTMLDetailsElement).open)}
+            onToggle={(e) =>
+              setChapterOpen(String(chapter.id), (e.target as HTMLDetailsElement).open)
+            }
           >
             <summary className={`beatChapter ${state}`}>
               {chapter.title.trim() || `Chapter ${ci + 1}`}

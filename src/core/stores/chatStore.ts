@@ -191,6 +191,8 @@ interface ChatState {
   retry(character: Character, speakerId?: number): Promise<void>
   /** What the error bar offers: whatever just failed, tried again. */
   retryLast(character: Character): Promise<void>
+  /** Close the error bar without retrying. */
+  clearError(): void
   /** Re-roll any assistant message into a new swipe. With an instruction, it's a rewrite. */
   regenerate(character: Character, messageId: number, instruction?: string): Promise<void>
   /** Carry the last reply on from where it stopped, into the swipe that's showing. */
@@ -218,6 +220,7 @@ export const useChats = create<ChatState>()((set, get) => ({
   viewingChatId: null,
   setViewing: (chatId) => set({ viewingChatId: chatId }),
   error: '',
+  clearError: () => set({ error: '' }),
   trimmedCount: 0,
   miscPrompts: undefined,
   regeneratingId: null,

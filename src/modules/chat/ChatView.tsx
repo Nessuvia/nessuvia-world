@@ -39,6 +39,7 @@ export default function ChatView() {
     send,
     retry,
     retryLast,
+    clearError,
     patchChat,
     regenerate,
     swipeTo,
@@ -228,6 +229,9 @@ export default function ChatView() {
           {error}{' '}
           <button type="button" onClick={() => retryLast(character)}>
             Retry
+          </button>{' '}
+          <button type="button" className="secondary" onClick={clearError}>
+            Dismiss
           </button>
         </p>
       )}
