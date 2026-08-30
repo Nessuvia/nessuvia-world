@@ -10,7 +10,7 @@ let b = 0
 const block = (content: string, beat = ''): Block => ({
   id: `b${++b}`,
   beat,
-  targetWords: 0,
+  name: '', weight: 'normal',
   content,
   context: 'both',
 })

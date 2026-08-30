@@ -12,12 +12,14 @@ import {
   RiFileTextLine,
   RiListCheck,
 } from '@remixicon/react'
-import type { Block, Chapter, GuideSend } from '../../core/storage/types'
+import type { BeatWeight, Block, Chapter, GuideSend } from '../../core/storage/types'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
-import { beatBlocks, chapterProse, chapterState, hasProse } from '../../core/prompt/chapterGuide'
-import { beatText, emptyBeat, storedBeat, withBeats } from './beatSlots'
-import { parseBulkBeats, type BulkBeat } from './bulkBeats'
+import { chapterProse, chapterState, hasProse } from '../../core/prompt/chapterGuide'
+import { beatTargets, beatWeights, weightLabel } from '../../core/prompt/beatWeights'
+import { mapWeights, parseBulkBeats } from './bulkBeats'
 import { OutlineDialog } from './OutlineDialog'
+import { ChapterOutlineDialog } from './ChapterOutlineDialog'
+import { WeightPicker } from './WeightPicker'
 import { useDragReorder } from '../../app/useDragReorder'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { edgeState, type EdgeState } from './tabScroll'
@@ -30,9 +32,6 @@ export function countWords(text: string): number {
   return trimmed === '' ? 0 : trimmed.split(/\s+/).length
 }
 
-/** A Chapter's word target: the sum of its beats'. Free stretches have no target. */
-const targetWords = (chapter: Chapter): number =>
-  beatBlocks(chapter).reduce((n, b) => n + (b.targetWords || 0), 0)
 
 const sendLabels: Record<GuideSend, string> = {
   both: 'Summary and beats',
@@ -78,28 +77,48 @@ function Cap({
   )
 }
 
+const bulkExample = `[
+  {
+    "name": "The Inciting Incident",
+    "content": "She finds a map in her grandfather's study.",
+    "length": "long"
+  }
+]`
+
 // Paste a whole plan in at once. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css.
-// The parse runs on every keystroke: the count and the first line of each beat are the confirmation
-// that the paste was read the way the Author meant it, and waiting for a click to say so is worse.
-function BulkAddBeats({ onAdd, onClose }: { onAdd: (beats: BulkBeat[]) => void; onClose: () => void }) {
+// The parse runs on every keystroke: the count and the name of each beat are the confirmation that
+// the paste was read the way the Author meant it, and waiting for a click to say so is worse.
+function BulkAddBeats({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (beats: ReturnType<typeof mapWeights>) => void
+  onClose: () => void
+}) {
   const [text, setText] = useState('')
-  const { beats, error } = parseBulkBeats(text)
+  // A length the parse did not recognise is answered here rather than guessed at. Keyed by the raw
+  // value, so two beats that both say "epic" are one row.
+  const [mapping, setMapping] = useState<Record<string, BeatWeight>>({})
+  const { beats, unknown, error } = parseBulkBeats(text)
   // An empty box is not a mistake the Author has made yet, so it says nothing.
   const shown = text.trim() ? error : ''
+  const resolved = mapWeights(beats, mapping)
+  const unanswered = unknown.filter((u) => !mapping[u])
 
   return (
     <div className="dialogBackdrop" onClick={onClose}>
       <div className="dialog bulkBeats" onClick={(e) => e.stopPropagation()}>
         <h3>Bulk add beats</h3>
         <p className="hint">
-          One beat per pair: the text, then the word count. The count is optional.
+          An array of beats. Only content is required; length is one of{' '}
+          {beatWeights.map((w) => weightLabel[w].toLowerCase()).join(', ')}.
         </p>
-        <code className="bulkBeatsFormat">{'{"the text of the beat",200},{"second beat text"}'}</code>
+        <code className="bulkBeatsFormat">{bulkExample}</code>
         <textarea
           rows={8}
           value={text}
           autoFocus
-          placeholder={'{"the text of the beat",200},{"second beat text",250}'}
+          placeholder={bulkExample}
           onChange={(e) => setText(e.target.value)}
         />
         {shown ? (
@@ -110,11 +129,41 @@ function BulkAddBeats({ onAdd, onClose }: { onAdd: (beats: BulkBeat[]) => void; 
             {beats.length > 0 ? ', added to the end of the Chapter.' : ''}
           </p>
         )}
+
+        {unknown.length > 0 && (
+          <div className="bulkRemap">
+            <p className="hint">
+              {unknown.length === 1 ? 'This length is' : 'These lengths are'} not one of ours. Pick
+              what {unknown.length === 1 ? 'it maps' : 'they map'} to.
+            </p>
+            {unknown.map((value) => (
+              <label className="bulkRemapRow" key={value}>
+                <span className="bulkRemapFrom">{value}</span>
+                <select
+                  value={mapping[value] ?? ''}
+                  onChange={(e) =>
+                    setMapping({ ...mapping, [value]: e.target.value as BeatWeight })
+                  }
+                >
+                  <option value="" disabled>
+                    Pick a length
+                  </option>
+                  {beatWeights.map((w) => (
+                    <option key={w} value={w}>
+                      {weightLabel[w]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        )}
+
         <ul className="bulkBeatsPreview">
-          {beats.map((b, i) => (
+          {resolved.map((b, i) => (
             <li key={i}>
-              <span>{b.beat.trim() || 'Empty beat'}</span>
-              <span className="bulkBeatsWords">{b.targetWords > 0 ? `${b.targetWords} words` : '--'}</span>
+              <span>{b.name || b.beat || 'Empty beat'}</span>
+              <span className="bulkBeatsWords">{weightLabel[b.weight]}</span>
             </li>
           ))}
         </ul>
@@ -122,7 +171,12 @@ function BulkAddBeats({ onAdd, onClose }: { onAdd: (beats: BulkBeat[]) => void; 
           <button type="button" className="secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" disabled={!!shown || beats.length === 0} onClick={() => onAdd(beats)}>
+          <button
+            type="button"
+            disabled={!!shown || beats.length === 0 || unanswered.length > 0}
+            title={unanswered.length > 0 ? 'Map every length first.' : undefined}
+            onClick={() => onAdd(resolved)}
+          >
             Add {beats.length || ''}
           </button>
         </div>
@@ -131,9 +185,38 @@ function BulkAddBeats({ onAdd, onClose }: { onAdd: (beats: BulkBeat[]) => void; 
   )
 }
 
-// One beat's text field. It holds its own draft and writes on a pause, like Cap: `updateChapter`
-// awaits the Dexie write before it sets state, so a controlled value fed straight from the store
-// lands a render late and React puts the caret back at the end of the line.
+// The beat's title. It holds its own draft and writes on a pause, like Cap: `updateChapter` awaits
+// the Dexie write before it sets state, so a controlled value fed straight from the store lands a
+// render late and React puts the caret back at the end of the line.
+function BeatName({ value, onSave }: { value: string; onSave: (text: string) => void }) {
+  const [draft, setDraft] = useState(value)
+  const timer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (value !== draft) setDraft(value)
+  }, [value]) // draft left out on purpose: it changes on every keystroke.
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  return (
+    <input
+      className="plotBeatName"
+      value={draft}
+      placeholder="Beat name"
+      title="What to call this beat. Shown in the plan; the instructions below are what the model gets."
+      onChange={(e) => {
+        setDraft(e.target.value)
+        window.clearTimeout(timer.current)
+        timer.current = window.setTimeout(() => onSave(e.target.value), 400)
+      }}
+      onBlur={() => {
+        window.clearTimeout(timer.current)
+        onSave(draft)
+      }}
+    />
+  )
+}
+
+// One beat's instructions. Same draft-and-pause as BeatName, for the same reason.
 function BeatText({ value, onSave }: { value: string; onSave: (text: string) => void }) {
   const [draft, setDraft] = useState(value)
   const timer = useRef<number | undefined>(undefined)
@@ -182,8 +265,7 @@ function PlotBlock({
   onSelect: () => void
 }) {
   const state = chapterState(chapter, activeId)
-  const target = targetWords(chapter)
-  const beats = beatBlocks(chapter)
+  const beats = chapter.blocks
   const classes = ['plotBlock', state, selected ? 'selected' : '', chapter.guideSend === 'off' ? 'muted' : '']
   return (
     <button
@@ -204,11 +286,11 @@ function PlotBlock({
       <ul className="plotBlockBeats">
         {beats.length === 0 && <li className="plotBlockEmpty">No beats</li>}
         {beats.map((beat) => (
-          <li key={beat.id}>{beat.beat.trim() || 'Empty beat'}</li>
+          <li key={beat.id}>{beat.name.trim() || beat.beat.trim() || 'Empty beat'}</li>
         ))}
       </ul>
       <span className="plotBlockWords">
-        {countWords(chapterProse(chapter))} / {target} words
+        {countWords(chapterProse(chapter))} / {chapter.targetWords} words
       </span>
     </button>
   )
@@ -240,9 +322,10 @@ function ChapterEditor({
   const addChapter = useWrite((s) => s.addChapter)
   const streaming = useWrite((s) => s.streaming)
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [generateOpen, setGenerateOpen] = useState(false)
 
-  const beats = beatBlocks(chapter)
-  const setBeats = (next: Block[]) => updateChapter(id, { blocks: withBeats(chapter, next) })
+  const beats = chapter.blocks
+  const setBeats = (next: Block[]) => updateChapter(id, { blocks: next })
   const patchBeat = (beatId: string, patch: Partial<Block>) =>
     setBeats(beats.map((b) => (b.id === beatId ? { ...b, ...patch } : b)))
 
@@ -253,7 +336,8 @@ function ChapterEditor({
     setBeats(next)
   })
 
-  const target = targetWords(chapter)
+  // Every beat's share of the chapter's target, in blocks order.
+  const targets = beatTargets(chapter)
 
   // Arriving from the Story tab's jump button: bring the row into view once, on mount.
   useEffect(() => {
@@ -328,12 +412,46 @@ function ChapterEditor({
         of room.
       </p>
 
+      <label className="plotField plotTarget">
+        Words
+        <input
+          type="number"
+          min={0}
+          step={100}
+          value={chapter.targetWords || ''}
+          placeholder="0"
+          title="Words this Chapter should run to, split across its beats by their lengths. 0 leaves it unset."
+          onChange={(e) =>
+            updateChapter(id, { targetWords: Math.max(0, Number(e.target.value) || 0) })
+          }
+        />
+      </label>
+
       <div className="plotBeatsHead">
         <span>Beats</span>
+        <button
+          type="button"
+          className="plotBeatGenerate"
+          disabled={streaming}
+          title={
+            streaming
+              ? 'Available when the Co-Writer stops writing.'
+              : 'Ask the model for this Chapter’s beats.'
+          }
+          onClick={() => setGenerateOpen(true)}
+        >
+          <RiListCheck size={16} /> Generate beats
+        </button>
         <span className="plotBeatsWords">
-          {countWords(chapterProse(chapter))} / {target} words
+          {countWords(chapterProse(chapter))} / {chapter.targetWords} words
         </span>
       </div>
+
+      {beats.length === 0 && (
+        <p className="hint plotBeatsEmpty">
+          No beats yet. Generate them from the summary, or add one below.
+        </p>
+      )}
 
       <ul className="plotBeatList">
         {/* Handle and row split, not itemProps: this row holds a textarea. See useDragReorder. */}
@@ -353,21 +471,22 @@ function ChapterEditor({
               >
                 <RiDraggable size={16} />
               </span>
-              <BeatText
-                value={beatText(beat.beat)}
-                onSave={(text) => patchBeat(beat.id, { beat: storedBeat(text) })}
-              />
+              <div className="plotBeatFields">
+                <BeatName
+                  value={beat.name}
+                  onSave={(name) => patchBeat(beat.id, { name })}
+                />
+                <BeatText
+                  value={beat.beat}
+                  onSave={(text) => patchBeat(beat.id, { beat: text })}
+                />
+              </div>
             </div>
             <div className="plotBeatTools">
-              <input
-                className="plotBeatTarget"
-                type="number"
-                min={0}
-                step={50}
-                value={beat.targetWords || ''}
-                placeholder="0"
-                title="Words this beat should run to. 0 leaves it unset."
-                onChange={(e) => patchBeat(beat.id, { targetWords: Math.max(0, Number(e.target.value) || 0) })}
+              <WeightPicker
+                value={beat.weight}
+                words={targets[bi] ?? 0}
+                onChange={(weight) => patchBeat(beat.id, { weight })}
               />
               <button
                 type="button"
@@ -412,7 +531,7 @@ function ChapterEditor({
       </ul>
 
       <div className="plotBeatAddRow">
-        <button type="button" className="plotBeatAdd" onClick={() => setBeats([...beats, newBlock(emptyBeat)])}>
+        <button type="button" className="plotBeatAdd" onClick={() => setBeats([...beats, newBlock()])}>
           <RiAddLine size={21} /> Add beat
         </button>
         <button type="button" className="plotBeatAdd" onClick={() => setBulkOpen(true)}>
@@ -424,12 +543,17 @@ function ChapterEditor({
         <BulkAddBeats
           onClose={() => setBulkOpen(false)}
           onAdd={(added) => {
-            setBeats([
-              ...beats,
-              ...added.map((b) => ({ ...newBlock(b.beat), targetWords: b.targetWords })),
-            ])
+            setBeats([...beats, ...added.map((b) => newBlock(b.beat, b.weight, b.name))])
             setBulkOpen(false)
           }}
+        />
+      )}
+
+      {generateOpen && (
+        <ChapterOutlineDialog
+          chapter={chapter}
+          index={index}
+          onClose={() => setGenerateOpen(false)}
         />
       )}
 
@@ -649,9 +773,8 @@ export default function PlotLayout({
         {capsToggle}
         <button type="button" className="plotOutline" disabled={streaming} onClick={() => setOutlineOpen(true)}>
           <RiListCheck size={16} />
-          Generate outline
+          Generate story outline
         </button>
-        {!collapsed && <p className="hint">Premise and Ending are not sent to the model yet.</p>}
       </div>
 
       {outlineOpen && <OutlineDialog onClose={() => setOutlineOpen(false)} />}

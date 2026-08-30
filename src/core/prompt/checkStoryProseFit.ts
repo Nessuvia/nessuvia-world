@@ -13,18 +13,14 @@ let b = 0
 const prose = (tag: string) => [tag, 'x', 'x', 'x', 'x', 'x'].join('\n')
 const beat = (instructions: string, tag: string): Block => ({
   id: `b${++b}`,
+  name: '',
   beat: instructions,
-  targetWords: 0,
+  weight: 'normal',
   content: prose(tag),
   context: 'both',
 })
-const free = (tag: string): Block => ({
-  id: `f${++b}`,
-  beat: '',
-  targetWords: 0,
-  content: prose(tag),
-  context: 'both',
-})
+/** A beat the Author has not planned yet: prose, but nothing to degrade it to. */
+const unplanned = (tag: string): Block => beat('', tag)
 
 const chapters = (): GuideChapter[] => [
   {
@@ -152,14 +148,14 @@ const fit = (allowance: number, cs = chapters()) =>
 // --- Blocks with no instructions vanish rather than emitting an empty line ----
 {
   const cs = chapters()
-  cs[0].blocks = [free('PROSE 1A'), beat('   ', 'PROSE 1B'), beat('He is followed', 'PROSE 1C')]
+  cs[0].blocks = [unplanned('PROSE 1A'), beat('   ', 'PROSE 1B'), beat('He is followed', 'PROSE 1C')]
   const out = fit(1, cs)
   assert.ok(!out.text.includes('PROSE 1A'))
   assert.ok(!out.text.includes('PROSE 1B'))
   assert.ok(!/Beat \d+: *$/m.test(out.text), 'no beat line with nothing after the colon')
-  // Numbering counts beats within the Chapter, so the free Block does not take a number and the
-  // blank beat still holds its place: the third Block is Beat 2.
-  assert.ok(out.text.includes('Beat 2: He is followed'))
+  // Numbering is the Block's own position, so a beat that contributes no line still holds its
+  // place and the third Block is Beat 3.
+  assert.ok(out.text.includes('Beat 3: He is followed'))
 }
 
 // --- degrading respects the caret split, same as storyProseSplit --------------

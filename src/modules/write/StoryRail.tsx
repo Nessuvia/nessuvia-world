@@ -12,7 +12,7 @@ import { Avatar } from '../../app/Avatar'
 import ColorStack from '../../app/ColorStack'
 import EntityPicker, { type PickerItem } from '../../app/EntityPicker'
 import type { CastEntry } from '../../core/storage/types'
-import { beatBlocks, chapterState } from '../../core/prompt/chapterGuide'
+import { chapterState } from '../../core/prompt/chapterGuide'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import { lockedHint, usePaletteEditor } from '../../core/stores/palettesStore'
@@ -161,7 +161,7 @@ export function StoryBeats() {
   if (chapters.length === 0) return <p className="placeholder">No chapters yet.</p>
 
   const modes = ['Collapse all', 'Open all']
-  const allBeats = chapters.flatMap((c) => beatBlocks(c))
+  const allBeats = chapters.flatMap((c) => c.blocks)
   function cycle() {
     if (mode === 0) setCollapsedBeats(allBeats.map((b) => b.id))
     else setCollapsedBeats([])
@@ -180,7 +180,7 @@ export function StoryBeats() {
         {modes[mode]}
       </button>
       {chapters.map((chapter, ci) => {
-        const beats = beatBlocks(chapter)
+        const beats = chapter.blocks
         const state = chapterState(chapter, activeChapterId)
         return (
           <details
@@ -210,7 +210,7 @@ export function StoryBeats() {
                       title="Go to this beat"
                       onClick={() => jump(beat.id)}
                     >
-                      {beat.beat.trim() || `Beat ${i + 1}`}
+                      {beat.name.trim() || beat.beat.trim() || `Beat ${i + 1}`}
                     </button>
                     {busy && streamingBlockId === beat.id ? (
                       <button type="button" className="castRowAction" title="Stop" onClick={stop}>

@@ -667,6 +667,16 @@ h3.storyPreviewTitle {
   color: var(--textMuted);
 }
 
+/* The beat's title in the plan line, between the crumb and the derived word count. */
+.blockName {
+  flex: none;
+  color: var(--textSoft);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .blockSwipes {
   display: flex;
   align-items: center;
@@ -748,8 +758,8 @@ h3.storyPreviewTitle {
   margin: 0;
 }
 
-/* input[type='number'] isn't in the index.css text-entry baseline, so match it here. */
-.blockMenuPop .blockMenuTarget input {
+/* The length control in the kebab menu: the select carries the value, the words are read-only. */
+.blockMenuPop .blockMenuTarget .weightSelect {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -762,32 +772,8 @@ h3.storyPreviewTitle {
   text-align: left;
 }
 
-/* Free-stretch tools and the add strip between Blocks: both sit in the middle of a document being
-   read, so neither shows until the pointer is near it. */
-.freeTools {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  gap: 0.2rem;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.blockRegion.free:hover .freeTools,
-.freeTools:focus-within {
-  opacity: 1;
-}
-
-.freeTools button {
-  display: flex;
-  padding: 0.15rem;
-  background: var(--surfaceSunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--textSoft);
-  cursor: pointer;
-}
+/* The add strip between Blocks sits in the middle of a document being read, so it does not show
+   until the pointer is near it. */
 
 .blockGap {
   display: flex;
@@ -1333,6 +1319,6 @@ h3.storyPreviewTitle {
   margin-right: 0.4rem;
 }
 
-.regenTarget input {
-  width: 6rem;
+.regenTarget .weightSelect {
+  font: inherit;
 }

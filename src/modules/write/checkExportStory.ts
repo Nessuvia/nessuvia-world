@@ -7,7 +7,7 @@ import { buildHtml, buildTxt, escapeHtml, proseHtml } from './exportStory.ts'
 const block = (content: string): Block => ({
   id: content || 'empty',
   beat: '',
-  targetWords: 0,
+  name: '', weight: 'normal',
   content,
   context: 'both',
 })

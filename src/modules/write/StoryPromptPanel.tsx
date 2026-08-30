@@ -88,6 +88,7 @@ export default function StoryPromptPanel() {
         title: story.title,
         premise: story.premise ?? '',
         ending: story.ending ?? '',
+        themes: story.themes ?? '',
         castNames: resolveCast(story.cast).map((m) => m.name),
         chapters,
         chapterId: active?.id ?? null,

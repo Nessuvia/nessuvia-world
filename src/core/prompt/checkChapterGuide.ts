@@ -6,11 +6,11 @@ import type { Block } from '../storage/types.ts'
 let b = 0
 /** A beat Block: instructions, and no prose unless some is given. */
 function beat(text: string, content = ''): Block {
-  return { id: `b${++b}`, beat: text, targetWords: 0, content, context: 'both' }
+  return { id: `b${++b}`, name: '', beat: text, weight: 'normal', content, context: 'both' }
 }
-/** A free Block: prose with no instructions. */
+/** A beat the Author has not planned: prose with no instructions. */
 function free(content: string): Block {
-  return { id: `f${++b}`, beat: '', targetWords: 0, content, context: 'both' }
+  return { id: `f${++b}`, name: '', beat: '', weight: 'normal', content, context: 'both' }
 }
 
 let n = 0

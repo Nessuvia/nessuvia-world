@@ -2,91 +2,104 @@
 // checkBulkBeats.ts can run it under `node --experimental-strip-types`, which cannot parse JSX.
 //
 // Extension-ful imports on purpose, for the same reason.
-import { emptyBeat } from './beatSlots.ts'
+import type { BeatWeight } from '../../core/storage/types.ts'
+import { beatWeights, defaultWeight } from '../../core/prompt/beatWeights.ts'
 
-/** One parsed entry: the beat line, and its word target. 0 is unset, matching `Block.targetWords`. */
+/** One parsed entry. `length` is the raw string the input carried, not a weight: an unrecognised
+ *  one is remapped by the Author rather than guessed at, so it stays as written until then. */
 export interface BulkBeat {
+  name: string
   beat: string
-  targetWords: number
+  length: string
+}
+
+export interface BulkParse {
+  beats: BulkBeat[]
+  /** Length values that are not one of the weights, deduplicated, in the order they first appear.
+   *  The dialog draws a dropdown per value and nothing is added until they are all answered. */
+  unknown: string[]
+  error: string
 }
 
 /**
- * The accepted shape is `{"text",200}`, comma separated, with the count optional: `{"text"}`.
+ * The accepted shape is a JSON array of objects:
  *
- * Deliberately hand-rolled rather than coerced into JSON.parse: the format is not JSON (the braces
- * hold a positional pair, not an object), and a JSON error message would name a syntax the Author
- * never typed.
+ * ```
+ * [{ "name": "The Inciting Incident", "content": "She finds the map.", "length": "long" }]
+ * ```
  *
- * Whitespace and newlines between entries are free, the separating commas are optional, and a
- * trailing one is fine: a list pasted out of a spreadsheet or a chat reply should go in as it is.
- * Inside the quotes, `\"` is a literal quote and `\\` a literal backslash; every other character,
- * newlines included, stands for itself.
+ * `content` is the only field that has to be there. A missing `name` is a beat with no title, and a
+ * missing `length` is a normal one. A bare array of strings is accepted too: the strings are the
+ * beat contents.
+ *
+ * Untrusted input, and typed by hand as often as pasted, so every field is coerced and a bad entry
+ * is skipped rather than taking the whole paste down with it. The one thing that fails outright is
+ * input that is not an array at all: that is a format mistake, and saying so is more use than
+ * quietly adding nothing.
  */
-export function parseBulkBeats(input: string): { beats: BulkBeat[]; error: string } {
+export function parseBulkBeats(input: string): BulkParse {
+  const text = input.trim()
+  if (!text) return { beats: [], unknown: [], error: 'Nothing to add.' }
+
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch (err) {
+    return { beats: [], unknown: [], error: `That is not valid JSON: ${(err as Error).message}` }
+  }
+  if (!Array.isArray(raw)) {
+    return { beats: [], unknown: [], error: 'Expected an array of beats, in square brackets.' }
+  }
+
   const beats: BulkBeat[] = []
-  let i = 0
-  const ws = () => {
-    while (i < input.length && /\s/.test(input[i])) i++
-  }
-  // Between entries the separators carry no meaning, so they are skipped rather than required.
-  const gap = () => {
-    while (i < input.length && /[\s,]/.test(input[i])) i++
-  }
-  // Position is 1-based: it is shown to a person looking at a textarea, not used as an index.
-  const fail = (what: string) => ({ beats: [], error: `${what} at character ${i + 1}.` })
+  const unknown: string[] = []
 
-  gap()
-  while (i < input.length) {
-    if (input[i] !== '{') return fail('Expected {')
-    i++
-    ws()
-    if (input[i] !== '"') return fail('Expected a quoted beat')
-    i++
-
-    let text = ''
-    let closed = false
-    while (i < input.length) {
-      const c = input[i]
-      if (c === '\\' && i + 1 < input.length) {
-        // Only the two escapes the format defines. Anything else keeps its backslash, so a Windows
-        // path or a stray slash in the prose survives being pasted in.
-        const next = input[i + 1]
-        text += next === '"' || next === '\\' ? next : c + next
-        i += 2
-        continue
-      }
-      if (c === '"') {
-        closed = true
-        i++
-        break
-      }
-      text += c
-      i++
+  for (const row of raw) {
+    if (typeof row === 'string') {
+      const beat = line(row)
+      if (beat) beats.push({ name: '', beat, length: defaultWeight })
+      continue
     }
-    if (!closed) return fail('Unclosed quote')
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue
+    const r = row as Record<string, unknown>
+    const beat = line(r.content)
+    const name = line(r.name)
+    if (!beat && !name) continue
 
-    ws()
-    let targetWords = 0
-    if (input[i] === ',') {
-      i++
-      ws()
-      const start = i
-      while (i < input.length && /[0-9]/.test(input[i])) i++
-      if (i === start) return fail('Expected a word count')
-      targetWords = Number(input.slice(start, i))
-      ws()
-    }
-
-    if (input[i] !== '}') return fail('Expected }')
-    i++
-
-    // A beat that is blank or all spaces still has to be a beat: '' is what makes a Block free
-    // prose, and pasting an empty pair is not how the Author asks for that. Same rule the beat
-    // field itself follows.
-    beats.push({ beat: text.replace(/\s*\n\s*/g, ' ').trim() || emptyBeat, targetWords })
-    gap()
+    const length = line(r.length) || defaultWeight
+    if (!isWeight(length) && !unknown.includes(length)) unknown.push(length)
+    beats.push({ name, beat, length })
   }
 
-  if (beats.length === 0) return { beats: [], error: 'Nothing to add.' }
-  return { beats, error: '' }
+  if (beats.length === 0) return { beats: [], unknown: [], error: 'Nothing to add.' }
+  return { beats, unknown, error: '' }
+}
+
+/** The parsed beats with their lengths resolved to weights. `mapping` answers the unknown values,
+ *  keyed exactly as `unknown` listed them; anything still unanswered falls back to the default, so
+ *  a dialog dismissed halfway adds beats rather than losing them. */
+export function mapWeights(
+  beats: BulkBeat[],
+  mapping: Record<string, BeatWeight> = {},
+): { name: string; beat: string; weight: BeatWeight }[] {
+  return beats.map(({ name, beat, length }) => ({
+    name,
+    beat,
+    weight: isWeight(length)
+      ? (length.toLowerCase() as BeatWeight)
+      : (mapping[length] ?? defaultWeight),
+  }))
+}
+
+/** Whether a length string names a weight, casing aside. */
+function isWeight(length: string): boolean {
+  return (beatWeights as string[]).includes(length.toLowerCase())
+}
+
+/** A field as a single-line string. A number or a boolean is written out rather than dropped;
+ *  anything else (an object, an array, null) is not text and becomes nothing. */
+function line(value: unknown): string {
+  if (typeof value === 'string') return value.replace(/\s*\n\s*/g, ' ').trim()
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return ''
 }

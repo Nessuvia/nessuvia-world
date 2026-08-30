@@ -264,6 +264,16 @@ export interface Story {
   /** The intended ending, edited on the Plot Layout tab after the last Chapter. Reaches the model
    *  only through {{ending}}, if the Story stack places it. */
   ending?: string
+  /** What the work is meant to be about, one line or a list. Feeds Story generation and reaches the
+   *  model through {{themes}}. */
+  themes?: string
+  genre?: string
+  tone?: string
+  setting?: string
+  /** The whole work's word target, set by the length preset on the Story generation screen. Kept so
+   *  regenerating an outline opens on what was asked for last time, and so the Plot Layout can show
+   *  the Story's chapter targets against a whole. 0 or absent = unset. */
+  targetWords?: number
   /** Premise and Ending render as thin markers on the Plot Layout strip when true. */
   capsCollapsed?: boolean
   createdAt: number
@@ -276,29 +286,33 @@ export interface CastEntry {
   enabled: boolean
 }
 
-/** One planned step inside a Chapter: a line of intent, a word target, and a checkbox the Author
- *  ticks. Beats have no table of their own, so they carry their own key. */
+/** How long a beat runs relative to the others in its Chapter. Five named sizes rather than a word
+ *  count: the Author is saying "this one is the big scene", and the words fall out of the Chapter's
+ *  target. Multipliers live in `core/prompt/beatWeights.ts`. */
+export type BeatWeight = 'sketch' | 'brief' | 'normal' | 'long' | 'major'
+
 /** How much of the surrounding prose a Block's generation sees. `both` is the default; the other
  *  three are how you write a passage that shouldn't be coloured by what sits around it, a flashback,
  *  an opening drafted before the scene leading into it exists. */
 export type BlockContext = 'before' | 'after' | 'both' | 'none'
 
 /**
- * One stretch of a Chapter, and the unit prose is actually stored in. A Chapter is an ordered list
- * of these.
- *
- * `beat` empty means a free stretch: plain prose, drawn with no box and no header. `beat` non-empty
- * means a planned section, drawn as a labelled dashed box with its own controls. Converting between
- * the two is writing or clearing that one field, there is no second kind of record, and no
- * ordering rule between two homes for prose.
+ * One beat of a Chapter, and the unit prose is actually stored in. A Chapter is an ordered list of
+ * these, and there is no second kind: free prose was removed, so an empty `beat` is an ordinary
+ * unwritten beat rather than a different sort of Block.
  */
 export interface Block {
   id: string // crypto.randomUUID(); Blocks have no table, so they need their own key
-  /** The instructions: what is meant to happen here, one line or many. '' makes this a free
-   *  stretch. When the prose no longer fits the window, this is what the Block sends instead. */
+  /** What to call this beat: "The Inciting Incident". Display only, and '' on a beat that has not
+   *  been named. The instructions are what reaches the model. */
+  name: string
+  /** The instructions: what is meant to happen here, one line or many. '' is a beat the Author has
+   *  not planned yet. When the prose no longer fits the window, this is what the Block sends. */
   beat: string
-  /** Words this beat is meant to run to. 0 means unset. Meaningless on a free stretch. */
-  targetWords: number
+  /** How long this beat runs relative to its neighbours. The Chapter's word target is divided by
+   *  these, so a climax gets more words than a transition. There is no per-beat word number: see
+   *  `core/prompt/beatWeights.ts`, which derives them. */
+  weight: BeatWeight
   /** The prose. Named `content` so `core/stores/swipes.ts` accepts a Block unchanged; it always
    *  mirrors `swipes[swipeIndex]`, the same denormalisation `Message` uses. */
   content: string
@@ -327,10 +341,12 @@ export interface Chapter {
   title: string
   /** Recap only: what the Chapter turned out to contain. Intent lives in the beats. */
   summary: string
-  /** The Chapter's prose and its plan, in one ordered list. Beat Blocks are the plan; free Blocks
-   *  are prose written outside it. Never empty in practice, opening a Chapter with none seeds a
-   *  free Block so there is always somewhere to type. */
+  /** The Chapter's prose and its plan, in one ordered list. Every Block is a beat. Empty is the
+   *  ordinary state of a Chapter that has not been outlined yet; the editor offers to generate. */
   blocks: Block[]
+  /** Words this Chapter is meant to run to, divided across its beats by their weights. 0 = unset,
+   *  which leaves every derived beat target at 0 and sends no length instruction. */
+  targetWords: number
   /** What this Chapter contributes once the budget has degraded its prose to beat instructions.
    *  Its full prose sends whatever this says, for as long as it fits. */
   guideSend: GuideSend

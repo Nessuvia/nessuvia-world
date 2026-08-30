@@ -3,27 +3,10 @@
 //
 // Extension-ful imports on purpose: checkChapterGuide.ts runs this under
 // `node --experimental-strip-types`, which can't resolve extensionless app imports.
-import type { Block, BlockContext, Chapter } from '../storage/types.ts'
+import type { BlockContext, Chapter } from '../storage/types.ts'
 
 /** The fields the prose walk needs off a Chapter row. */
 export type GuideChapter = Pick<Chapter, 'id' | 'title' | 'summary' | 'blocks' | 'guideSend'>
-
-/**
- * The Blocks that are part of the plan. One definition, used by the prose ladder, the Story rail
- * and the Plot Layout editor alike.
- *
- * The test is `!== ''`, not `.trim() !== ''`: a beat the Author has just added and not yet written
- * is still a beat, and it has to keep its row. What it sends to the model is a separate question:
- * an unwritten beat has no instructions, so degrading it contributes no line.
- */
-export const beatBlocks = (chapter: Pick<Chapter, 'blocks'>): Block[] =>
-  chapter.blocks.filter(isBeat)
-
-/** Whether a Block is a beat at all: see `beatBlocks` for why the test is `!== ''`. Exported so
- *  nothing spells it a second way: a caller that tests `.trim()` instead disagrees about a beat the
- *  Author has just added, and disagreeing about which Blocks are beats corrupts any write that maps
- *  an edited beat list back onto `blocks`. */
-export const isBeat = (block: Block): boolean => block.beat !== ''
 
 /** A Chapter's prose: its Blocks' content in order. Blocks are stretches of one document, so they
  *  join with a blank line, the same separator Chapters use inside the prose blob. */
@@ -195,20 +178,18 @@ function walk(
     }
 
     if (!isActive) {
-      // Beat numbering counts beats within the Chapter, so the model sees "Beat 1, Beat 2" whatever
-      // free prose sits between them.
-      let beatNo = 0
       chapter.blocks.forEach((block, j) => {
-        if (isBeat(block)) beatNo++
         if (j >= cut) {
           const text = block.content.trim()
           if (text) parts.push(text)
           return
         }
-        // Degraded. A free Block and an unwritten beat have no instructions, so they simply go.
-        if (off || !wantsBeats || !isBeat(block)) return
+        // Degraded. Every Block is a beat, so the only one contributing no line is one the Author
+        // has not planned yet. Numbering is the Block's own position, so the lines stay in step
+        // with the Plot Layout even when an unwritten beat sits between two written ones.
+        if (off || !wantsBeats) return
         const instructions = block.beat.trim()
-        if (instructions) parts.push(beatLine(beatNo, instructions))
+        if (instructions) parts.push(beatLine(j + 1, instructions))
       })
       return
     }

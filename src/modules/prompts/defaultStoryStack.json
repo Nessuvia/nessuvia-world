@@ -67,7 +67,7 @@
       "label": "Shape of the work",
       "source": "text",
       "role": "system",
-      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nThe people in it: {{castNames}}",
+      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nWhat it is about underneath: {{themes}}\nThe people in it: {{castNames}}",
       "closeContent": "</the_work>",
       "toggleable": true,
       "info": "Story-level facts. Each line drops out on its own when the field behind it is empty."
@@ -139,8 +139,8 @@
       "label": "The beat",
       "source": "text",
       "role": "user",
-      "content": "Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.",
-      "info": "The plan line for the Block being written. Both lines drop on a free stretch, and the whole block with them."
+      "content": "Write this next: {{beatName}}\n{{beat}}\nAim for about {{beatTargetWords}} words.",
+      "info": "The plan for the beat being written. Each line drops on its own when the field behind it is empty, and the whole block with them."
     },
     {
       "id": "ks-length",
