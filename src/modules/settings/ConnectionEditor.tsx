@@ -119,8 +119,11 @@ export default function ConnectionEditor({ connection, onSave, onClose }: Props)
       setTestResult(lines.join('\n'))
     } catch (err) {
       setTestResult(describeFetchError(err, completionUrl(draft.endpointUrl, draft.type)))
+    } finally {
+      // finally, not a line after the try: the early returns for a non-OK status and for a
+      // non-JSON body skipped it and left the button reading "Testing…" until a reload.
+      setTesting(false)
     }
-    setTesting(false)
   }
 
   async function readLimit() {

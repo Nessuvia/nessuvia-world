@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { RiHammerLine } from '@remixicon/react'
 import {
   newGrammarHammerRule,
@@ -9,7 +9,6 @@ import {
 } from '../../core/stores/settingsStore'
 import RuleCardHead from './RuleCardHead'
 import { tryCompile, POS_TAGS } from '../../core/hammer/pattern'
-import { previewStrips, stripText } from '../../core/hammer/strip'
 import './settings.css'
 
 /** Returns the syntax error message for a rule's pattern, or null if it compiles. */
@@ -20,28 +19,15 @@ function ruleError(rule: GrammarHammerRule): string | null {
 }
 
 /** Grammar Hammer: slop constructions matched by POS patterns, stripped or flagged inside Second
- *  Pass. The Enable toggle here is Second Pass's own, since the rules do nothing without it. */
+ *  Pass. No Enable of its own: the rules run when Second Pass is on, and that toggle lives on the
+ *  Setup tab. */
 export default function GrammarHammerPanel() {
   const gh = useSecondPass()
   const patchGh = useSettings((s) => s.setSecondPass)
-  const [preview, setPreview] = useState('')
   const [cheat, setCheat] = useState(false)
 
   const patchRule = (id: string, patch: Partial<GrammarHammerRule>) =>
     patchGh({ rules: gh.rules.map((r) => (r.id === id ? { ...r, ...patch } : r)) })
-
-  // Live preview runs all enabled rules (including ones with errors, which skip) against the
-  // sample text. Doubles as the dev harness: type a pattern, see it strip immediately.
-  const previewResult = useMemo(() => {
-    if (!preview.trim() || !gh.enabled) return null
-    return previewStrips(preview, gh.rules, 'assistant')
-  }, [preview, gh.rules, gh.enabled])
-
-  // The actual text a message would render, repaired, with removals gone and replacements in place.
-  const resultText = useMemo(() => {
-    if (!preview.trim() || !gh.enabled) return null
-    return stripText(preview, gh.rules, 'assistant').text
-  }, [preview, gh.rules, gh.enabled])
 
   return (
     <section className="textRules grammarHammer screenFrame">
@@ -49,11 +35,9 @@ export default function GrammarHammerPanel() {
         <h3>
           <RiHammerLine size={14} className="hammerIcon" /> Grammar Hammer
         </h3>
-        <label className="checkboxRow">
-          <input type="checkbox" checked={gh.enabled} onChange={(e) => patchGh({ enabled: e.target.checked })} />
-          Enable
-        </label>
       </span>
+
+      {!gh.enabled && <p className="hint">Second Pass is off. Turn it on in Setup.</p>}
 
       <ul className="ruleCards screenBody">
         {gh.rules.map((rule) => {
@@ -142,54 +126,6 @@ export default function GrammarHammerPanel() {
         </div>
       )}
 
-      <div className="grammarPreview">
-        <textarea
-          value={preview}
-          placeholder="Paste sample text to preview stripping…"
-          rows={4}
-          onChange={(e) => setPreview(e.target.value)}
-        />
-        {previewResult && previewResult.removed.length > 0 && (
-          <>
-            <div className="previewOut">
-              {renderPreview(previewResult.text, previewResult.removed)}
-            </div>
-            <p className="previewLabel">Result</p>
-            <div className="previewOut previewResult">{resultText}</div>
-          </>
-        )}
-        {previewResult && previewResult.removed.length === 0 && preview.trim() && (
-          <p className="hint">No matches.</p>
-        )}
-      </div>
     </section>
   )
-}
-
-/** Render the preview text with removed spans struck through, and any replacement shown after. */
-function renderPreview(
-  text: string,
-  removed: Array<{ start: number; end: number; slice: string; replacement: string }>,
-) {
-  if (removed.length === 0) return text
-  const out: React.ReactNode[] = []
-  let i = 0
-  removed.forEach((r, idx) => {
-    if (r.start > i) out.push(text.slice(i, r.start))
-    out.push(
-      <span key={`s${idx}`} className="strippedSpan">
-        {r.slice}
-      </span>,
-    )
-    if (r.replacement) {
-      out.push(
-        <span key={`r${idx}`} className="replacedSpan">
-          {r.replacement}
-        </span>,
-      )
-    }
-    i = r.end
-  })
-  if (i < text.length) out.push(text.slice(i))
-  return out
 }

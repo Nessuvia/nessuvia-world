@@ -55,6 +55,12 @@
   align-items: center;
 }
 
+/* Icon-only, so the button is square: line-height 0 keeps the text box from padding the glyph. */
+.connectionIconButton {
+  padding: 7px 8px;
+  line-height: 0;
+}
+
 .connectionEditor {
   display: flex;
   flex-direction: column;
@@ -566,6 +572,46 @@
   .grammarPreview textarea {
     min-width: 0;
   }
+}
+
+/* Second Pass. One tab's content at a time, with the shared preview under it. Unlike
+   .textRulesCards this is a single column, so the tab content takes the leftover height and scrolls
+   inside its own frame. */
+.secondPassPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.secondPassPanel > .textRules {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+}
+
+.secondPassTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.secondPassTabOn {
+  background: var(--surfaceActive);
+  border-color: var(--borderAccent);
+}
+
+/* The preview sits outside the scrolling frame, so it keeps its own bottom margin off it. */
+.secondPassPreview {
+  flex: 0 0 auto;
+}
+
+.secondPassPreviewSource {
+  color: var(--textDim);
+  font-size: 11px;
 }
 
 /* Second Pass. The panel reuses .textRules/.screenBody for its frame; these are the parts it adds.

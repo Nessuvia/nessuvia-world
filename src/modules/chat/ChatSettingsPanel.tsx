@@ -4,7 +4,7 @@ import PromptToggles from '../prompts/PromptToggles'
 import { stackKind } from '../prompts/stackKinds'
 import { useChats } from '../../core/stores/chatStore'
 import { useCharacters } from '../../core/stores/charactersStore'
-import { useSettings, useAppearance, useActiveConnection, useSecondPass } from '../../core/stores/settingsStore'
+import { useSettings, useAppearance, useActiveConnection } from '../../core/stores/settingsStore'
 import ConnectionPicker from '../../app/ConnectionPicker'
 import { usePalette } from '../../core/stores/palettesStore'
 import { useStacks } from '../../core/stores/stacksStore'
@@ -38,8 +38,6 @@ export default function ChatSettingsPanel({
   const character = useCharacters((s) => s.characters.find((c) => c.id === chat?.characterId))
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
   const connection = useActiveConnection()
-  const secondPass = useSecondPass()
-  const setSecondPass = useSettings((s) => s.setSecondPass)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
   const activeStackId = useSettings((s) => s.activeStackId)
   const stacks = useStacks((s) => s.stacks)
@@ -206,51 +204,6 @@ export default function ChatSettingsPanel({
         <SpeakerColors chat={value} />
       </details>
       )}
-
-      {/* Writes the global Second Pass settings, the same records the Settings panel edits, so
-          flipping a rule here affects every chat. Per-chat override: add a secondPass field to the
-          Chat record and merge it in the wrapper. */}
-      <details>
-        <summary>Second Pass</summary>
-        <label className="checkboxRow">
-          <input
-            type="checkbox"
-            checked={secondPass.enabled}
-            onChange={(e) =>
-setSecondPass({ enabled: e.target.checked })
-            }
-          />
-          Enable
-        </label>
-        {secondPass.enabled && (
-          <ul className="grammarRuleList">
-            {secondPass.rules.map((rule) => (
-              <li key={rule.id}>
-                <label className="checkboxRow ruleToggleRow">
-                  <input
-                    type="checkbox"
-                    checked={rule.enabled}
-                    onChange={(e) =>
-                      setSecondPass({
-                        rules: secondPass.rules.map((r) =>
-                          r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
-                        ),
-                      })
-                    }
-                  />
-                  <span className="ruleToggleText">
-                    <span className="ruleToggleName">{rule.label || 'Untitled rule'}</span>
-                    <span className="ruleTogglePattern">{rule.pattern || '—'}</span>
-                  </span>
-                </label>
-              </li>
-            ))}
-            {secondPass.rules.length === 0 && (
-              <p className="hint">No rules yet. Add some in Settings.</p>
-            )}
-          </ul>
-        )}
-      </details>
 
       {/* Sections contributed by other modules. Order is module registration order (main.tsx). */}
       {chatPanels(enabledPlugins).map(({ label, component: Panel }) => (
