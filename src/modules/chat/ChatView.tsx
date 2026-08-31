@@ -4,7 +4,7 @@ import { RiDeleteBinLine } from '@remixicon/react'
 import { useParams } from 'react-router-dom'
 import { useChats } from '../../core/stores/chatStore'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
-import { useAppearance, useSettings } from '../../core/stores/settingsStore'
+import { useAppearance, useSettings, useActiveConnection } from '../../core/stores/settingsStore'
 import { usePalette } from '../../core/stores/palettesStore'
 import { effectiveFont } from '../../core/palette/palette'
 import { usePersonas } from '../../core/stores/personasStore'
@@ -26,6 +26,7 @@ export default function ChatView() {
     chat,
     messages,
     streamingText,
+    streamingDraft,
     streamingReasoning,
     streaming,
     streamingChatId,
@@ -50,7 +51,7 @@ export default function ChatView() {
     deleteSwipes,
   } = useChats()
   const { characters, load: loadCharacters } = useCharacters()
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const personas = usePersonas((s) => s.personas)
   const ensurePersona = usePersonas((s) => s.ensureActive)
   const activePersonaId = useSettings((s) => s.activePersonaId)
@@ -180,6 +181,7 @@ export default function ChatView() {
             canRegenerate={m.role === 'assistant' && !streaming}
             greeting={i === 0 && m.role === 'assistant'}
             streamingText={regeneratingId === m.id ? streamingText : null}
+            streamingDraft={regeneratingId === m.id ? streamingDraft : ''}
             streamingReasoning={regeneratingId === m.id ? streamingReasoning : ''}
             defaultInstruction={() =>
               oldMessageInstruction(
@@ -220,12 +222,24 @@ export default function ChatView() {
                 {renderText(streamingReasoning, { tagRules: appearance.tagRules, order: palette.colorOrder })}
               </details>
             )}
-            <div className="messageBody">
-              {/* Mid-stream an opener has no closer yet, so the block reads as plain text
-                  until the model finishes it and it folds away. */}
-              {renderText(streamingText, { tagRules: appearance.tagRules, order: palette.colorOrder })}
-              <span className="caret">▌</span>
-            </div>
+            {/* Second Pass's first take, before the editing pass has produced anything. Dimmed
+                because it is provisional: it either gets replaced by the edited reply or brightens
+                in place when nothing was flagged. Cleared by the store on the first edited chunk,
+                so the two never show at once. */}
+            {streamingDraft && (
+              <div className="messageBody secondPassDraft">
+                {renderText(streamingDraft, { tagRules: appearance.tagRules, order: palette.colorOrder })}
+                <span className="caret">▌</span>
+              </div>
+            )}
+            {!streamingDraft && (
+              <div className="messageBody">
+                {/* Mid-stream an opener has no closer yet, so the block reads as plain text
+                    until the model finishes it and it folds away. */}
+                {renderText(streamingText, { tagRules: appearance.tagRules, order: palette.colorOrder })}
+                <span className="caret">▌</span>
+              </div>
+            )}
           </div>
         )}
       </div>

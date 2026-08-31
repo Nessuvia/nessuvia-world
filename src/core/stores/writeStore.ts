@@ -5,6 +5,7 @@ import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
 import type { Block, CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
+import { runSecondPass } from '../secondPass/runSecondPass'
 import {
   buildStoryPrompt,
   castText,
@@ -24,8 +25,8 @@ import { useWorldInfo } from './worldInfoStore'
 import { chapterProse } from '../prompt/chapterGuide'
 import { storyTokens } from '../prompt/storyTokens'
 import { rewritePrompt } from '../prompt/rewrite'
-import { deletedSwipes, regenerated, selectSwipe, swipeIndex } from './swipes'
-import { loadTokenizer } from '../prompt/budget'
+import { deletedSwipes, instructionChain, regenerated, selectSwipe, swipeIndex } from './swipes'
+import { countTokens, loadTokenizer, perMessageOverhead } from '../prompt/budget'
 import { tokenizerFor } from '../prompt/tokenizers'
 import { activeConnection } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
@@ -35,10 +36,12 @@ import { usePersonas } from './personasStore'
 import { maxTokensOf, withParam } from '../params/connectionParams'
 import {
   buildChapterOutlineMessages,
+  buildChapterSummaryMessages,
   buildStoryOutlineMessages,
   parseChapterOutlineReply,
   parseStoryOutlineReply,
   type ChapterOutlineRequest,
+  type ChapterSummaryRequest,
   type StoryOutlineRequest,
 } from '../prompt/outline'
 import { defaultWeight, splitByWeight } from '../prompt/beatWeights'
@@ -104,6 +107,9 @@ async function touchStory(
 // Not state: nothing renders from it, and `streaming` already drives the button.
 let abort: AbortController | null = null
 
+// Same reasoning: `rewriting` is what the UI draws, this only tells the loop it was stopped.
+let rewriteStopped = false
+
 /** The enabled cast, flattened to the fields buildStoryPrompt needs. Missing rows (deleted out from
  *  under the cast) are skipped. Keeps card knowledge in the store; the assembly stays pure. */
 export function resolveCast(cast: CastEntry[]): CastMember[] {
@@ -148,6 +154,8 @@ interface WriteState {
    *  tail in the wrong prose. Null when idle. */
   streamingStoryId: number | null
   streamingText: string
+  /** Second Pass's provisional first take; '' once the edited prose starts. */
+  streamingDraft: string
   /** Reasoning as it streams, shown above the tail when Show reasoning is on. */
   streamingReasoning: string
   /** The Block the stream is landing in, so its region draws the tail and locks itself. */
@@ -155,6 +163,9 @@ interface WriteState {
   /** True when the stream will replace what the Block already says (a regen), so the region hides
    *  the old text instead of leaving it above the tail. */
   streamingReplaces: boolean
+  /** Progress of a chapter-wide rewrite: which beat of how many. Null when none is running. It is
+   *  separate from `streaming` because the run outlives each individual request. */
+  rewriting: { done: number; total: number } | null
   error: string
   /** The Block the cursor is in. Session state, never persisted. Find and Replace scopes to it, and
    *  the Story panel's beat checklist reads its Chapter through `activeChapterId`. */
@@ -259,9 +270,23 @@ interface WriteState {
     blockId: string,
     direction?: string,
     replaces?: boolean,
+    instruction?: string,
   ): Promise<void>
-  /** Write the Block again, following an instruction about the version it already holds. */
+  /**
+   * Write the Block again, following an instruction about the version it already holds, plus every
+   * instruction that led to the selected swipe. That chain is what makes a re-roll iterate rather
+   * than restart; swiping back to an earlier take shortens it.
+   */
   regenBlock(chapterId: number, blockId: string, instruction: string): Promise<void>
+  /**
+   * Rewrite every written Block in a Chapter, in order, under one standing instruction. Each Block
+   * keeps its own correction chain and the note rides on top. Nothing is destroyed: each pass
+   * appends a swipe. Runs one Block at a time so each sees the previous one's new prose.
+   */
+  rewriteChapter(chapterId: number, note: string): Promise<void>
+  /** Rewrite a Chapter's summary from the prose it actually holds, so the recap the prompt sends
+   *  matches what got written rather than what was planned. Replaces whatever is there. */
+  summarizeChapter(chapterId: number): Promise<void>
   /** Select one of a Block's alternates. */
   swipeBlock(chapterId: number, blockId: string, index: number): Promise<void>
   /** Drop the selected alternate. The last one left empties the Block rather than deleting it. */
@@ -368,9 +393,11 @@ export const useWrite = create<WriteState>()((set, get) => ({
   streaming: false,
   streamingStoryId: null,
   streamingText: '',
+  streamingDraft: '',
   streamingReasoning: '',
   streamingBlockId: null,
   streamingReplaces: false,
+  rewriting: null,
   error: '',
   activeBlockId: null,
   pendingCaret: null,
@@ -713,7 +740,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     await touchStory(get, set)
   },
 
-  writeBlock: async (chapterId, blockId, direction, replaces) => {
+  writeBlock: async (chapterId, blockId, direction, replaces, instruction) => {
     const { story, chapters, streaming } = get()
     if (!story || streaming) return
     const chapter = chapters.find((c) => c.id === chapterId)
@@ -740,12 +767,14 @@ export const useWrite = create<WriteState>()((set, get) => ({
       streamingStoryId: story.id ?? null,
       streamingBlockId: blockId,
       streamingText: '',
+      streamingDraft: '',
       streamingReasoning: '',
       streamingReplaces: !!replaces,
       error: '',
     })
 
     let text = ''
+    let draft = ''
     let reasoning = ''
     let finishReason = ''
     try {
@@ -785,10 +814,19 @@ export const useWrite = create<WriteState>()((set, get) => ({
         },
         budget,
       )
-      for await (const chunk of sendMessage(prompt.messages, connection, controller.signal)) {
+      for await (const chunk of runSecondPass(prompt.messages, connection, controller.signal, undefined, {
+        role: 'assistant',
+        // Earlier prose from this chapter, so repetition is measured against the story rather than
+        // against one block in isolation.
+        history: priorProse(current, chapterId, blockId),
+      })) {
+        if (chunk.draft) {
+          draft += chunk.draft
+          set({ streamingDraft: draft })
+        }
         if (chunk.content) {
           text += chunk.content
-          set({ streamingText: text })
+          set({ streamingText: text, streamingDraft: '' })
         }
         if (chunk.reasoning) {
           reasoning += chunk.reasoning
@@ -799,12 +837,13 @@ export const useWrite = create<WriteState>()((set, get) => ({
     } catch (err) {
       // Write rule: keep whatever streamed (same as Stop) and surface a toast. Nothing rolls back.
       if (!controller.signal.aborted) {
-        await commitSwipe(get, set, chapterId, blockId, text, reasoning)
+        await commitSwipe(get, set, chapterId, blockId, text, reasoning, instruction, draft)
         set({
           streaming: false,
           streamingStoryId: null,
           streamingBlockId: null,
           streamingText: '',
+          streamingDraft: '',
           streamingReasoning: '',
           streamingReplaces: false,
           error: (err as Error).message,
@@ -816,12 +855,13 @@ export const useWrite = create<WriteState>()((set, get) => ({
       abort = null
     }
 
-    await commitSwipe(get, set, chapterId, blockId, text, reasoning)
+    await commitSwipe(get, set, chapterId, blockId, text, reasoning, instruction, draft)
     set({
       streaming: false,
       streamingStoryId: null,
       streamingBlockId: null,
       streamingText: '',
+      streamingDraft: '',
       streamingReasoning: '',
       streamingReplaces: false,
       // The text is kept either way; this only says why it ended where it did.
@@ -846,9 +886,91 @@ export const useWrite = create<WriteState>()((set, get) => ({
     await get().writeBlock(
       chapterId,
       blockId,
-      block.content.trim() ? rewritePrompt(block.content, instruction, stack.miscPrompts) : instruction,
+      block.content.trim()
+        ? rewritePrompt(block.content, chainedInstruction(block, instruction), stack.miscPrompts)
+        : chainedInstruction(block, instruction),
       true,
+      instruction.trim(),
     )
+  },
+
+  rewriteChapter: async (chapterId, note) => {
+    const chapter = get().chapters.find((c) => c.id === chapterId)
+    if (!chapter || get().streaming || !note.trim()) return
+    // The list is taken once, before anything runs: the Blocks are replaced as each pass commits,
+    // so holding the records would rewrite stale prose. Ids survive, so they are what is held.
+    const ids = chapter.blocks.filter((b) => b.content.trim()).map((b) => b.id)
+    if (!ids.length) return
+    const stack = await useStacks.getState().ensureActive('story')
+    rewriteStopped = false
+
+    for (let i = 0; i < ids.length; i++) {
+      set({ rewriting: { done: i, total: ids.length } })
+      const block = get()
+        .chapters.find((c) => c.id === chapterId)
+        ?.blocks.find((b) => b.id === ids[i])
+      if (!block || !block.content.trim()) continue
+      await get().writeBlock(
+        chapterId,
+        ids[i],
+        rewritePrompt(block.content, chainedInstruction(block, note), stack.miscPrompts),
+        true,
+        note.trim(),
+      )
+      // Stop and a failed request both land here. Either way the run is over: carrying on would
+      // rewrite the rest of the chapter against prose the Author just tried to stop changing.
+      if (get().error || rewriteStopped) break
+    }
+    set({ rewriting: null })
+  },
+
+  summarizeChapter: async (chapterId) => {
+    const { story, chapters, streaming } = get()
+    const chapter = chapters.find((c) => c.id === chapterId)
+    if (!story || !chapter || streaming) return
+    const connection = outlineConnection(story)
+    await loadTokenizer(tokenizerFor(connection))
+
+    // Newest prose wins the room. A recap needs the whole chapter, but a chapter can run past the
+    // window, and the end is what a recap has to land on.
+    const written = chapter.blocks.filter((b) => b.content.trim())
+    const room = Math.floor(
+      (connection.contextLimit - maxTokensOf(connection)) *
+        (1 - connection.safetyMarginPct / 100),
+    )
+    const kept: string[] = []
+    let used = 0
+    for (let i = written.length - 1; i >= 0; i--) {
+      const text = written[i].content.trim()
+      used += countTokens(text) + perMessageOverhead
+      if (used > room && kept.length) break
+      kept.unshift(text)
+    }
+
+    const req: ChapterSummaryRequest = {
+      chapterNumber: chapter.order + 1,
+      title: chapter.title,
+      prose: kept.join('\n\n'),
+      unwritten: chapter.blocks.filter((b) => !b.content.trim() && b.beat.trim()).map((b) => b.beat.trim()),
+    }
+    const reply = await runOutline(set, story, connection, (prompts) =>
+      buildChapterSummaryMessages(req, prompts),
+    )
+    if (reply.finishReason === 'aborted') return
+
+    const summary = reply.text.trim()
+    if (!summary) {
+      set({ streaming: false, streamingStoryId: null, error: 'The reply held no summary.' })
+      return
+    }
+    const next = { ...chapter, summary, updatedAt: Date.now() }
+    await storage.put('chapters', next as unknown as StoredRecord)
+    set((s) => ({
+      chapters: s.chapters.map((c) => (c.id === chapterId ? next : c)),
+      streaming: false,
+      streamingStoryId: null,
+    }))
+    await touchStory(get, set)
   },
 
   swipeBlock: async (chapterId, blockId, index) => {
@@ -874,12 +996,18 @@ export const useWrite = create<WriteState>()((set, get) => ({
       swipeIndex: undefined,
       requestSnapshots: undefined,
       reasonings: undefined,
+      instructions: undefined,
       content: '',
     }
     await putBlock(get, set, chapterId, next, true)
   },
 
-  stop: () => abort?.abort(),
+  // Stop ends the chapter rewrite too, not only the request in flight. An abort leaves the partial
+  // as a swipe and clears `error`, so the loop has no other way to tell it was stopped on purpose.
+  stop: () => {
+    rewriteStopped = true
+    abort?.abort()
+  },
 
   dismissError: () => set({ error: '' }),
 }))
@@ -944,6 +1072,38 @@ async function writeBlockContent(
  * spliced and no offsets are recorded - swiping back is what Undo used to be, and it survives a
  * reload for free because the alternates are stored.
  */
+/**
+ * Every correction that led to the selected swipe, plus the one just typed, as one instruction.
+ * Numbered when there is more than one so the model can see them as a list rather than a paragraph
+ * of contradictions. This is what makes a re-roll iterate: round three does not have to re-explain
+ * what rounds one and two already asked for.
+ */
+function chainedInstruction(block: Block, instruction: string): string {
+  const chain = [...instructionChain(block), instruction.trim()]
+  if (chain.length === 1) return chain[0]
+  return chain.map((c, i) => `${i + 1}. ${c}`).join('\n')
+}
+
+/**
+ * Prose already written in this chapter, oldest first, up to the block being generated. Second
+ * Pass's repetition check reads it, so a phrase is measured against the story rather than against
+ * the one block in isolation. Blocks after the target are left out: they are not context the model
+ * was given, and flagging the new prose for matching them would be backwards.
+ *
+ * Trimmed generously: the check applies its own `lookback` setting on top of this.
+ */
+const HISTORY_FOR_NOTES = 40
+function priorProse(chapters: Chapter[], chapterId: number, blockId: string): string[] {
+  const chapter = chapters.find((c) => c.id === chapterId)
+  if (!chapter) return []
+  const at = chapter.blocks.findIndex((b) => b.id === blockId)
+  const before = at === -1 ? chapter.blocks : chapter.blocks.slice(0, at)
+  return before
+    .map((b) => b.content)
+    .filter((t) => t.trim())
+    .slice(-HISTORY_FOR_NOTES)
+}
+
 async function commitSwipe(
   get: () => WriteState,
   set: (partial: Partial<WriteState> | ((s: WriteState) => Partial<WriteState>)) => void,
@@ -951,6 +1111,8 @@ async function commitSwipe(
   blockId: string,
   added: string,
   reasoning?: string,
+  instruction?: string,
+  draft?: string,
 ) {
   if (!added.trim()) return
   const chapter =
@@ -958,6 +1120,6 @@ async function commitSwipe(
     ((await storage.get('chapters', chapterId)) as unknown as Chapter | undefined)
   const block = chapter?.blocks.find((b) => b.id === blockId)
   if (!block) return
-  const next = regenerated(block, added.trim(), undefined, reasoning)
+  const next = regenerated(block, added.trim(), undefined, reasoning, instruction, draft)
   if (next) await putBlock(get, set, chapterId, next, true)
 }

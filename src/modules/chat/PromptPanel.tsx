@@ -10,7 +10,7 @@ import { useChats, resolvedConnection, worldInfoFor } from '../../core/stores/ch
 import { nextSpeakerId } from '../../core/stores/roster'
 import { useDraft } from '../../core/stores/draftStore'
 import { usePersonas } from '../../core/stores/personasStore'
-import { useSettings } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection } from '../../core/stores/settingsStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import PromptPreviewPanel from '../../app/PromptPreviewPanel'
 import { paramDefList } from '../../core/stores/paramDefsStore'
@@ -34,7 +34,7 @@ export default function PromptPanel() {
   const tagRules = useSettings((s) => s.appearance.tagRules)
   // Subscribed to only so edits in Settings re-render this; the value comes from the store helper
   // below, which is the one place override precedence is applied.
-  const activeConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const activeConnection = useActiveConnection()
   // The chat's own stack wins, as it does on the send path, otherwise the preview would show a
   // prompt built from a stack the send never uses.
   const stack = useStacks((s) => s.stacks.find((x) => x.id === (chat?.stackId ?? activeStackId)))

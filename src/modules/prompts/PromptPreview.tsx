@@ -9,7 +9,7 @@ import { countTokens, loadTokenizer, perMessageOverhead } from '../../core/promp
 import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
-import { useSettings, type Connection } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection, type Connection } from '../../core/stores/settingsStore'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
 import { budgetOf, maxTokensOf } from '../../core/params/connectionParams'
 import { hasSource } from './stackKinds'
@@ -69,7 +69,7 @@ export default function PromptPreview({
   onToggleCollapsed: () => void
 }) {
   const [ready, setReady] = useState(false)
-  const activeConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const activeConnection = useActiveConnection()
   const tokenizerId = activeConnection ? tokenizerFor(activeConnection) : defaultTokenizer
 
   useEffect(() => {
@@ -108,7 +108,7 @@ function budgetFor(connection?: Connection) {
 // A Story stack has no character and no chat history: the Co-Writer takes a Story-context blob and
 // a Direction, so the preview mirrors that, example prose + an example Direction, nothing else.
 function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: React.ReactNode; ready: boolean }) {
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const [storyText, setStoryText] = useState(exampleStory)
   const [direction, setDirection] = useState(exampleDirection)
 
@@ -165,7 +165,7 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
 
 function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: React.ReactNode; ready: boolean }) {
   const { characters, load } = useCharacters()
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const personas = usePersonas((s) => s.personas)
   const ensurePersona = usePersonas((s) => s.ensureActive)
   const activePersonaId = useSettings((s) => s.activePersonaId)

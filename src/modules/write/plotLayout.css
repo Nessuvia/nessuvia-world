@@ -350,6 +350,34 @@
   margin: 0;
 }
 
+/* The two chapter-wide actions, under the Summary field. Both read the Chapter's prose. */
+.plotSummaryTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plotSummaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Rewrite chapter. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. */
+.rewriteChapterDialog {
+  width: min(620px, 100%);
+}
+
+.rewriteChapterDialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.rewriteProgress {
+  color: var(--accent);
+}
+
 .plotBeatWrite {
   flex: none;
 }

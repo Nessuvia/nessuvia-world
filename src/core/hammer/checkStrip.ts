@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { stripText, stripWith } from './strip.ts'
+import { stripText, stripWith, findFlags } from './strip.ts'
 import type { GrammarHammerRule } from '../stores/settingsStore.ts'
 import { CompromiseTagger } from './tagger.ts'
 
@@ -92,5 +92,31 @@ assert.equal(original, 'She runs with a graceful elegance.')
 // Default tagger path works (memoized).
 const sDefault = stripText('She runs with a graceful elegance.', [r1], 'assistant')
 assert.ok(sDefault.text.length < original.length)
+
+// A `flag` rule reports its match and edits nothing, which is the whole point of the action: the
+// text stays exactly as the model wrote it and Second Pass decides what to do about the span.
+const rFlag = rule('[adv] [adj]', { action: 'flag' })
+const flagSource = 'She runs very quickly and looks quietly furious.'
+assert.equal(stripWith(flagSource, [rFlag], 'assistant', tagger).text, flagSource)
+const flags = findFlags(flagSource, [rFlag], 'assistant', tagger)
+assert.ok(flags.length >= 1, 'expected the flag rule to match')
+// The span has to index the text handed in, since that is what the model gets shown.
+assert.equal(flagSource.slice(flags[0].start, flags[0].end), flags[0].slice)
+assert.equal(flags[0].rule.id, rFlag.id)
+
+// Flags are sorted left to right even when several rules match, so notes read in reading order.
+const flagsMulti = findFlags(flagSource, [rFlag, rule('[adj] and [adj]', { action: 'flag' })], 'assistant', tagger)
+for (let i = 1; i < flagsMulti.length; i++) {
+  assert.ok(flagsMulti[i].start >= flagsMulti[i - 1].start, 'flags out of order')
+}
+
+// Scope and the enabled toggle gate flags the same way they gate strips.
+assert.equal(findFlags(flagSource, [rule('[adv] [adj]', { action: 'flag', scope: 'user' })], 'assistant', tagger).length, 0)
+assert.equal(findFlags(flagSource, [rule('[adv] [adj]', { action: 'flag', enabled: false })], 'assistant', tagger).length, 0)
+
+// A strip rule and a flag rule in one set: the strip applies, the flag does not become an edit.
+const mixed = stripWith('She runs with a graceful elegance very quickly.', [r1, rFlag], 'assistant', tagger)
+assert.ok(!mixed.text.includes('graceful'), 'strip rule should still cut')
+assert.ok(mixed.text.includes('very quickly'), 'flag rule must not cut')
 
 console.log('checkStrip OK')

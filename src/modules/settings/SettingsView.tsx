@@ -4,7 +4,7 @@ import { newConnection, useSettings } from '../../core/stores/settingsStore'
 import ConnectionEditor from './ConnectionEditor'
 import TagRulesPanel from './TagRulesPanel'
 import FindReplacePanel from './FindReplacePanel'
-import GrammarHammerPanel from './GrammarHammerPanel'
+import SecondPassPanel from './SecondPassPanel'
 import RelayPanel from './RelayPanel'
 import { modules } from '../../app/moduleRegistry'
 import { wipeEverything } from '../../core/storage/wipe'
@@ -290,11 +290,12 @@ export default function SettingsView() {
         </div>
       ) : tab === 'relay' ? (
         <RelayPanel />
+      ) : tab === 'secondPass' ? (
+        <SecondPassPanel />
       ) : (
         <div className="textRulesCards">
           <TagRulesPanel />
           <FindReplacePanel />
-          <GrammarHammerPanel />
         </div>
       )}
       </div>

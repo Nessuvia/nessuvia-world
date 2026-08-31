@@ -27,7 +27,7 @@ import {
 import { bundledPalettes } from '../../core/palette/bundledPalettes'
 import { useBackgroundImages } from '../../core/stores/backgroundImagesStore'
 import { lockedHint, usePalette, usePalettes } from '../../core/stores/palettesStore'
-import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection, type MarkerKind } from '../../core/stores/settingsStore'
 import TwoColumn from '../../app/TwoColumn'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import AppearancePanel, { colorField as chatColorField, fonts } from './AppearancePanel'
@@ -71,7 +71,7 @@ export default function PalettesPanel() {
   const importImages = useBackgroundImages((s) => s.importImages)
   const activeId = useSettings((s) => s.activePaletteId)
   const setActive = useSettings((s) => s.setActivePalette)
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const palette = usePalette()
   // No row matches the active id, every palette deleted, or a stale id. Nothing to write to.
   const locked = palette.id === undefined

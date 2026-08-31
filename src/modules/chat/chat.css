@@ -361,11 +361,13 @@
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 4px);
   text-align: center;
+  cursor: pointer;
 }
 
 /* The two hit zones. Neither paints itself as a button: the card is still one object, and the
    avatar's play overlay is what says the halves do different things. */
-.pickerCard > button {
+.pickerCard > button,
+.pickerNameBlock {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -408,7 +410,8 @@
   }
 }
 
-.pickerNameButton:hover .characterName {
+.pickerCard:hover .characterName,
+.pickerCard:focus-visible .characterName {
   color: var(--textBright);
 }
 

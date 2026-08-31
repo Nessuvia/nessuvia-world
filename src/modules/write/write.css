@@ -1336,3 +1336,30 @@ h3.storyPreviewTitle {
 .regenTarget .weightSelect {
   font: inherit;
 }
+
+/* The instructions already applied to the version being rewritten. Read-only: they are sent again
+   whatever is typed below, so the box says what the request will actually carry. */
+.regenChain {
+  padding: 8px 12px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.regenChainList {
+  margin: 4px 0 0;
+  padding-left: 24px;
+  color: var(--textSoft);
+}
+
+/* What the selected version was asked to be, next to its n/total. One line: the full text is on
+   the title attribute. */
+.blockSwipeNote {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--textMuted);
+  font-size: 12px;
+}

@@ -40,6 +40,33 @@ export function OutlineDialog({ onClose }: { onClose: () => void }) {
     setChapters(hit.chapters)
   }
 
+  /**
+   * The drafts, onto the Story. Every field here is already a Story field, so there is nowhere else
+   * for them to live and nothing to serialise: this is the same write `run` does, minus the request.
+   *
+   * Called on the way out as well as on Generate. Without it, typing a premise and closing the
+   * dialog throws the premise away, and reopening shows the fields as they were before.
+   */
+  const persist = async () => {
+    if (!story) return
+    if (premise !== (story.premise ?? '')) await setPremise(premise)
+    if (
+      themes !== (story.themes ?? '') ||
+      genre !== (story.genre ?? '') ||
+      tone !== (story.tone ?? '') ||
+      setting !== (story.setting ?? '') ||
+      ending !== (story.ending ?? '') ||
+      targetWords !== (story.targetWords || 0)
+    ) {
+      await setStoryFields({ themes, genre, tone, setting, ending, targetWords })
+    }
+  }
+
+  const close = async () => {
+    await persist()
+    onClose()
+  }
+
   const run = async () => {
     // Every chapter goes, prose included. Asked once, here, rather than on the button that opened
     // the dialog: the numbers above change what is about to replace them.
@@ -50,8 +77,7 @@ export function OutlineDialog({ onClose }: { onClose: () => void }) {
     try {
       // These are the Story's own fields, not a copy that lives in the dialog: the Premise cap on
       // the strip edits the same premise, and a second run opens on what was asked for last time.
-      if (premise !== (story?.premise ?? '')) await setPremise(premise)
-      await setStoryFields({ themes, genre, tone, setting, ending, targetWords })
+      await persist()
       await generateStoryOutline({
         premise,
         chapters,
@@ -71,7 +97,7 @@ export function OutlineDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="dialogBackdrop" onClick={busy ? undefined : onClose}>
+    <div className="dialogBackdrop" onClick={busy ? undefined : close}>
       <div className="dialog outlineDialog" onClick={(e) => e.stopPropagation()}>
         <h3>Generate story outline</h3>
         <p className="hint">Chapters and their summaries. Beats are generated per chapter.</p>
@@ -179,8 +205,10 @@ export function OutlineDialog({ onClose }: { onClose: () => void }) {
         )}
 
         <div className="dialogActions">
-          <button type="button" className="secondary" disabled={busy} onClick={onClose}>
-            Cancel
+          {/* Close, not Cancel: the fields are kept either way, so the label must not promise
+              they are thrown away. */}
+          <button type="button" className="secondary" disabled={busy} onClick={close}>
+            Close
           </button>
           <button type="button" disabled={busy || !premise.trim()} onClick={run}>
             {busy ? 'Generating…' : 'Generate outline'}

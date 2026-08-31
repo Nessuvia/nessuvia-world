@@ -5,7 +5,7 @@ import { useChats } from '../../core/stores/chatStore'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import { usePalette } from '../../core/stores/palettesStore'
-import { useAppearance, useSettings } from '../../core/stores/settingsStore'
+import { useAppearance, useActiveConnection } from '../../core/stores/settingsStore'
 import { effectiveFont } from '../../core/palette/palette'
 import type { MarkerKind } from '../../core/stores/settingsStore'
 import { activeSession } from '../../core/multiplayer/hostSession'
@@ -386,7 +386,7 @@ function HostBar(): JSX.Element | null {
   const patchChat = useChats((s) => s.patchChat)
   const characters = useCharacters((s) => s.characters)
   const roster = useMultiplayer((s) => s.characters)
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
 
   if (!chat) return null
 

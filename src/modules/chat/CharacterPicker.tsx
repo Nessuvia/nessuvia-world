@@ -301,10 +301,10 @@ export default function CharacterPicker() {
  * One card, two targets. Split out so the flat grid and the grouped view share exactly one copy
  * of it.
  *
- * The avatar resumes the last chat and the name opens the character; both are one click and
- * neither is behind a menu. Two hit zones on one card is only learnable if they look like two, so
- * the avatar carries a play overlay on hover and focus. Without a chat to resume it does what the
- * rest of the card does, there's nothing there to mislearn.
+ * The avatar resumes the last chat and the rest of the card opens the character; both are one
+ * click and neither is behind a menu. Two hit zones on one card is only learnable if they look
+ * like two, so the avatar carries a play overlay on hover and focus. Without a chat to resume it
+ * does what the rest of the card does, there's nothing there to mislearn.
  */
 function PickerCard({
   character,
@@ -326,6 +326,17 @@ function PickerCard({
   return (
     <div
       className="card pickerCard"
+      role="button"
+      tabIndex={0}
+      title="Open character"
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         onMenu(e.clientX, e.clientY)
@@ -336,7 +347,11 @@ function PickerCard({
         type="button"
         className="pickerAvatarButton"
         title={onResume ? 'Continue last chat' : 'Open character'}
-        onClick={onResume ?? onOpen}
+        // The card itself opens the character, so the avatar has to keep its click to itself.
+        onClick={(e) => {
+          e.stopPropagation()
+          ;(onResume ?? onOpen)()
+        }}
       >
         {blip ? (
           <span className="blipRing" title="New reply">
@@ -351,10 +366,10 @@ function PickerCard({
           </span>
         )}
       </button>
-      <button type="button" className="pickerNameButton" title="Open character" onClick={onOpen}>
+      <span className="pickerNameBlock">
         <span className="characterName">{displayName(character) || 'Unnamed'}</span>
         <span className="pickerMeta">{meta}</span>
-      </button>
+      </span>
     </div>
   )
 }

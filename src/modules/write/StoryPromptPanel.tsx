@@ -6,7 +6,7 @@ import { loadTokenizer } from '../../core/prompt/budget'
 import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
-import { useSettings } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection } from '../../core/stores/settingsStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import { resolveCast, useWrite } from '../../core/stores/writeStore'
 import PromptPreviewPanel from '../../app/PromptPreviewPanel'
@@ -28,7 +28,7 @@ export default function StoryPromptPanel() {
   const activeChapterId = useWrite((s) => s.activeChapterId)
   const activeBlockId = useWrite((s) => s.activeBlockId)
   const direction = useWrite((s) => s.story?.direction ?? '')
-  const baseConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const baseConnection = useActiveConnection()
   const activeStoryStackId = useSettings((s) => s.activeStoryStackId)
   const stack = useStacks((s) => s.stacks.find((x) => x.id === activeStoryStackId))
   // Subscribed to only so an edit to a cast member's card re-renders the preview.

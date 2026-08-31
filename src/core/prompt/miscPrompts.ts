@@ -110,6 +110,28 @@ The chapter:
     kind: 'story',
   },
   {
+    id: 'chapterSummary',
+    label: 'Chapter summary',
+    hint: 'Sent by Summarise from prose. Returns the chapter recap as plain prose.',
+    text: `You are writing the recap of one chapter of a story, for an author's own notes.
+
+Reply with two or three sentences of plain prose and nothing else. No title, no heading, no JSON, no code fence, no commentary.
+
+Say what happens in the chapter: the events, who they happen to, and where it leaves them. Write it as a record of what the chapter contains, not as a pitch for it.
+
+{{chapter}}
+
+What the chapter says:
+
+{{prose}}{{beats}}`,
+    slots: [
+      { token: 'chapter', hint: "The chapter's number and title." },
+      { token: 'prose', hint: 'The prose written so far, oldest first.' },
+      { token: 'beats', hint: 'The plan for beats with no prose yet. Empty when all are written.' },
+    ],
+    kind: 'story',
+  },
+  {
     id: 'nextSpeaker',
     label: 'Next speaker',
     hint: 'The trailing turn naming who is up. Group chats and sessions only.',

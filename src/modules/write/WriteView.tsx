@@ -30,7 +30,7 @@ import { decorateProse, readProse, restoreCaret, saveCaret } from './proseMarkup
 import { loremParagraphs } from './loremPreview'
 import { exportStoryHtml, exportStoryJson, exportStoryTxt } from './exportStory'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
-import { reasoningFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
+import { instructionChain, reasoningFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
 import { beatTargets } from '../../core/prompt/beatWeights'
 import { WeightPicker } from './WeightPicker'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
@@ -410,6 +410,7 @@ function RegenDialog({
   label,
   weight,
   words,
+  chain,
   onClose,
   onRegen,
 }: {
@@ -417,6 +418,9 @@ function RegenDialog({
   weight: BeatWeight
   /** The words this beat works out to at the weight below. Derived, so it moves as the weight does. */
   words: number
+  /** Every instruction that led to the version on screen, oldest first. Shown because they are sent
+   *  again alongside whatever is typed here: a regen carries them, it does not start over. */
+  chain: string[]
   onClose: () => void
   onRegen: (instruction: string, weight: BeatWeight) => void
 }) {
@@ -428,6 +432,16 @@ function RegenDialog({
       <div className="dialog regenDialog" onClick={(e) => e.stopPropagation()}>
         <h3>Regen with instructions</h3>
         <p className="hint">{label}</p>
+        {chain.length > 0 && (
+          <div className="regenChain">
+            <p className="hint">Already asked for, and sent again:</p>
+            <ol className="regenChainList">
+              {chain.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ol>
+          </div>
+        )}
         <textarea
           rows={8}
           autoFocus
@@ -599,6 +613,14 @@ function BlockHead({
         </span>
       )}
 
+      {/* What this version was asked to be. Without it a swipe strip is a count of takes with no
+          way to tell them apart. */}
+      {total > 1 && block.instructions?.[at] && (
+        <span className="blockSwipeNote" title={block.instructions[at]}>
+          {block.instructions[at]}
+        </span>
+      )}
+
       {streamingHere ? (
         <button type="button" className="blockWrite" title="Stop writing. The text so far is kept." onClick={stop}>
           <RiStopCircleLine size={21} />
@@ -727,6 +749,7 @@ function BlockHead({
           label={label}
           weight={block.weight}
           words={targetWords}
+          chain={instructionChain(block)}
           onClose={() => setRegen(false)}
           onRegen={regen}
         />
@@ -773,6 +796,7 @@ function BlockRegion({
   const id = block.id
   const rev = useWrite((s) => s.revs[id] ?? 0)
   const streamingText = useWrite((s) => s.streamingText)
+  const streamingDraft = useWrite((s) => s.streamingDraft)
   const streamingReasoning = useWrite((s) => s.streamingReasoning)
   // One switch for the whole app, shared with chat - there is no per-beat toggle.
   const showReasoning = useSettings((s) => s.appearance.showReasoning)
@@ -862,10 +886,11 @@ function BlockRegion({
     }
   }, [saveBlockText, chapterId, id])
 
-  // The streaming tail isn't editable, so it can be decorated freely as it grows.
+  // The streaming tail isn't editable, so it can be decorated freely as it grows. Second Pass's
+  // draft renders here too, dimmed by the class on the wrapper, until the edited prose replaces it.
   useLayoutEffect(() => {
-    if (tail.current) decorateProse(tail.current, streamingText, colorOrder)
-  }, [streamingText, takingStream, orderKey])
+    if (tail.current) decorateProse(tail.current, streamingDraft || streamingText, colorOrder)
+  }, [streamingText, streamingDraft, takingStream, orderKey])
 
   function onInput() {
     window.clearTimeout(timer.current)
@@ -974,7 +999,7 @@ function BlockRegion({
       {takingStream && (
         // The streaming region: locked (not editable) so only the tail is off-limits while the
         // Author edits other Blocks. Committed onto the Block when generation finishes.
-        <div className="streamingTail" contentEditable={false}>
+        <div className={`streamingTail${streamingDraft ? ' secondPassDraft' : ''}`} contentEditable={false}>
           {/* Filled by decorateProse, so the tail formats as it arrives. */}
           <span ref={tail} />
           <span className="caret">▌</span>

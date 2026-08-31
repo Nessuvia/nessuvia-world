@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { newCharacter, useCharacters } from '../../core/stores/charactersStore'
-import { useSettings } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection } from '../../core/stores/settingsStore'
 import { ColorInput } from '../../app/ColorInput'
 import type { BlockSource, Character } from '../../core/storage/types'
 import { sourceLabels } from '../prompts/blockTypes'
@@ -64,7 +64,7 @@ export default function CharacterEditor({
   onSaveState?: (state: string) => void
 }) {
   const { characters, load, save } = useCharacters()
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   // For the "this text is not sent" notice below: the card's prompt fields only reach the model
   // through a block, and the default stacks carry neither.
   const stacks = useStacks((s) => s.stacks)

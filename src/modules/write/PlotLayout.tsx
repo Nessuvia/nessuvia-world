@@ -11,6 +11,8 @@ import {
   RiDraggable,
   RiFileTextLine,
   RiListCheck,
+  RiQuillPenLine,
+  RiSparkling2Line,
 } from '@remixicon/react'
 import type { BeatWeight, Block, Chapter, GuideSend } from '../../core/storage/types'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
@@ -32,6 +34,72 @@ export function countWords(text: string): number {
   return trimmed === '' ? 0 : trimmed.split(/\s+/).length
 }
 
+
+/**
+ * Rewrite every written beat in one Chapter under a single instruction. Reuses .dialogBackdrop /
+ * .dialog / .dialogActions from chat.css, the same as RegenDialog.
+ *
+ * It stays open while the run works through the beats: the progress line is the only place the
+ * Author can see how far it got, and closing it would not stop the run anyway.
+ */
+function RewriteChapterDialog({
+  label,
+  beats,
+  rewriting,
+  onClose,
+  onRewrite,
+}: {
+  label: string
+  beats: number
+  rewriting: { done: number; total: number } | null
+  onClose: () => void
+  onRewrite: (note: string) => void
+}) {
+  const [note, setNote] = useState('')
+  const running = !!rewriting
+
+  return (
+    <div className="dialogBackdrop" onClick={running ? undefined : onClose}>
+      <div className="dialog rewriteChapterDialog" onClick={(e) => e.stopPropagation()}>
+        <h3>Rewrite chapter</h3>
+        <p className="hint">
+          {label} · {beats} written {beats === 1 ? 'beat' : 'beats'}
+        </p>
+        <textarea
+          rows={6}
+          autoFocus
+          value={note}
+          disabled={running}
+          placeholder="What should change across the whole chapter?"
+          onChange={(e) => setNote(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && note.trim() && !running) {
+              e.preventDefault()
+              onRewrite(note.trim())
+            }
+          }}
+        />
+        <p className="hint">
+          Each beat is written again as a new version. Its own regen instructions are sent with this
+          one. Nothing is replaced.
+        </p>
+        {rewriting && (
+          <p className="hint rewriteProgress">
+            Rewriting beat {rewriting.done + 1} of {rewriting.total}. Stop ends the run.
+          </p>
+        )}
+        <div className="dialogActions">
+          <button type="button" className="secondary" disabled={running} onClick={onClose}>
+            {running ? 'Close' : 'Cancel'}
+          </button>
+          <button type="button" disabled={!note.trim() || running} onClick={() => onRewrite(note.trim())}>
+            Rewrite
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const sendLabels: Record<GuideSend, string> = {
   both: 'Summary and beats',
@@ -184,36 +252,78 @@ function BulkAddBeats({
   )
 }
 
-// One beat's text field. It holds its own draft and writes on a pause, like Cap: `updateChapter`
-// awaits the Dexie write before it sets state, so a controlled value fed straight from the store
-// lands a render late and React puts the caret back at the end of the line.
-function BeatText({ value, onSave }: { value: string; onSave: (text: string) => void }) {
+// A field that holds its own draft and writes on a pause, like Cap: `updateChapter` awaits the
+// Dexie write before it sets state, so a controlled value fed straight from the store lands a render
+// late and React puts the caret back at the end of the line. Every field on this tab that writes to
+// a Chapter needs it, not only the beats.
+function DraftText({
+  value,
+  onSave,
+  rows,
+  className,
+  placeholder,
+  title,
+}: {
+  value: string
+  onSave: (text: string) => void
+  /** Given for a textarea, left out for a single-line input. */
+  rows?: number
+  className?: string
+  placeholder?: string
+  title?: string
+}) {
   const [draft, setDraft] = useState(value)
   const timer = useRef<number | undefined>(undefined)
 
-  // Only take an outside change when it isn't what we already have, a reorder or an undo, not the
-  // echo of our own save coming back.
+  // Only take an outside change when it isn't what we already have, a reorder, an undo or Summarise
+  // from prose, not the echo of our own save coming back.
   useEffect(() => {
     if (value !== draft) setDraft(value)
   }, [value]) // draft left out on purpose: it changes on every keystroke.
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
-  return (
-    <textarea
-      className="plotBeatText"
-      rows={1}
+  const change = (text: string) => {
+    setDraft(text)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => onSave(text), 400)
+  }
+  const flush = () => {
+    window.clearTimeout(timer.current)
+    onSave(draft)
+  }
+
+  return rows === undefined ? (
+    <input
+      className={className}
       value={draft}
+      placeholder={placeholder}
+      title={title}
+      onChange={(e) => change(e.target.value)}
+      onBlur={flush}
+    />
+  ) : (
+    <textarea
+      className={className}
+      rows={rows}
+      value={draft}
+      placeholder={placeholder}
+      title={title}
+      onChange={(e) => change(e.target.value)}
+      onBlur={flush}
+    />
+  )
+}
+
+/** One beat's text field. */
+function BeatText({ value, onSave }: { value: string; onSave: (text: string) => void }) {
+  return (
+    <DraftText
+      value={value}
+      onSave={onSave}
+      rows={1}
+      className="plotBeatText"
       placeholder="What happens in this beat"
       title="What is meant to happen in this beat. Sent instead of its prose when the prose no longer fits."
-      onChange={(e) => {
-        setDraft(e.target.value)
-        window.clearTimeout(timer.current)
-        timer.current = window.setTimeout(() => onSave(e.target.value), 400)
-      }}
-      onBlur={() => {
-        window.clearTimeout(timer.current)
-        onSave(draft)
-      }}
     />
   )
 }
@@ -291,8 +401,20 @@ function ChapterEditor({
   const moveChapter = useWrite((s) => s.moveChapter)
   const addChapter = useWrite((s) => s.addChapter)
   const streaming = useWrite((s) => s.streaming)
+  const summarizeChapter = useWrite((s) => s.summarizeChapter)
+  const rewriteChapter = useWrite((s) => s.rewriteChapter)
+  const rewriting = useWrite((s) => s.rewriting)
   const [bulkOpen, setBulkOpen] = useState(false)
   const [generateOpen, setGenerateOpen] = useState(false)
+  const [rewriteOpen, setRewriteOpen] = useState(false)
+
+  // Both chapter-wide actions read the prose, so neither is offered on a Chapter that has none.
+  const prose = chapter.blocks.some((b) => b.content.trim())
+
+  function onSummarize() {
+    if (chapter.summary.trim() && !confirm('Replace the Chapter summary with one written from its prose?')) return
+    summarizeChapter(id)
+  }
 
   const beats = chapter.blocks
   const setBeats = (next: Block[]) => updateChapter(id, { blocks: next })
@@ -365,18 +487,50 @@ function ChapterEditor({
 
       <label className="plotField">
         Title
-        <input value={chapter.title} onChange={(e) => updateChapter(id, { title: e.target.value })} />
+        <DraftText value={chapter.title} onSave={(title) => updateChapter(id, { title })} />
       </label>
 
       <label className="plotField">
         Summary
-        <textarea
-          rows={3}
+        <DraftText
           value={chapter.summary}
+          onSave={(summary) => updateChapter(id, { summary })}
+          rows={3}
           placeholder="What happened in this Chapter."
-          onChange={(e) => updateChapter(id, { summary: e.target.value })}
         />
       </label>
+      <div className="plotSummaryTools">
+        <button
+          type="button"
+          className="plotSummaryButton"
+          disabled={streaming || !prose}
+          title={
+            streaming
+              ? 'Available when the Co-Writer stops writing.'
+              : prose
+                ? 'Rewrite the summary from the prose this Chapter holds.'
+                : 'Write some of this Chapter first.'
+          }
+          onClick={onSummarize}
+        >
+          <RiQuillPenLine size={16} /> Summarise from prose
+        </button>
+        <button
+          type="button"
+          className="plotSummaryButton"
+          disabled={streaming || !prose}
+          title={
+            streaming
+              ? 'Available when the Co-Writer stops writing.'
+              : prose
+                ? 'Write every beat in this Chapter again, as new versions.'
+                : 'Write some of this Chapter first.'
+          }
+          onClick={() => setRewriteOpen(true)}
+        >
+          <RiSparkling2Line size={16} /> Rewrite chapter
+        </button>
+      </div>
       <p className="hint">
         Summary, what happened in this chapter. Sent in place of the beats when the guide runs short
         of room.
@@ -518,6 +672,16 @@ function ChapterEditor({
           chapter={chapter}
           index={index}
           onClose={() => setGenerateOpen(false)}
+        />
+      )}
+
+      {rewriteOpen && (
+        <RewriteChapterDialog
+          label={`Chapter ${index + 1}${chapter.title.trim() ? `, ${chapter.title.trim()}` : ''}`}
+          beats={chapter.blocks.filter((b) => b.content.trim()).length}
+          rewriting={rewriting}
+          onClose={() => setRewriteOpen(false)}
+          onRewrite={(note) => rewriteChapter(id, note)}
         />
       )}
 

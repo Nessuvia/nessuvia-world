@@ -405,11 +405,17 @@
   flex: 0 0 auto;
 }
 
-/* The tag beats `.formPage label`, which makes labels inline-flex and shrink-to-fit. That was
-   capping the pattern input at its intrinsic width. The Action field is a div, so it was fine. */
-label.ruleField {
+/* #root to beat `.formPage label`, which is inline-flex and shrink-to-fit, collapsing a field to its
+   intrinsic ~20-column width. Same fix as `#root .connectionGrid > label` above, and for the same
+   reason. The Action field is a div, so it was never affected.
+
+   This was `label.ruleField`, which ties `.formPage label` on specificity (both 0-1-1) and lives in
+   a different chunk, so which one won came down to stylesheet load order. It held for the one-line
+   pattern input and gave way under the note textarea. */
+#root label.ruleField {
   display: flex;
   align-self: stretch;
+  min-width: 0;
 }
 
 .ruleField {
@@ -533,4 +539,69 @@ label.ruleField {
   .grammarPreview textarea {
     min-width: 0;
   }
+}
+
+/* Second Pass. The panel reuses .textRules/.screenBody for its frame; these are the parts it adds.
+   .screenBody only handles scrolling, so the stacked controls need their own column and gap. */
+.secondPassBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+.secondPassPrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.secondPassPromptInput {
+  width: 100%;
+  resize: vertical;
+}
+
+.secondPassSectionTitle {
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.secondPassNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.secondPassNumber {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.secondPassNumberInput {
+  width: 72px;
+}
+
+/* Free-text rules. The cards reuse .ruleCard/.ruleCardHead/.ruleField from the Grammar Hammer; these
+   are the two parts that list has and the Hammer's does not. Scoped to .ruleField and carrying
+   min-width like .patternInput does, so both fields in a card size the same way. */
+.ruleField .ruleNoteInput {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+}
+
+.textRuleMatches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--textMuted);
 }

@@ -3,8 +3,7 @@
 // reads fine without JSX.
 import { createElement, Fragment } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import type { MarkerKind, ReplaceRule, TagRule, GrammarHammerRule } from '../../core/stores/settingsStore'
-import { stripText } from '../../core/hammer/strip.ts'
+import type { MarkerKind, ReplaceRule, TagRule } from '../../core/stores/settingsStore'
 
 // Which color a marker's text takes when several overlap. Text is the implicit baseline below
 // all three. `order` is top-first (strongest first); the highest-ranked kind present on a run
@@ -47,8 +46,6 @@ const markers = [
 export interface RenderOpts {
   tagRules?: TagRule[]
   replaceRules?: ReplaceRule[]
-  grammarHammerRules?: GrammarHammerRule[]
-  grammarHammerEnabled?: boolean
   role?: 'user' | 'assistant'
   /** Color precedence, top-first. Omitted → module default. */
   order?: MarkerKind[]
@@ -88,13 +85,7 @@ export function applyReplaceRules(
  * Two stages: tag rules split the text into blocks, then each block gets the inline marker scan.
  */
 export function renderText(input: string, opts?: RenderOpts): ReactNode[] {
-  let text = input
-  if (opts?.grammarHammerEnabled && opts?.grammarHammerRules?.length) {
-    // Strip runs before find/replace so the literal/regex rules see the cleaned text. Display-only:
-    // the stored message is never modified.
-    text = stripText(text, opts.grammarHammerRules, opts.role ?? 'assistant').text
-  }
-  text = applyReplaceRules(text, opts?.replaceRules, opts?.role)
+  let text = applyReplaceRules(input, opts?.replaceRules, opts?.role)
   const order = opts?.order ?? defaultOrder
   const rules = opts?.tagRules?.filter((r) => r.open && r.close)
   if (!rules?.length) return renderInline(text, order)

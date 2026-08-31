@@ -5,7 +5,7 @@
 // `node --experimental-strip-types`.
 import type { ChatMessage } from '../connectors/connectorInterface.ts'
 import type { BeatWeight } from '../storage/types.ts'
-import { firstJsonObject } from '../palette/palettePrompt.ts'
+import { firstJsonObject, repairJsonStrings } from '../palette/palettePrompt.ts'
 import { asWeight } from './beatWeights.ts'
 import { fillSlots, miscPrompt, type MiscPrompts } from './miscPrompts.ts'
 
@@ -181,6 +181,37 @@ export function parseChapterOutlineReply(text: string): OutlineBeat[] {
   return out
 }
 
+// ------------------------------------------------------------------------- Chapter summary
+
+/** What the summary request carries. `prose` is already trimmed to fit by the caller, which is the
+ *  only place that knows the connection's budget. `unwritten` is the beats with no prose yet, so
+ *  the recap can say a chapter is unfinished rather than end mid-air. */
+export interface ChapterSummaryRequest {
+  chapterNumber: number
+  title: string
+  prose: string
+  unwritten: string[]
+}
+
+export function buildChapterSummaryMessages(
+  req: ChapterSummaryRequest,
+  prompts?: MiscPrompts,
+): ChatMessage[] {
+  const text = fillSlots(miscPrompt('chapterSummary', prompts), {
+    chapter: `Chapter ${req.chapterNumber}${req.title.trim() ? `: ${req.title.trim()}` : ''}`,
+    prose: req.prose.trim(),
+    beats: para(
+      req.unwritten.length
+        ? `Still unwritten, planned as:\n\n${req.unwritten.join('\n')}`
+        : '',
+    ),
+  })
+  return [
+    { role: 'system', content: text },
+    { role: 'user', content: 'Write the summary.' },
+  ]
+}
+
 // -------------------------------------------------------------------------------- internals
 
 /** One system turn. There is no history and no stack here: the whole request is the instruction,
@@ -205,8 +236,33 @@ function outlineObject(text: string): unknown {
   try {
     return JSON.parse(json)
   } catch (err) {
-    throw new Error(`The reply's JSON did not parse: ${(err as Error).message}`)
+    // A beat is prose, so the usual failure is a quote or a newline the model did not escape.
+    // Second pass rather than first: a reply that was already valid must never go through a repair.
+    try {
+      return JSON.parse(repairJsonStrings(json))
+    } catch {
+      throw new Error(
+        `The reply's JSON did not parse: ${(err as Error).message}\n\n${aroundFailure(json, (err as Error).message)}`,
+      )
+    }
   }
+}
+
+/**
+ * The text either side of the position a parse failed at. A column number on its own says nothing
+ * about which beat broke, and the reply is gone by the time the dialog shows the error.
+ *
+ * The position is read out of the engine's own message, which is not a stable format: V8 says
+ * "at position 337", SpiderMonkey says "column 338". Neither matching means the whole object is
+ * shown instead, which is still more use than a number.
+ */
+function aroundFailure(json: string, message: string, span = 120): string {
+  const hit = /position (\d+)/.exec(message) ?? /column (\d+)/.exec(message)
+  if (!hit) return json.length <= span * 2 ? json : `${json.slice(0, span * 2)}…`
+  const at = Number(hit[1])
+  const from = Math.max(0, at - span)
+  const to = Math.min(json.length, at + span)
+  return `${from > 0 ? '…' : ''}${json.slice(from, to)}${to < json.length ? '…' : ''}`
 }
 
 /** A row as a plain object, or undefined for anything that is not one (an array, null, a string). */

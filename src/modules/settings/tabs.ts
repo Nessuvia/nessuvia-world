@@ -3,6 +3,9 @@
 export const tabs = [
   ['connections', 'Connections'],
   ['textRules', 'Text'],
+  // Its own tab rather than a card under Text: the rules under Text change what you see, and these
+  // change what gets stored and sent back to the model on the next turn.
+  ['secondPass', 'Second Pass'],
   ['relay', 'Multiplayer'],
   ['debug', 'Misc'],
 ] as const

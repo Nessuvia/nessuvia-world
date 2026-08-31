@@ -211,4 +211,37 @@ assert.strictEqual(
   'Beats for Chapter 2: T',
 )
 
+// --- prose in a beat: the quotes and newlines models forget to escape ------
+{
+  // An unescaped quote mid-string. This is the reply shape that used to fail the parse outright.
+  const beats = parseChapterOutlineReply(
+    '{"beats":[{"content":"She says "no" and leaves","length":"brief"}]}',
+  )
+  assert.deepStrictEqual(beats, [{ beat: 'She says "no" and leaves', weight: 'brief' }])
+
+  // A raw newline inside a string, which is never legal JSON.
+  assert.strictEqual(
+    parseChapterOutlineReply('{"beats":[{"content":"Two\nlines","length":"normal"}]}')[0].beat,
+    'Two lines', // str() folds the newline out; the point is that it parsed at all.
+  )
+
+  // A quote that really does end the string is still an end, whatever follows the comma.
+  assert.deepStrictEqual(
+    parseChapterOutlineReply('{"beats":[{"content":"one"},{"content":"two"}]}').map((b) => b.beat),
+    ['one', 'two'],
+  )
+
+  // A reply that is valid to begin with is not touched: the repair is a second pass only.
+  assert.strictEqual(
+    parseChapterOutlineReply('{"beats":[{"content":"She says \\"no\\"","length":"long"}]}')[0].beat,
+    'She says "no"',
+  )
+
+  // Still unusable after the repair, and the message carries the text it choked on.
+  assert.throws(
+    () => parseChapterOutlineReply('{"beats":[{"content":,}]}'),
+    (err: Error) => err.message.includes('did not parse') && err.message.includes('"beats"'),
+  )
+}
+
 console.log('checkOutline ok')

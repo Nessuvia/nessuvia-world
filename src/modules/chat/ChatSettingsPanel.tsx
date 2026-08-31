@@ -4,7 +4,8 @@ import PromptToggles from '../prompts/PromptToggles'
 import { stackKind } from '../prompts/stackKinds'
 import { useChats } from '../../core/stores/chatStore'
 import { useCharacters } from '../../core/stores/charactersStore'
-import { useSettings, useAppearance } from '../../core/stores/settingsStore'
+import { useSettings, useAppearance, useActiveConnection, useSecondPass } from '../../core/stores/settingsStore'
+import ConnectionPicker from '../../app/ConnectionPicker'
 import { usePalette } from '../../core/stores/palettesStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import { participants } from '../../core/stores/roster'
@@ -35,9 +36,10 @@ export default function ChatSettingsPanel({
   const chat = useChats((s) => s.chat)
   const patchChat = useChats((s) => s.patchChat)
   const character = useCharacters((s) => s.characters.find((c) => c.id === chat?.characterId))
-  const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
-  const connection = connections.find((c) => c.id === activeConnectionId)
+  const connection = useActiveConnection()
+  const secondPass = useSecondPass()
+  const setSecondPass = useSettings((s) => s.setSecondPass)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
   const activeStackId = useSettings((s) => s.activeStackId)
   const stacks = useStacks((s) => s.stacks)
@@ -83,20 +85,7 @@ export default function ChatSettingsPanel({
           Every chat resolves generation from those globals, so this is a global default, not a
           per-chat override. Per-chat: add connectionId to the Chat record (stackId already exists)
           and resolve from it in ChatView. */}
-      <label className="chatSettingsPick">
-        Connection
-        <select
-          value={activeConnectionId ?? ''}
-          onChange={(e) => setActiveConnection(e.target.value || null)}
-        >
-          {connections.length === 0 && <option value="">No connections</option>}
-          {connections.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ConnectionPicker value={activeConnectionId} onChange={setActiveConnection} />
 
       {/* <details> for the section toggles, native, and no state to persist. */}
       <details>
@@ -218,39 +207,34 @@ export default function ChatSettingsPanel({
       </details>
       )}
 
-      {/* writes the global grammarHammer settings, same records the Settings panel edits,
-          flipping a rule here affects every chat. Per-chat override: add a grammarHammer field
-          to the Chat record and merge it in stripText's callers. */}
+      {/* Writes the global Second Pass settings, the same records the Settings panel edits, so
+          flipping a rule here affects every chat. Per-chat override: add a secondPass field to the
+          Chat record and merge it in the wrapper. */}
       <details>
-        <summary>Grammar Hammer</summary>
+        <summary>Second Pass</summary>
         <label className="checkboxRow">
           <input
             type="checkbox"
-            checked={appearance.grammarHammer.enabled}
+            checked={secondPass.enabled}
             onChange={(e) =>
-              setAppearance({
-                grammarHammer: { ...appearance.grammarHammer, enabled: e.target.checked },
-              })
+setSecondPass({ enabled: e.target.checked })
             }
           />
           Enable
         </label>
-        {appearance.grammarHammer.enabled && (
+        {secondPass.enabled && (
           <ul className="grammarRuleList">
-            {appearance.grammarHammer.rules.map((rule) => (
+            {secondPass.rules.map((rule) => (
               <li key={rule.id}>
                 <label className="checkboxRow ruleToggleRow">
                   <input
                     type="checkbox"
                     checked={rule.enabled}
                     onChange={(e) =>
-                      setAppearance({
-                        grammarHammer: {
-                          ...appearance.grammarHammer,
-                          rules: appearance.grammarHammer.rules.map((r) =>
-                            r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
-                          ),
-                        },
+                      setSecondPass({
+                        rules: secondPass.rules.map((r) =>
+                          r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
+                        ),
                       })
                     }
                   />
@@ -261,7 +245,7 @@ export default function ChatSettingsPanel({
                 </label>
               </li>
             ))}
-            {appearance.grammarHammer.rules.length === 0 && (
+            {secondPass.rules.length === 0 && (
               <p className="hint">No rules yet. Add some in Settings.</p>
             )}
           </ul>

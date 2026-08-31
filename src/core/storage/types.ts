@@ -236,6 +236,9 @@ export interface Message {
    *  snapshot was never taken or was past ~256 KB. The field is unindexed, so its shape can change
    *  without a schema version. */
   requestSnapshots?: (string | undefined)[]
+  /** The first-pass text for each swipe, parallel to `swipes`, where Second Pass changed it. Holes
+   *  everywhere else. Unindexed, like the other parallel arrays. */
+  drafts?: (string | undefined)[]
   createdAt: number
 }
 
@@ -329,6 +332,12 @@ export interface Block {
   swipeIndex?: number
   /** The model's reasoning for each swipe, parallel to `swipes` (holes where none/absent). */
   reasonings?: (string | undefined)[]
+  /** What the Author asked for when producing each swipe, parallel to `swipes`. A plain re-roll
+   *  leaves a hole. Regenerating sends every instruction up to the selected swipe, so this is the
+   *  record of what the current take was asked to be, not decoration. */
+  instructions?: (string | undefined)[]
+  /** The first-pass text for each swipe, parallel to `swipes`. See `Message.drafts`. */
+  drafts?: (string | undefined)[]
   context: BlockContext
 }
 
