@@ -550,6 +550,10 @@ h3.storyPreviewTitle {
   line-height: var(--storyLineHeight, 1.6);
   /* The Story's own text color; unset falls straight to the theme's, never to the chat's. */
   color: var(--storyTextColor, var(--text));
+  /* Prose sits on its own surface so it stays readable over a page background image. */
+  background: var(--storyProseBg, var(--surface));
+  padding: 8px 12px;
+  border-radius: var(--radius);
 }
 
 .storyProse:empty::before {
