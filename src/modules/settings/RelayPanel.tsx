@@ -1,13 +1,11 @@
 /**
- * The relay a multiplayer session runs over. Global default — the Multiplayer landing can pick the
- * other relay for one session without changing what is set here.
+ * The relay a multiplayer session runs over. Global default.
  */
 import { useState } from 'react'
 import { useSettings } from '../../core/stores/settingsStore'
 import { validRelayUrl } from '../../core/multiplayer/relayConfig'
 import { newSessionId } from '../../core/multiplayer/channel'
 import { openCentrifugoChannel } from '../../core/multiplayer/centrifugoChannel'
-import { realtimeConfigured } from '../../core/multiplayer/realtimeClient'
 import { useMediaQuery } from '../../app/useMediaQuery'
 
 export default function RelayPanel() {
@@ -63,43 +61,17 @@ export default function RelayPanel() {
         </label>
         <p className="debugHint">Off hides the Multiplayer tab and the New multiplayer button.</p>
       </section>
-      <section className="settingsCard">
-        <h3>Relay</h3>
-        <label className="debugToggle">
-          <input
-            type="radio"
-            name="relayKind"
-            checked={relay.kind === 'supabase'}
-            disabled={!realtimeConfigured}
-            onChange={() => setRelay({ kind: 'supabase' })}
-          />
-          Default relay
-        </label>
-        <p className="debugHint">
-          {realtimeConfigured
-            ? 'Supabase Realtime, on an account the developer holds. No setup.'
-            : 'Not available in this build.'}
-        </p>
-        <label className="debugToggle">
-          <input
-            type="radio"
-            name="relayKind"
-            checked={relay.kind === 'centrifugo'}
-            disabled={!urlOk}
-            onChange={() => setRelay({ kind: 'centrifugo' })}
-          />
-          {isMobile ? <s>Your relay</s> : 'Your relay'}
-        </label>
-        <p className="debugHint">
-          {isMobile
-            ? 'Running a relay requires a Windows PC.'
-            : 'A Centrifugo server you run. Setup is in resources/self-hosted-relay.md.'}
-        </p>
-      </section>
-
-      {!isMobile && (
+      {isMobile ? (
       <section className="settingsCard">
         <h3>Your relay</h3>
+        <p className="debugHint">Running a relay requires a Windows PC. Set it up there.</p>
+      </section>
+      ) : (
+      <section className="settingsCard">
+        <h3>Your relay</h3>
+        <p className="debugHint">
+          A Centrifugo server you run. Setup is in resources/self-hosted-relay.md.
+        </p>
         <label className="relayUrlField">
           Websocket URL
           <input

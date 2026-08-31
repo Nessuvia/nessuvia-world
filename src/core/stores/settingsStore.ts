@@ -168,9 +168,8 @@ interface SettingsState {
   /** The user's own S3-compatible bucket, or blank fields when sync is not set up. Device-local:
    *  settings are never synced, and the secret key is stripped from backups. */
   bucket: BucketConfig
-  /** Which relay multiplayer sessions run over, and the self-hosted endpoint when there is one.
-   *  The default for a new session — the Multiplayer landing can pick the other one for that
-   *  session without writing back here. Device-local, like `bucket`. */
+  /** The Centrifugo endpoint multiplayer sessions run over, blank when none is set up.
+   *  Device-local, like `bucket`. */
   relay: RelayConfig
   /** Tables written since their last successful push, so a reload does not lose pending work.
    *  Defaults to every table: a blob persisted before this field existed has no push on record, so

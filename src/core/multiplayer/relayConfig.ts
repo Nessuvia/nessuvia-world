@@ -5,25 +5,16 @@
  * No imports of its own: `checkRelayConfig.ts` runs under node --strip-types.
  */
 
-export type RelayKind = 'supabase' | 'centrifugo'
-
 export interface RelayConfig {
-  kind: RelayKind
-  /** The Centrifugo websocket endpoint, e.g. `wss://relay.example.net/connection/websocket`.
-   *  Unused and blank when `kind` is 'supabase'. */
+  /** The Centrifugo websocket endpoint, e.g. `wss://relay.example.net/connection/websocket`. */
   url: string
 }
 
-/** Supabase, because that is the relay a build ships configured for and the one that needs no
- *  setup. A self-hosted URL is something the user goes and enters. */
-export const emptyRelayConfig: RelayConfig = { kind: 'supabase', url: '' }
+/** No relay until the user enters one. */
+export const emptyRelayConfig: RelayConfig = { url: '' }
 
-/**
- * Whether this config can open a channel. Supabase depends on the build's env values, which this
- * file cannot see, so the caller passes that in — `channel.ts` has it from `realtimeClient.ts`.
- */
-export function relayConfigured(c: RelayConfig, supabaseAvailable: boolean): boolean {
-  if (c.kind === 'supabase') return supabaseAvailable
+/** Whether this config can open a channel. */
+export function relayConfigured(c: RelayConfig): boolean {
   return validRelayUrl(c.url)
 }
 
@@ -42,9 +33,8 @@ export function validRelayUrl(url: string): boolean {
   }
 }
 
-/** The relay's hostname, for the notice to name. '' for Supabase, which the notice names itself. */
+/** The relay's hostname, for the notice to name. '' when the URL is unusable. */
 export function relayHost(config: RelayConfig): string {
-  if (config.kind !== 'centrifugo') return ''
   try {
     return new URL(config.url).host
   } catch {
@@ -52,19 +42,15 @@ export function relayHost(config: RelayConfig): string {
   }
 }
 
-/** The invite link for a session. Only a self-hosted relay adds a parameter, so a Supabase link is
- *  the bare path it has always been. */
+/** The invite link for a session. The relay travels on it, since only the host has it configured. */
 export function inviteLink(origin: string, sessionId: string, config: RelayConfig): string {
-  const base = `${origin}/join/${sessionId}`
-  if (config.kind !== 'centrifugo') return base
-  return `${base}?r=${encodeURIComponent(config.url)}`
+  return `${origin}/join/${sessionId}?r=${encodeURIComponent(config.url)}`
 }
 
-/** The relay a guest should use, from the `r` parameter on the link they opened. An absent `r` is
- *  Supabase; an `r` that is not a valid wss URL is undefined, and the guest is told the link is
- *  bad rather than pointed at whatever it said. */
+/** The relay a guest should use, from the `r` parameter on the link they opened. An `r` that is
+ *  missing or not a valid wss URL is undefined, and the guest is told the link is bad rather than
+ *  pointed at whatever it said. */
 export function relayFromLink(r: string | null): RelayConfig | undefined {
-  if (!r) return emptyRelayConfig
-  if (!validRelayUrl(r)) return undefined
-  return { kind: 'centrifugo', url: r }
+  if (!r || !validRelayUrl(r)) return undefined
+  return { url: r }
 }

@@ -1,13 +1,12 @@
 /**
- * The transport a session runs over: one interface, two implementations, one entry point.
+ * The transport a session runs over.
  *
  * Everything above this — `hostSession.ts`, `JoinView`, the store, the room — holds a `Channel` and
- * never learns which relay is underneath. `supabaseChannel.ts` is the default and needs no setup;
- * `centrifugoChannel.ts` talks to a relay the user runs (`resources/self-hosted-relay.md`).
+ * never talks to the relay directly. `centrifugoChannel.ts` talks to a relay the user runs
+ * (`resources/self-hosted-relay.md`).
  */
 import type { MultiplayerEvent } from './protocol'
 import type { RelayConfig } from './relayConfig'
-import { openSupabaseChannel } from './supabaseChannel'
 import { openCentrifugoChannel } from './centrifugoChannel'
 
 export interface PresenceMember {
@@ -43,10 +42,7 @@ export function openChannel(
   me: PresenceMember,
   handlers: ChannelHandlers,
 ): Channel {
-  if (config.kind === 'centrifugo') {
-    return openCentrifugoChannel(config.url, sessionId, me, handlers)
-  }
-  return openSupabaseChannel(sessionId, me, handlers)
+  return openCentrifugoChannel(config.url, sessionId, me, handlers)
 }
 
 /** A new session id: 22 URL-safe characters, unguessable, never reused. */

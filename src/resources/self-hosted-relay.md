@@ -1,8 +1,7 @@
 # Self-hosted relay
 
-A multiplayer session's frames pass through a relay. The default is Supabase Realtime, on an account
-the developer holds. A host can point a session at [Centrifugo](https://centrifugal.dev/) running on
-their own machine instead, and then nothing of the developer's is in the path.
+A multiplayer session's frames pass through a relay: [Centrifugo](https://centrifugal.dev/) running
+on the host's own machine. Nothing of the developer's is in the path.
 
 You need two programs running: Centrifugo, which is the relay, and `cloudflared`, which gives it a
 public address the browser will accept. Both are single binaries with no installer. On Windows,
