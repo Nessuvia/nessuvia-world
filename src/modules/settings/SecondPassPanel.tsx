@@ -23,6 +23,8 @@ export default function SecondPassPanel() {
   const patchRep = (over: Partial<typeof rep>) => patch({ repetition: { ...rep, ...over } })
   const spr = settings.sprawl
   const patchSpr = (over: Partial<typeof spr>) => patch({ sprawl: { ...spr, ...over } })
+  const tri = settings.triplet
+  const patchTri = (over: Partial<typeof tri>) => patch({ triplet: { ...tri, ...over } })
 
   return (
     <div className="textRulesCards">
@@ -136,6 +138,21 @@ export default function SecondPassPanel() {
               />
             </label>
           </div>
+
+          <span className="secondPassSectionTitle">Rule of three</span>
+          <label className="checkboxRow">
+            <input
+              type="checkbox"
+              checked={tri.enabled}
+              disabled={!settings.enabled}
+              onChange={(e) => patchTri({ enabled: e.target.checked })}
+            />
+            Report sentences built as three items
+          </label>
+          <p className="hint">
+            Counts the comma-separated members of a sentence and reports the ones with exactly
+            three. Commas inside quotes are skipped, so dialogue does not trip it.
+          </p>
 
           <span className="secondPassSectionTitle">Repetition</span>
           <label className="checkboxRow">

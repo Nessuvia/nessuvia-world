@@ -34,7 +34,7 @@ import { instructionChain, reasoningFor, swipeCount, swipeIndex } from '../../co
 import { beatTargets } from '../../core/prompt/beatWeights'
 import { WeightPicker } from './WeightPicker'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
-import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
+import { useSecondPass, useSettings, type MarkerKind } from '../../core/stores/settingsStore'
 import { usePalette } from '../../core/stores/palettesStore'
 import { effectiveFont } from '../../core/palette/palette'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
@@ -53,6 +53,8 @@ function Shelf() {
   const { stories, loading, load, create } = useWrite()
   const openStoryDirectly = useSettings((s) => s.openStoryDirectly)
   const setOpenStoryDirectly = useSettings((s) => s.setOpenStoryDirectly)
+  const secondPass = useSecondPass()
+  const setSecondPass = useSettings((s) => s.setSecondPass)
   const navigate = useNavigate()
   const [previewId, setPreviewId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
@@ -100,6 +102,18 @@ function Shelf() {
             />
             Open Story Directly
           </label>
+          {/* Only with Second Pass on: with it off the checkbox controls nothing. Global, like the
+              rest of Second Pass. Per-story override if a Story ever needs its own answer. */}
+          {secondPass.enabled && (
+            <label className="shelfToggle" title="Adds a request per generated beat.">
+              <input
+                type="checkbox"
+                checked={secondPass.passBeats}
+                onChange={(e) => setSecondPass({ passBeats: e.target.checked })}
+              />
+              Second Pass Beats
+            </label>
+          )}
           <input
             className="storySearch"
             placeholder="Search stories..."

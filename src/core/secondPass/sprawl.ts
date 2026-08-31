@@ -8,7 +8,7 @@ const CONJUNCTIONS = new Set(['and', 'but', 'so', 'or', 'nor', 'yet', 'then'])
 /** Notes per run. Past a few, the passage has one problem, not six. */
 const MAX_NOTES = 4
 
-interface Sentence {
+export interface Sentence {
   text: string
   start: number
   end: number
@@ -19,7 +19,7 @@ interface Sentence {
  * abbreviation mid-sentence would split one in two. A false split makes two short sentences, which
  * is the safe direction to be wrong in, since short sentences never trip this check.
  */
-function sentences(text: string): Sentence[] {
+export function sentences(text: string): Sentence[] {
   const out: Sentence[] = []
   const re = /[^.!?]+[.!?]*/g
   for (const m of text.matchAll(re)) {

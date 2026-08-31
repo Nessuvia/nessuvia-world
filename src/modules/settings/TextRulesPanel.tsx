@@ -8,6 +8,7 @@ import {
 } from '../../core/stores/settingsStore'
 import { findTextMatches, standingNotes } from '../../core/secondPass/textRules'
 import { defaultBundle, restoreBundle, staleBundledRules } from '../../core/secondPass/defaultRules'
+import { downloadRules, parseRules } from '../../core/secondPass/ruleJson'
 import RuleCardHead from './RuleCardHead'
 import './settings.css'
 
@@ -35,6 +36,20 @@ export default function TextRulesPanel() {
   const patch = useSettings((s) => s.setSecondPass)
   const rules = settings.textRules
   const [preview, setPreview] = useState('')
+  const [paste, setPaste] = useState('')
+  const [importError, setImportError] = useState('')
+
+  /** Append what the JSON holds. Import adds; it never replaces the list, so a file with one rule
+   *  in it cannot cost you the other forty. */
+  const addJson = (text: string) => {
+    try {
+      patch({ textRules: [...rules, ...parseRules(text)] })
+      setPaste('')
+      setImportError('')
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not read that.')
+    }
+  }
 
   const patchRule = (id: string, over: Partial<SecondPassRule>) =>
     patch({ textRules: rules.map((r) => (r.id === id ? { ...r, ...over } : r)) })
@@ -142,6 +157,7 @@ export default function TextRulesPanel() {
               textRules: restoreBundle(rules),
               repetition: bundle.repetition,
               sprawl: bundle.sprawl,
+              triplet: bundle.triplet,
             })
           }}
         >
@@ -159,6 +175,44 @@ export default function TextRulesPanel() {
             Remove {stale.length} old default{stale.length === 1 ? '' : 's'}
           </button>
         )}
+      </div>
+
+      <div className="grammarActions">
+        {/* File inputs can't be styled; the label is the button. */}
+        <label className="ruleImportButton">
+          Import JSON
+          <input
+            type="file"
+            accept="application/json,.json"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (file) addJson(await file.text())
+            }}
+          />
+        </label>
+        <button type="button" onClick={() => downloadRules(rules)} disabled={rules.length === 0}>
+          Export JSON
+        </button>
+      </div>
+      <div className="ruleImport">
+        <textarea
+          className="ruleImportInput"
+          value={paste}
+          rows={3}
+          placeholder="…or paste rule JSON here"
+          onChange={(e) => setPaste(e.target.value)}
+        />
+        <div className="grammarActions">
+          <button type="button" disabled={!paste.trim()} onClick={() => addJson(paste)}>
+            Add pasted rules
+          </button>
+        </div>
+        {importError && <p className="hint danger">{importError}</p>}
+        <p className="hint">
+          Takes an export, a bare array of rules, or a single rule object. Imported rules are added
+          to the list, not swapped in for it.
+        </p>
       </div>
 
       <div className="grammarPreview">

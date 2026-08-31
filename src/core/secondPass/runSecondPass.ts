@@ -7,8 +7,10 @@ import { findFlags, stripText } from '../hammer/strip'
 import type { Note } from './note'
 import { findRepetition } from './repetition'
 import { findSprawl } from './sprawl'
+import { findTriplets } from './triplet'
 import { findTextMatches, standingNotes } from './textRules'
 import { buildPassPrompt, shouldRunPass } from './buildPassPrompt'
+import { normalizePunctuation, punctuationStream } from './punctuation'
 import type { PassContext } from './passContext'
 
 export type { PassContext }
@@ -40,8 +42,6 @@ export async function* runSecondPass(
     return
   }
 
-  const role = context.role ?? 'assistant'
-
   // Pass one, buffered but not hidden: the draft streams so the wait looks like a wait rather than
   // a hang, and the caller renders it provisionally.
   let draft = ''
@@ -63,10 +63,31 @@ export async function* runSecondPass(
     return
   }
 
+  yield* editPass(draft, signal, context, finishReason)
+}
+
+/**
+ * The editing half on its own: take text that already exists, check it, and stream the edited
+ * version. `runSecondPass` is this with a generation in front of it.
+ *
+ * Split out for the Write outline generators, which have prose to clean (beats, chapter summaries)
+ * but arrive at it by parsing JSON rather than by streaming, so there is no first pass to wrap.
+ *
+ * `finishReason` is pass one's, carried through so a caller still learns its reply was truncated.
+ */
+export async function* editPass(
+  draft: string,
+  signal?: AbortSignal,
+  context: PassContext = {},
+  finishReason = '',
+): AsyncGenerator<StreamChunk> {
+  const settings = secondPassSettings()
+  const role = context.role ?? 'assistant'
+
   // The mechanical edits first, so the checks and the model both see the cleaned text. Showing
   // the model the original slop would ask it to redo work `repairAll` already did correctly, and
   // putting the bad phrasing in front of it is a good way to get the bad phrasing back.
-  const cleaned = stripText(draft, settings.rules, role).text
+  const cleaned = normalizePunctuation(stripText(draft, settings.rules, role).text, settings.textRules)
 
   const notes: Note[] = findFlags(cleaned, settings.rules, role).map((flag) => ({
     source: `hammer:${flag.rule.label || flag.rule.id}`,
@@ -77,6 +98,7 @@ export async function* runSecondPass(
   notes.push(...findTextMatches(cleaned, settings.textRules, role))
   notes.push(...findRepetition(cleaned, context.history ?? [], settings.repetition))
   notes.push(...findSprawl(cleaned, settings.sprawl))
+  notes.push(...findTriplets(cleaned, settings.triplet))
 
   const standing = standingNotes(settings.textRules, role)
 
@@ -99,16 +121,24 @@ export async function* runSecondPass(
   // Same widening `generatePalette` and the outline generators do, for the same reason.
   const wide = withParam(editor, 'max_tokens', Math.max(maxTokensOf(editor), estimateTokens(cleaned)))
 
+  // The edited text gets the punctuation sweep too. The model is told not to write em dashes and
+  // writes them anyway, both by missing one and by introducing a fresh one while fixing something
+  // else, and this is the last look anything takes at the text.
+  const sweep = punctuationStream(settings.textRules)
+
   let edited = ''
   let editFinish = ''
   try {
     for await (const chunk of sendMessage(buildPassPrompt(cleaned, notes, settings.userPrompt, standing), wide, signal)) {
       if (chunk.content) {
         edited += chunk.content
-        yield { content: chunk.content }
+        const out = sweep.push(chunk.content)
+        if (out) yield { content: out }
       }
       if (chunk.finishReason) editFinish = chunk.finishReason
     }
+    const tail = sweep.flush()
+    if (tail) yield { content: tail }
   } catch (err) {
     if (signal?.aborted) throw err
     // The editing pass failed but the draft is intact. Emitting it keeps the generation rather than

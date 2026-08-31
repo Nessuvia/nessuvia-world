@@ -476,6 +476,33 @@
   margin: 0 0 12px;
 }
 
+/* Rule JSON in and out. The native file input won't shrink and squeezed the button beside it, so
+   it is hidden and its label styled to match a .grammarActions button. */
+.ruleImportButton {
+  background: var(--surfaceActive);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ruleImportButton input[type='file'] {
+  display: none;
+}
+
+.ruleImport {
+  margin: 0 0 12px;
+}
+
+.ruleImportInput {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--mono, monospace);
+  margin-bottom: 8px;
+}
+
 .cheatSheet {
   margin: 0 0 12px;
   padding: 10px 12px;
