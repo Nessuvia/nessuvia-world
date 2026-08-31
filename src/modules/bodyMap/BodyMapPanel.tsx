@@ -64,7 +64,7 @@ export default function BodyMapPanel() {
   }
 
   const activeParts = Object.entries(tracker.parts).filter(([, a]) => a.length > 0)
-  // The exact string send() appends — same call, same store state.
+  // The exact string send() appends, same call, same store state.
   const block = payload(ctx)
   const editingAction = editing ? tracker.parts[editing.partId]?.[editing.index] : undefined
 
@@ -232,11 +232,11 @@ export default function BodyMapPanel() {
 }
 
 /** One-off action entry: a raw State label + Description sent to the LLM. The description is a
- *  template — {{user}}/{{char}}/{{part}} still resolve.
+ *  template, {{user}}/{{char}}/{{part}} still resolve.
  *
  *  Portalled to document.body: the panel renders inside the sidebar's scroll container, and a
  *  full-viewport .dialogBackdrop nested in there covered the page without the dialog being
- *  reachable — every other modal in the app is a child of the page, not of the rail. */
+ *  reachable, every other modal in the app is a child of the page, not of the rail. */
 function TypeModal({
   part,
   state: initialState = '',

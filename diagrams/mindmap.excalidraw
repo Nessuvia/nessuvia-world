@@ -329,7 +329,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el6",
-      "originalText": "chat — the main surface",
+      "originalText": "chat: the main surface",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -340,7 +340,7 @@
       "y": 102.25,
       "width": 314,
       "height": 17.5,
-      "text": "chat — the main surface"
+      "text": "chat: the main surface"
     },
     {
       "angle": 0,
@@ -460,7 +460,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el9",
-      "originalText": "write — long-form stories, chapters",
+      "originalText": "write: long-form stories, chapters",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -471,7 +471,7 @@
       "y": 158.25,
       "width": 314,
       "height": 17.5,
-      "text": "write — long-form stories, chapters"
+      "text": "write: long-form stories, chapters"
     },
     {
       "angle": 0,
@@ -591,7 +591,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el12",
-      "originalText": "ask — scratchpad",
+      "originalText": "ask: scratchpad",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -602,7 +602,7 @@
       "y": 214.25,
       "width": 314,
       "height": 17.5,
-      "text": "ask — scratchpad"
+      "text": "ask: scratchpad"
     },
     {
       "angle": 0,
@@ -722,7 +722,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el15",
-      "originalText": "multiplayer — host a shared chat",
+      "originalText": "multiplayer: host a shared chat",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -733,7 +733,7 @@
       "y": 270.25,
       "width": 314,
       "height": 17.5,
-      "text": "multiplayer — host a shared chat"
+      "text": "multiplayer: host a shared chat"
     },
     {
       "angle": 0,
@@ -853,7 +853,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el18",
-      "originalText": "characters · personas — cards",
+      "originalText": "characters · personas: cards",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -864,7 +864,7 @@
       "y": 326.25,
       "width": 314,
       "height": 17.5,
-      "text": "characters · personas — cards"
+      "text": "characters · personas: cards"
     },
     {
       "angle": 0,
@@ -984,7 +984,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el21",
-      "originalText": "prompts — prompt stacks",
+      "originalText": "prompts: prompt stacks",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -995,7 +995,7 @@
       "y": 382.25,
       "width": 314,
       "height": 17.5,
-      "text": "prompts — prompt stacks"
+      "text": "prompts: prompt stacks"
     },
     {
       "angle": 0,
@@ -1115,7 +1115,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el24",
-      "originalText": "appearance — palettes, skins, fonts",
+      "originalText": "appearance: palettes, skins, fonts",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -1126,7 +1126,7 @@
       "y": 438.25,
       "width": 314,
       "height": 17.5,
-      "text": "appearance — palettes, skins, fonts"
+      "text": "appearance: palettes, skins, fonts"
     },
     {
       "angle": 0,
@@ -1246,7 +1246,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el27",
-      "originalText": "settings — connections, params, plugins",
+      "originalText": "settings: connections, params, plugins",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -1257,7 +1257,7 @@
       "y": 494.25,
       "width": 314,
       "height": 17.5,
-      "text": "settings — connections, params, plugins"
+      "text": "settings: connections, params, plugins"
     },
     {
       "angle": 0,
@@ -1377,7 +1377,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el30",
-      "originalText": "learn — registered, sidebar on dev only",
+      "originalText": "learn: registered, sidebar on dev only",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -1388,7 +1388,7 @@
       "y": 550.25,
       "width": 314,
       "height": 17.5,
-      "text": "learn — registered, sidebar on dev only"
+      "text": "learn: registered, sidebar on dev only"
     },
     {
       "angle": 0,
@@ -1508,7 +1508,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el33",
-      "originalText": "sync — commented out in main.tsx",
+      "originalText": "sync: commented out in main.tsx",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -1519,7 +1519,7 @@
       "y": 606.25,
       "width": 314,
       "height": 17.5,
-      "text": "sync — commented out in main.tsx"
+      "text": "sync: commented out in main.tsx"
     },
     {
       "angle": 0,
@@ -1639,7 +1639,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el36",
-      "originalText": "join — /join/:sessionId, outside the shell",
+      "originalText": "join: /join/:sessionId, outside the shell",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#1971c2",
@@ -1650,7 +1650,7 @@
       "y": 662.25,
       "width": 314,
       "height": 17.5,
-      "text": "join — /join/:sessionId, outside the shell"
+      "text": "join: /join/:sessionId, outside the shell"
     },
     {
       "angle": 0,
@@ -1917,7 +1917,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el42",
-      "originalText": "registerModule — modules self-register",
+      "originalText": "registerModule: modules self-register",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#0c8599",
@@ -1928,7 +1928,7 @@
       "y": 796.25,
       "width": 314,
       "height": 17.5,
-      "text": "registerModule — modules self-register"
+      "text": "registerModule: modules self-register"
     },
     {
       "angle": 0,
@@ -2310,7 +2310,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el51",
-      "originalText": "skins — structural half of a palette",
+      "originalText": "skins: structural half of a palette",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#0c8599",
@@ -2321,7 +2321,7 @@
       "y": 964.25,
       "width": 314,
       "height": 17.5,
-      "text": "skins — structural half of a palette"
+      "text": "skins: structural half of a palette"
     },
     {
       "angle": 0,
@@ -2608,7 +2608,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el57",
-      "originalText": "prompt — buildPrompt, budget, worldInfo",
+      "originalText": "prompt: buildPrompt, budget, worldInfo",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -2619,7 +2619,7 @@
       "y": 13.25,
       "width": 314,
       "height": 17.5,
-      "text": "prompt — buildPrompt, budget, worldInfo"
+      "text": "prompt: buildPrompt, budget, worldInfo"
     },
     {
       "angle": 0,
@@ -2739,7 +2739,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el60",
-      "originalText": "connectors — openaiCompatible, dummy",
+      "originalText": "connectors: openaiCompatible, dummy",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -2750,7 +2750,7 @@
       "y": 69.25,
       "width": 314,
       "height": 17.5,
-      "text": "connectors — openaiCompatible, dummy"
+      "text": "connectors: openaiCompatible, dummy"
     },
     {
       "angle": 0,
@@ -2870,7 +2870,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el63",
-      "originalText": "stores — Zustand, the send path",
+      "originalText": "stores: Zustand, the send path",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -2881,7 +2881,7 @@
       "y": 125.25,
       "width": 314,
       "height": 17.5,
-      "text": "stores — Zustand, the send path"
+      "text": "stores: Zustand, the send path"
     },
     {
       "angle": 0,
@@ -3132,7 +3132,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el69",
-      "originalText": "sync — syncClient, dirtyTables",
+      "originalText": "sync: syncClient, dirtyTables",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -3143,7 +3143,7 @@
       "y": 237.25,
       "width": 314,
       "height": 17.5,
-      "text": "sync — syncClient, dirtyTables"
+      "text": "sync: syncClient, dirtyTables"
     },
     {
       "angle": 0,
@@ -3263,7 +3263,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el72",
-      "originalText": "palette — palettes, fonts, sanitizers",
+      "originalText": "palette: palettes, fonts, sanitizers",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -3274,7 +3274,7 @@
       "y": 293.25,
       "width": 314,
       "height": 17.5,
-      "text": "palette — palettes, fonts, sanitizers"
+      "text": "palette: palettes, fonts, sanitizers"
     },
     {
       "angle": 0,
@@ -3394,7 +3394,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el75",
-      "originalText": "params — samplers as data rows",
+      "originalText": "params: samplers as data rows",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -3405,7 +3405,7 @@
       "y": 349.25,
       "width": 314,
       "height": 17.5,
-      "text": "params — samplers as data rows"
+      "text": "params: samplers as data rows"
     },
     {
       "angle": 0,
@@ -3525,7 +3525,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el78",
-      "originalText": "settings — resolution helpers",
+      "originalText": "settings: resolution helpers",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -3536,7 +3536,7 @@
       "y": 405.25,
       "width": 314,
       "height": 17.5,
-      "text": "settings — resolution helpers"
+      "text": "settings: resolution helpers"
     },
     {
       "angle": 0,
@@ -3656,7 +3656,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el81",
-      "originalText": "storage — the only importer of Dexie",
+      "originalText": "storage: the only importer of Dexie",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -3667,7 +3667,7 @@
       "y": 461.25,
       "width": 314,
       "height": 17.5,
-      "text": "storage — the only importer of Dexie"
+      "text": "storage: the only importer of Dexie"
     },
     {
       "angle": 0,
@@ -3934,7 +3934,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el87",
-      "originalText": "Dexie v12 — characters, chats, messages,\nstories, prompt stacks, palettes, …",
+      "originalText": "Dexie v12: characters, chats, messages,\nstories, prompt stacks, palettes, …",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#2f9e44",
@@ -3945,7 +3945,7 @@
       "y": 597.5,
       "width": 314,
       "height": 35,
-      "text": "Dexie v12 — characters, chats, messages,\nstories, prompt stacks, palettes, …"
+      "text": "Dexie v12: characters, chats, messages,\nstories, prompt stacks, palettes, …"
     },
     {
       "angle": 0,
@@ -4065,7 +4065,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el90",
-      "originalText": "localStorage — settingsStore (API keys),\naskStore, blipStore",
+      "originalText": "localStorage: settingsStore (API keys),\naskStore, blipStore",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#2f9e44",
@@ -4076,7 +4076,7 @@
       "y": 675.5,
       "width": 314,
       "height": 35,
-      "text": "localStorage — settingsStore (API keys),\naskStore, blipStore"
+      "text": "localStorage: settingsStore (API keys),\naskStore, blipStore"
     },
     {
       "angle": 0,
@@ -4196,7 +4196,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el93",
-      "originalText": "backup.ts — export / import",
+      "originalText": "backup.ts: export / import",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#2f9e44",
@@ -4207,7 +4207,7 @@
       "y": 751.25,
       "width": 314,
       "height": 17.5,
-      "text": "backup.ts — export / import"
+      "text": "backup.ts: export / import"
     },
     {
       "angle": 0,
@@ -4327,7 +4327,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el96",
-      "originalText": "stripApiKeys.ts — blanks secrets on export",
+      "originalText": "stripApiKeys.ts: blanks secrets on export",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#2f9e44",
@@ -4338,7 +4338,7 @@
       "y": 807.25,
       "width": 314,
       "height": 17.5,
-      "text": "stripApiKeys.ts — blanks secrets on export"
+      "text": "stripApiKeys.ts: blanks secrets on export"
     },
     {
       "angle": 0,
@@ -4601,7 +4601,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el102",
-      "originalText": "model endpoint — user’s own key",
+      "originalText": "model endpoint: user's own key",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#e8590c",
@@ -4612,7 +4612,7 @@
       "y": 941.25,
       "width": 314,
       "height": 17.5,
-      "text": "model endpoint — user’s own key"
+      "text": "model endpoint: user's own key"
     },
     {
       "angle": 0,
@@ -4732,7 +4732,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el105",
-      "originalText": "relay — broadcast & presence, stores nothing",
+      "originalText": "relay: broadcast & presence, stores nothing",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#e8590c",
@@ -4743,7 +4743,7 @@
       "y": 997.25,
       "width": 314,
       "height": 17.5,
-      "text": "relay — broadcast & presence, stores nothing"
+      "text": "relay: broadcast & presence, stores nothing"
     },
     {
       "angle": 0,
@@ -4863,7 +4863,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el108",
-      "originalText": "S3 bucket — the user’s, when sync is on",
+      "originalText": "S3 bucket: the user's, when sync is on",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#e8590c",
@@ -4874,7 +4874,7 @@
       "y": 1053.25,
       "width": 314,
       "height": 17.5,
-      "text": "S3 bucket — the user’s, when sync is on"
+      "text": "S3 bucket: the user's, when sync is on"
     },
     {
       "angle": 0,
@@ -4956,7 +4956,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": null,
-      "originalText": "Mind map — body map and grammar hammer omitted",
+      "originalText": "Mind map: body map and grammar hammer omitted",
       "autoResize": true,
       "lineHeight": 1.25,
       "strokeColor": "#868e96",
@@ -4967,7 +4967,7 @@
       "y": -70,
       "width": 340,
       "height": 25,
-      "text": "Mind map — body map and grammar hammer omitted"
+      "text": "Mind map: body map and grammar hammer omitted"
     }
   ],
   "appState": {

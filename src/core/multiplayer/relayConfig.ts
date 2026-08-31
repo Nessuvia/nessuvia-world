@@ -20,7 +20,7 @@ export function relayConfigured(c: RelayConfig): boolean {
 
 /**
  * `wss://` only. This runs on the invite link's `?r=`, which is untrusted input arriving from
- * whoever sent the link — the same rule as an imported card. `ws://` is rejected rather than
+ * whoever sent the link: the same rule as an imported card. `ws://` is rejected rather than
  * allowed and left to fail: the app is served over https, so a browser blocks the plaintext socket
  * as mixed content anyway, and saying so early beats a silent connection failure.
  */

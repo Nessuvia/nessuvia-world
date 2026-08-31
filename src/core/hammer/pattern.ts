@@ -3,7 +3,7 @@ import type { PosTag } from './tagger.ts'
 export const POS_TAGS: readonly PosTag[] = ['adj', 'verb', 'noun', 'adv', 'det', 'prep', 'conj', 'pron']
 
 /** `[word]` is a wildcard slot: any single token, whatever the tagger made of it. Kept out of
- *  POS_TAGS because it isn't a part of speech — the panel lists it separately. */
+ *  POS_TAGS because it isn't a part of speech: the panel lists it separately. */
 export const WILDCARD_TAG = 'word'
 
 export type SlotTag = PosTag | typeof WILDCARD_TAG
@@ -31,9 +31,9 @@ export class PatternError extends Error {}
  */
 export function compilePattern(dsl: string, caseSensitive = false): CompiledPattern {
   const matchers: TokenMatcher[] = []
-  // Split on whitespace but keep bracket groups intact — they contain no spaces by construction.
+  // Split on whitespace but keep bracket groups intact: they contain no spaces by construction.
   // Source punctuation is dropped at tokenization, so edge punctuation in a pattern token can never
-  // match anything — strip it. This makes seed rules like `not just [noun], but [noun]` work (the
+  // match anything, so strip it. This makes seed rules like `not just [noun], but [noun]` work (the
   // comma after `]` would otherwise read as a bad quantifier) and drops standalone punctuation tokens.
   const parts = dsl
     .trim()

@@ -1,4 +1,4 @@
-/** Literal mm/dd/yyyy hh:mm — `toLocaleString` won't give that shape across locales. */
+/** Literal mm/dd/yyyy hh:mm: `toLocaleString` won't give that shape across locales. */
 export function formatStamp(ms: number): string {
   const d = new Date(ms)
   const pad = (n: number) => String(n).padStart(2, '0')

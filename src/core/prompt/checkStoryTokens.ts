@@ -1,27 +1,43 @@
 import assert from 'node:assert'
+import type { BeatWeight } from '../storage/types.ts'
 import { storyTokens, swapStoryTokens, type StoryTokenArgs } from './storyTokens.ts'
 
-const blk = (id: string, beat = '', targetWords = 0, done = false) => ({ id, beat, targetWords, done })
+const blk = (id: string, beat = '', weight: BeatWeight = 'normal') => ({ id, beat, weight })
 
 const args: StoryTokenArgs = {
   title: '  The Long Way  ',
   premise: 'A courier takes a job she should have refused.',
   ending: 'She refuses the second one.',
+  themes: 'What you carry for other people.',
   castNames: ['Mary', '  ', 'John'],
   chapters: [
-    { id: 1, title: 'Departure', summary: 'Mary leaves.', blocks: [blk('a', 'She packs', 0, true)] },
+    {
+      id: 1,
+      title: 'Departure',
+      summary: 'Mary leaves.',
+      targetWords: 0,
+      blocks: [blk('a', 'She packs')],
+    },
     {
       id: 2,
       title: 'The Road',
       summary: '',
+      // Four beats, all normal, so each takes a quarter of the target.
+      targetWords: 1130,
       blocks: [
-        blk('b', 'The checkpoint', 0, true),
-        blk('c', 'Mary is searched', 300),
+        blk('b', 'The checkpoint'),
+        blk('c', 'Mary is searched'),
         blk('d', 'She lies about the parcel'),
-        blk('e'), // free prose, no beat
+        blk('e'), // planned but not written yet: no instructions
       ],
     },
-    { id: 3, title: 'Arrival', summary: '', blocks: [blk('f', 'The handoff'), blk('g', 'The refusal')] },
+    {
+      id: 3,
+      title: 'Arrival',
+      summary: '',
+      targetWords: 0,
+      blocks: [blk('f', 'The handoff'), blk('g', 'The refusal')],
+    },
   ],
   chapterId: 2,
   blockId: 'c',
@@ -44,13 +60,17 @@ assert.strictEqual(t.nextChapterTitle, 'Arrival')
 assert.strictEqual(t.nextChapterBeats, '- The handoff\n- The refusal')
 
 assert.strictEqual(t.beat, 'Mary is searched')
-assert.strictEqual(t.beatTargetWords, '300')
-// The current Block is in neither list, and the beatless free Block is in neither either.
-assert.strictEqual(t.beatsDone, '- The checkpoint')
-assert.strictEqual(t.beatsRemaining, '- She lies about the parcel')
+// Derived from the Chapter's target and the weights, not stored on the Block: four equal beats
+// over 1130 words, and the rounding leaves this one 282.
+assert.strictEqual(t.beatTargetWords, '282')
+assert.strictEqual(t.chapterTargetWords, '1130')
+// The Block being written is left out, and so is the unwritten one. Order is Chapter order.
+assert.strictEqual(t.otherBeats, '- The checkpoint\n- She lies about the parcel')
 
-// A target of 0 is unset, and reads blank rather than "0".
-assert.strictEqual(storyTokens({ ...args, blockId: 'd' }).beatTargetWords, '')
+// A Chapter with no target of its own leaves every beat in it unset, reading blank rather than "0".
+const noTarget = storyTokens({ ...args, chapterId: 1, blockId: 'a' })
+assert.strictEqual(noTarget.beatTargetWords, '')
+assert.strictEqual(noTarget.chapterTargetWords, '')
 
 // No cursor: every chapter- and beat-scoped token blanks, Story-scoped ones still resolve.
 const none = storyTokens({ ...args, chapterId: null, blockId: null })
@@ -59,7 +79,7 @@ assert.strictEqual(none.chapterTitle, '')
 assert.strictEqual(none.previousChapterSummary, '')
 assert.strictEqual(none.nextChapterBeats, '')
 assert.strictEqual(none.beat, '')
-assert.strictEqual(none.beatsRemaining, '')
+assert.strictEqual(none.otherBeats, '')
 assert.strictEqual(none.storyTitle, 'The Long Way')
 assert.strictEqual(none.chapterCount, '3')
 
@@ -86,19 +106,21 @@ assert.strictEqual(swapStoryTokens('{{chapterTitle}} / {{chapterSummary}}', t), 
 // Lines with no known tokens are never touched, empty or not.
 assert.strictEqual(swapStoryTokens('plain\n\n{{nonsense}}', t), 'plain\n\n{{nonsense}}')
 
-// The default stack's Beat block on a free stretch: every line drops, the block renders empty.
-const free = storyTokens({ ...args, blockId: 'e' })
+// The default stack's Beat block on a beat with no instructions: that line drops, and the target
+// line stays, because the Chapter has a target and this beat still has a share of it.
+const unwritten = storyTokens({ ...args, blockId: 'e' })
+assert.strictEqual(unwritten.beat, '')
 assert.strictEqual(
-  swapStoryTokens('Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.', free),
-  '',
+  swapStoryTokens('Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.', unwritten),
+  'Aim for about 282 words.',
 )
-// On a beat with no word target, only the target line goes.
+// In a Chapter with no target, only the target line goes.
 assert.strictEqual(
   swapStoryTokens(
     'Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.',
-    storyTokens({ ...args, blockId: 'd' }),
+    noTarget,
   ),
-  'Write this next: She lies about the parcel',
+  'Write this next: She packs',
 )
 
 console.log('checkStoryTokens ok')

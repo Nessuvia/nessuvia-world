@@ -2,7 +2,7 @@
  * The settings blob as its own object in the bucket, keys and all.
  *
  * Its own file, extension-ful imports and all, so checkSettingsObject.ts can run it under
- * `node --experimental-strip-types` — syncStore.ts pulls in Dexie and can't.
+ * `node --experimental-strip-types`. syncStore.ts pulls in Dexie and can't.
  */
 
 /** The one localStorage key the settings store persists to. */
@@ -10,7 +10,7 @@ export const settingsKey = 'nessuTavern.settings'
 
 /**
  * Fields that describe this device's relationship to the bucket, not the user's preferences. A
- * pulled blob must not bring another device's dirty set, hashes or bucket config with it — that
+ * pulled blob must not bring another device's dirty set, hashes or bucket config with it: that
  * would tell this device its tables are already synced when they aren't.
  */
 const deviceFields = ['dirtyTables', 'tableHashes', 'lastSyncedAt', 'bucket']

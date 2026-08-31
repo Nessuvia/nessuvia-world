@@ -168,7 +168,7 @@ const habits = [
   {
     old: `$('#name').val()`,
     breaks: 'Reads the DOM, not your data',
-    now: `the name variable — it already is the value`,
+    now: `the name variable, it already is the value`,
   },
   {
     old: `el.classList.toggle('open', isOpen)`,
@@ -187,8 +187,8 @@ const habits = [
   },
   {
     old: `el.innerHTML = text`,
-    breaks: 'Banned here — untrusted model output',
-    now: `{text} — JSX escapes it`,
+    breaks: 'Banned here, untrusted model output',
+    now: `{text}, JSX escapes it`,
   },
   {
     old: `$('#save').on('click', fn)`,
@@ -222,7 +222,7 @@ export default function LearnView() {
           <code>src/resources/DevGuide.md</code> covers the procedures.
         </p>
 
-        <h2 className="learnPart">Part one — read once</h2>
+        <h2 className="learnPart">Part one, read once</h2>
         <p className="learnPartNote">Each section assumes the one before it.</p>
 
         <h2>1. Building a screen, in your usual order</h2>
@@ -272,7 +272,7 @@ export default function LearnView() {
           the rest of this section goes through it a step at a time.
         </p>
 
-        <h3>Steps 1 and 2 — the file and the route</h3>
+        <h3>Steps 1 and 2, the file and the route</h3>
         <Code>{`// src/modules/chat/CharacterPicker.tsx
 export default function CharacterPicker() {
   return <div className="chatPicker"><h2>Characters</h2></div>
@@ -287,18 +287,18 @@ registerModule({ id: 'chat', label: 'Chat', icon: RiChat3Line, route: '/chat', c
         <FigRegistry />
         <p>
           That one call produces both the sidebar link and the router entry, so there is no{' '}
-          <code>urls.py</code> to edit and no list of screens to keep current — adding a screen
+          <code>urls.py</code> to edit and no list of screens to keep current, adding a screen
           means adding a folder and one import line in <code>main.tsx</code>.
         </p>
 
-        <h3>Steps 3 and 4 — the data</h3>
+        <h3>Steps 3 and 4, the data</h3>
         <p>
           The sproc's job splits in two here. Reading rows belongs to <code>core/storage</code>,
           which is this repo's <code>db_utils.py</code>: the one sanctioned way to reach data.
           Holding the rows and deciding when to load them belongs to a store, which is the surviving
           half of a view.
         </p>
-        <Code>{`// src/core/stores/charactersStore.ts — roughly
+        <Code>{`// src/core/stores/charactersStore.ts, roughly
 load: async () => {
   set({ loading: true })
   set({ characters: await storage.getAll('characters'), loading: false })
@@ -319,7 +319,7 @@ useEffect(() => {
           about.
         </p>
 
-        <h3>Step 5 — render the rows</h3>
+        <h3>Step 5, render the rows</h3>
         <Code>{`{characters.map((c) => (
   <button key={c.id} className="pickerCard" onClick={() => navigate(\`/chat/c/\${c.id}\`)}>
     {displayName(c)}
@@ -332,7 +332,7 @@ useEffect(() => {
           in different folders.
         </p>
 
-        <h3>Step 6 — the search bar</h3>
+        <h3>Step 6, the search bar</h3>
         <p>
           Usually this is a DataTables call, or an input with a <code>keyup</code> handler that
           walks the rows and hides the ones that don't match. Here it comes to two pieces of
@@ -363,7 +363,7 @@ const shown = characters.filter((c) => !q || displayName(c).toLowerCase().includ
             <code>shown</code> is derived: given <code>characters</code> and <code>search</code>{' '}
             there is exactly one correct value for it. Storing it in its own{' '}
             <code>useState</code> creates a second source of truth that can disagree with the first,
-            and then you are writing the sync code by hand — an effect that watches{' '}
+            and then you are writing the sync code by hand, an effect that watches{' '}
             <code>search</code> and calls <code>setShown</code>. That effect runs a render late, so
             for one frame the list on screen doesn't match the box. Computing it during render makes
             the mismatch unrepresentable.
@@ -390,7 +390,7 @@ const shown = characters.filter((c) => !q || displayName(c).toLowerCase().includ
             So a change you made with jQuery is invisible to it. The record still says the old text.
             The next render compares new markup against that stale record, decides that node is
             already correct or needs a different edit, and your change is gone. It is not that
-            touching the DOM is forbidden on principle — it is that React will silently undo it at
+            touching the DOM is forbidden on principle, it is that React will silently undo it at
             an unpredictable time, which is worse than an error.
           </p>
         </Why>
@@ -442,7 +442,7 @@ const shown = characters.filter((c) => !q || displayName(c).toLowerCase().includ
         <Code>{`const [text, setText] = useState('')`}</Code>
         <p>
           <code>text</code> is a plain string, fixed for the duration of this call.{' '}
-          <code>setText</code> does not change it — it hands React a new value and asks for another
+          <code>setText</code> does not change it, it hands React a new value and asks for another
           run of the function, and on that run <code>text</code> comes back different.
         </p>
 
@@ -456,7 +456,7 @@ const shown = characters.filter((c) => !q || displayName(c).toLowerCase().includ
         </Why>
 
         <Rule>
-          2. Never mutate. <code>arr.push(x)</code> does nothing visible — write{' '}
+          2. Never mutate. <code>arr.push(x)</code> does nothing visible, write{' '}
           <code>setArr([...arr, x])</code>.
         </Rule>
         <Why>
@@ -533,7 +533,7 @@ const shown = characters.filter((c) => !q || displayName(c).toLowerCase().includ
         <Rule>Sort, filter and page with array methods during render. Add a table library only if you need one, and then only one that renders through React.</Rule>
         <Why>
           <p>
-            The reason DataTables was worth the dependency is that it did the DOM work — building
+            The reason DataTables was worth the dependency is that it did the DOM work, building
             rows, hiding them on search, reordering them on a header click. That is the exact work
             React already does. What is left is deciding which records to show and in what order,
             which is three array methods over data you already have in memory.
@@ -563,7 +563,7 @@ const shown = [...characters]
           <p>
             <code>{'{% for %}'}</code> ran once and the HTML was final. React renders the same list
             over and over and has to answer each time: is this the same five rows with one name
-            edited, or five different rows? <code>key</code> is the answer — same key means same
+            edited, or five different rows? <code>key</code> is the answer, same key means same
             row, so React keeps that DOM node and patches what differs.
           </p>
           <p>
@@ -586,7 +586,7 @@ const shown = [...characters]
           "we haven't looked yet" until the read finishes.
         </Rule>
         <Code>{`{loading && characters.length === 0 && <p>Loading…</p>}
-{!loading && characters.length === 0 && <p>No characters yet — import or create one first.</p>}
+{!loading && characters.length === 0 && <p>No characters yet, import or create one first.</p>}
 {shown.map(…)}`}</Code>
         <Why>
           <p>
@@ -599,7 +599,7 @@ const shown = [...characters]
 
         <h2>6. Effects, and why most code is not one</h2>
         <p>
-          Rendering has one job: return markup for the current state. It must not do anything else —
+          Rendering has one job: return markup for the current state. It must not do anything else
           no reads, no requests, no timers, no writing to anything outside the component. React may
           call your function more than once for a single visible update and throw the result away.
         </p>
@@ -610,7 +610,7 @@ const shown = [...characters]
 }, [chatId])`}</Code>
         <p>
           The dependency array answers "when should I run this again?" <code>[]</code> means once,
-          when the component first appears — the usual spot for an initial load.{' '}
+          when the component first appears, the usual spot for an initial load.{' '}
           <code>[chatId]</code> means now and again whenever <code>chatId</code> changes. Omitting
           the array means after every render, which is usually an infinite loop.
         </p>
@@ -620,7 +620,7 @@ const shown = [...characters]
         </Rule>
         <Why>
           <p>
-            Two habits pull people here wrongly. The first is derived state (§1) — an effect that
+            Two habits pull people here wrongly. The first is derived state (§1), an effect that
             watches one value and sets another, when a plain <code>const</code> during render would
             do. The second is treating an effect as an event handler: setting a flag in{' '}
             <code>onClick</code> and putting the real work in an effect that watches the flag. The
@@ -641,7 +641,7 @@ const shown = [...characters]
         <Code>{`const characters = useCharacters((s) => s.characters)
 const save = useCharacters((s) => s.save)`}</Code>
         <p>
-          A Zustand store holds shared state and runs the async work — the data half of a view,
+          A Zustand store holds shared state and runs the async work, the data half of a view,
           kept in memory. The function you pass is a selector: it picks one slice, and the component
           rerenders only when that slice changes. Selecting the whole store means rerendering on
           every unrelated change.
@@ -677,8 +677,8 @@ const save = useCharacters((s) => s.save)`}</Code>
           <p>
             In Django the URL was the only input the server got, so everything had to be in it.
             Here most state lives in components and stores, and putting something in the URL is a
-            deliberate choice to publish it. The cost is that it becomes an interface — bookmarkable
-            and back-buttonable — which is exactly what you want for a chat id and not for a
+            deliberate choice to publish it. The cost is that it becomes an interface, bookmarkable
+            and back-buttonable, which is exactly what you want for a chat id and not for a
             chevron.
           </p>
         </Why>
@@ -706,7 +706,7 @@ const save = useCharacters((s) => s.save)`}</Code>
         <p>
           You already enforce this under other names. Raw SQL in a template is obviously wrong, so
           queries stay in the view. A sproc call scattered across five views is wrong, so it lives
-          behind <code>db_utils.py</code>. Django doesn't enforce any of that either — the imports
+          behind <code>db_utils.py</code>. Django doesn't enforce any of that either, the imports
           would work. It holds because everyone agrees where things go. Same here: nothing stops you
           importing <code>db</code> into a component, and it is a review rule, not an error.
         </p>
@@ -757,16 +757,16 @@ const save = useCharacters((s) => s.save)`}</Code>
           because the screen was the response.
         </p>
 
-        <h2 className="learnPart">Part two — look it up</h2>
+        <h2 className="learnPart">Part two, look it up</h2>
         <p className="learnPartNote">
-          For scanning mid-task — find the row that matches whatever you are stuck on.
+          For scanning mid-task, find the row that matches whatever you are stuck on.
         </p>
 
         <h2>Every rule in one list</h2>
         <ol>
           <li>Never change a node React rendered. Change state (§2).</li>
           <li>If state didn't change, the screen didn't change (§3).</li>
-          <li>Never mutate — spread into a new array or object (§3).</li>
+          <li>Never mutate, spread into a new array or object (§3).</li>
           <li>Reading state right after setting it gives the old value (§3).</li>
           <li>Inputs are controlled: state is the value (§3).</li>
           <li>Hooks at the top level, unconditionally, same order every render (§3).</li>
@@ -945,14 +945,14 @@ const save = useCharacters((s) => s.save)`}</Code>
         <ul>
           <li>
             One component per file, filename is the component name. PascalCase for components,
-            camelCase for everything else — the only exception to the camelCase rule.
+            camelCase for everything else, the only exception to the camelCase rule.
           </li>
           <li>
             <code>.tsx</code> if the file contains markup, <code>.ts</code> if it is plain logic.
           </li>
           <li>One <code>.css</code> per module, imported by it.</li>
           <li>
-            A <code>check*.ts</code> sits beside what it tests — <code>renderText.ts</code> and{' '}
+            A <code>check*.ts</code> sits beside what it tests, <code>renderText.ts</code> and{' '}
             <code>checkRenderText.ts</code>.
           </li>
           <li>
@@ -971,7 +971,7 @@ const save = useCharacters((s) => s.save)`}</Code>
             <code>style</code> takes an object with camelCased keys:{' '}
             <code>{'style={{ marginTop: 8 }}'}</code>.
           </li>
-          <li>Every tag self-closes. A component returns one root — use <code>&lt;&gt;…&lt;/&gt;</code> for siblings.</li>
+          <li>Every tag self-closes. A component returns one root, use <code>&lt;&gt;…&lt;/&gt;</code> for siblings.</li>
           <li>
             <code>{'{}'}</code> drops into JS. There is no <code>{'{% if %}'}</code> because you have{' '}
             <code>&amp;&amp;</code> and <code>?:</code>.
@@ -981,14 +981,14 @@ const save = useCharacters((s) => s.save)`}</Code>
             Write <code>{'count > 0 &&'}</code>.
           </li>
           <li>
-            JSX escapes text, which is why <code>dangerouslySetInnerHTML</code> is banned here —
+            JSX escapes text, which is why <code>dangerouslySetInnerHTML</code> is banned here
             model output is untrusted and this origin holds API keys.
           </li>
         </ul>
 
         <h2>Next</h2>
         <p>
-          Read <code>src/modules/chat/CharacterPicker.tsx</code> — the screen this page walked, end
+          Read <code>src/modules/chat/CharacterPicker.tsx</code>, the screen this page walked, end
           to end in one file. Then <code>src/modules/chat/ChatView.tsx</code> for the hard version.
           The full link list is at the bottom of <code>src/resources/DevGuide.md</code>; start with{' '}
           <a href="https://react.dev/learn" target="_blank" rel="noreferrer">

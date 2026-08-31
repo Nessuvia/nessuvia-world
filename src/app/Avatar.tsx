@@ -2,7 +2,7 @@ import type { AvatarSource } from '../core/storage/types'
 import './Avatar.css'
 
 /**
- * Renders an avatar image, framed by its crop rect. There is only ever one copy of the pixels —
+ * Renders an avatar image, framed by its crop rect. There is only ever one copy of the pixels
  * `avatar` is the original the user uploaded, and the crop is applied here rather than baked into
  * a second cropped image, so the Gallery can show the whole thing.
  *
@@ -10,7 +10,7 @@ import './Avatar.css'
  * by `-x/w` lands exactly the cropped region in view; doing the same on both axes independently is
  * what keeps it undistorted, since the fractions are of different natural dimensions.
  *
- * `className` is the caller's, and carries the size — every call site already styles `.avatar` (or
+ * `className` is the caller's, and carries the size, every call site already styles `.avatar` (or
  * its own class) with a width and height.
  */
 export function Avatar({

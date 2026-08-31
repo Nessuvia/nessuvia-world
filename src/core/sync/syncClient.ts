@@ -1,7 +1,7 @@
 /**
  * Sync's only outward-facing file: one S3-compatible bucket, supplied by the user.
  *
- * There is no account and no server of ours. The bucket is the identity — whoever holds its keys
+ * There is no account and no server of ours. The bucket is the identity: whoever holds its keys
  * holds the data, and it lives wherever the user put it (Garage, Backblaze B2, any S3 API).
  * Nothing here knows about sign-in, because there is nothing to sign in to.
  *
@@ -85,7 +85,7 @@ async function failure(response: Response): Promise<Error> {
 /**
  * A signed request that reports a blocked preflight as itself. A browser CORS failure surfaces as
  * a TypeError with no status, which reads as "network down" and sends people looking in the wrong
- * place — the bucket's CORS policy is the usual cause and the message says so.
+ * place. The bucket's CORS policy is the usual cause and the message says so.
  */
 async function signedFetch(url: string, init: RequestInit, c: BucketConfig): Promise<Response> {
   try {
@@ -98,7 +98,7 @@ async function signedFetch(url: string, init: RequestInit, c: BucketConfig): Pro
 }
 
 /**
- * One ListObjectsV2 for what exists, then a HEAD per present table for its hash — a list response
+ * One ListObjectsV2 for what exists, then a HEAD per present table for its hash: a list response
  * carries size and LastModified but never user metadata. Thirteen HEADs on a button press is a fine
  * price for not inventing a second hash scheme.
  */
@@ -117,7 +117,7 @@ export async function fetchManifest(): Promise<Manifest> {
   for (const node of doc.getElementsByTagName('Contents')) {
     const key = node.getElementsByTagName('Key')[0]?.textContent ?? ''
     const name = key.slice(key.lastIndexOf('/') + 1).replace(/\.json$/, '') as TableName
-    // Anything else living at this prefix is not ours to report — the Test button's probe object,
+    // Anything else living at this prefix is not ours to report: the Test button's probe object,
     // or whatever the user keeps alongside. The key must match exactly, folders included.
     if (!tableNames.includes(name) || key !== objectKey(c, name)) continue
     present.set(name, {
@@ -133,7 +133,7 @@ export async function fetchManifest(): Promise<Manifest> {
     if (!head.ok) continue
     const hash = head.headers.get(hashMeta)
     // Compare is built on this hash. Without it every table reads as changed in the bucket and the
-    // screen would keep proposing downloads that overwrite local work — a wrong answer delivered
+    // screen would keep proposing downloads that overwrite local work, a wrong answer delivered
     // confidently. Two causes, indistinguishable from the browser, so the message names both.
     if (hash === null) throw new Error(missingHash)
     manifest[table] = { ...entry, hash }
@@ -142,7 +142,7 @@ export async function fetchManifest(): Promise<Manifest> {
 }
 
 /**
- * Null when the table has never been pushed — the 404 is an answer, not a failure.
+ * Null when the table has never been pushed: the 404 is an answer, not a failure.
  *
  * Takes a plain name for the same reason objectKey does: the settings blob rides in the same
  * bucket as `settings.json` and is not a table.
@@ -175,7 +175,7 @@ export async function pushTable(table: TableName | 'settings', json: string, has
  *
  * A plain list would prove less than it appears to. Sync's compare rests on `x-amz-meta-hash`
  * surviving a PUT and coming back on a HEAD, and that is the one thing an S3-compatible server may
- * not do — it is not part of the endpoint list servers advertise, and the browser needs the CORS
+ * not do. It is not part of the endpoint list servers advertise, and the browser needs the CORS
  * expose list on top of it. Round-tripping the header is the only way to find out from here, and
  * finding out on a button press beats finding out mid-sync.
  */

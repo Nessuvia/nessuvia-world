@@ -9,16 +9,17 @@ import { useChats } from '../../core/stores/chatStore'
 import { useBlips } from '../../core/stores/blipStore'
 import type { Character } from '../../core/storage/types'
 import { parsePngCard, pngDataUrl } from '../../core/connectors/pngCard'
-import { importCard } from '../characters/importCard'
+import { importBook, importCard } from '../characters/importCard'
+import type { ImportedBook } from '../lorebooks/importLorebook'
 import { formatStamp } from './formatStamp'
 import ImportUrlModal from './ImportUrlModal'
-import ImportTagsModal from './ImportTagsModal'
+import ImportReviewModal from './ImportReviewModal'
 import TagContextMenu from './TagContextMenu'
 import TagMenu from './TagMenu'
 import { useLongPress } from './useLongPress'
 import { allTags, groupByPrimaryTag, matchesTags, type TagMode } from './tags'
 
-// Which of Any/All the filter uses. A UI preference, so localStorage rather than a store — it is
+// Which of Any/All the filter uses. A UI preference, so localStorage rather than a store, it is
 // deliberately outside backup and sync.
 const MODE_KEY = 'nessuTavern.tagFilterMode'
 const storedMode = (): TagMode => (localStorage.getItem(MODE_KEY) === 'all' ? 'all' : 'any')
@@ -43,8 +44,13 @@ export default function CharacterPicker() {
   const [grouped, setGrouped] = useState(false)
   const [shut, setShut] = useState<string[]>([])
   const [contextMenu, setContextMenu] = useState<{ character: Character; x: number; y: number } | null>(null)
-  // A parsed card waiting on the tag review screen.
-  const [pendingImport, setPendingImport] = useState<{ json: unknown; avatar: string; tags: string[] } | null>(null)
+  // A parsed card waiting on the import review screen.
+  const [pendingImport, setPendingImport] = useState<{
+    json: unknown
+    avatar: string
+    tags: string[]
+    book?: ImportedBook
+  } | null>(null)
 
   useEffect(() => {
     load()
@@ -58,10 +64,13 @@ export default function CharacterPicker() {
   async function runImport(json: unknown, avatar = '') {
     setError('')
     try {
-      // Tags on the card get a look before they join the tag list; everything else imports straight.
+      // Tags and an embedded lorebook both get a look before they land; everything else imports
+      // straight.
       const cardTags = importCard(json).tags
-      if (cardTags.length) {
-        setPendingImport({ json, avatar, tags: cardTags })
+      const parsed = importBook(json)
+      const book = parsed.entries.length ? parsed : undefined
+      if (cardTags.length || book) {
+        setPendingImport({ json, avatar, tags: cardTags, book })
         return
       }
       navigate(`/chat/c/${await importCharacter(json, avatar)}`)
@@ -70,12 +79,12 @@ export default function CharacterPicker() {
     }
   }
 
-  async function finishImport(tags: string[]) {
+  async function finishImport(tags: string[], includeBook: boolean) {
     const pending = pendingImport
     setPendingImport(null)
     if (!pending) return
     try {
-      navigate(`/chat/c/${await importCharacter(pending.json, pending.avatar, tags)}`)
+      navigate(`/chat/c/${await importCharacter(pending.json, pending.avatar, tags, includeBook)}`)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -226,10 +235,12 @@ export default function CharacterPicker() {
       )}
 
       {pendingImport && (
-        <ImportTagsModal
+        <ImportReviewModal
           tags={pendingImport.tags}
+          book={pendingImport.book}
           onConfirm={finishImport}
-          onClose={() => finishImport([])}
+          // Dismissing takes the same route as Skip: the character imports, the extras don't.
+          onClose={() => finishImport([], false)}
         />
       )}
 
@@ -250,7 +261,7 @@ export default function CharacterPicker() {
       {error && <p className="error">{error}</p>}
       {loading && characters.length === 0 && <p className="placeholder">Loading…</p>}
       {!loading && characters.length === 0 && (
-        <p className="placeholder">No characters yet — import or create one first.</p>
+        <p className="placeholder">No characters yet, import or create one first.</p>
       )}
       {characters.length > 0 && sorted.length === 0 && <p className="placeholder">No matches.</p>}
 
@@ -290,10 +301,10 @@ export default function CharacterPicker() {
  * One card, two targets. Split out so the flat grid and the grouped view share exactly one copy
  * of it.
  *
- * The avatar resumes the last chat and the name opens the character; both are one click and
- * neither is behind a menu. Two hit zones on one card is only learnable if they look like two, so
- * the avatar carries a play overlay on hover and focus. Without a chat to resume it does what the
- * rest of the card does — there's nothing there to mislearn.
+ * The avatar resumes the last chat and the rest of the card opens the character; both are one
+ * click and neither is behind a menu. Two hit zones on one card is only learnable if they look
+ * like two, so the avatar carries a play overlay on hover and focus. Without a chat to resume it
+ * does what the rest of the card does, there's nothing there to mislearn.
  */
 function PickerCard({
   character,
@@ -315,6 +326,17 @@ function PickerCard({
   return (
     <div
       className="card pickerCard"
+      role="button"
+      tabIndex={0}
+      title="Open character"
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         onMenu(e.clientX, e.clientY)
@@ -325,7 +347,11 @@ function PickerCard({
         type="button"
         className="pickerAvatarButton"
         title={onResume ? 'Continue last chat' : 'Open character'}
-        onClick={onResume ?? onOpen}
+        // The card itself opens the character, so the avatar has to keep its click to itself.
+        onClick={(e) => {
+          e.stopPropagation()
+          ;(onResume ?? onOpen)()
+        }}
       >
         {blip ? (
           <span className="blipRing" title="New reply">
@@ -340,10 +366,10 @@ function PickerCard({
           </span>
         )}
       </button>
-      <button type="button" className="pickerNameButton" title="Open character" onClick={onOpen}>
+      <span className="pickerNameBlock">
         <span className="characterName">{displayName(character) || 'Unnamed'}</span>
         <span className="pickerMeta">{meta}</span>
-      </button>
+      </span>
     </div>
   )
 }

@@ -4,7 +4,7 @@
 //
 // Extension-ful imports on purpose: checkExportChat.ts runs the builders under
 // `node --experimental-strip-types`, which can't resolve extensionless app imports. The builders
-// stay pure for that reason — only the three `export*` wrappers touch `document`.
+// stay pure for that reason: only the three `export*` wrappers touch `document`.
 import { createElement, Fragment } from 'react'
 import type { Chat, Message } from '../../core/storage/types.ts'
 import type { TagRule } from '../../core/stores/settingsStore'
@@ -24,20 +24,20 @@ function download(blob: Blob, name: string) {
   URL.revokeObjectURL(url)
 }
 
-/** Same order the chat view reads in — chatStore's `byTime`. */
+/** Same order the chat view reads in: chatStore's `byTime`. */
 const byTime = (a: Message, b: Message) => a.createdAt - b.createdAt || (a.id ?? 0) - (b.id ?? 0)
 
 export interface TranscriptTurn {
   name: string
   role: 'user' | 'assistant'
-  /** The selected swipe. `Message.content` already mirrors it — see core/stores/swipes.ts. */
+  /** The selected swipe. `Message.content` already mirrors it, see core/stores/swipes.ts. */
   content: string
 }
 
 export interface Transcript {
   title: string
   turns: TranscriptTurn[]
-  /** Only the rules this chat's text actually opens and closes — see usedTagRules. */
+  /** Only the rules this chat's text actually opens and closes, see usedTagRules. */
   tagRules: TagRule[]
 }
 
@@ -63,7 +63,7 @@ export function turnName(m: Message, names: Names): string {
 }
 
 /**
- * The tag rules this chat actually uses. A rule counts as used when some turn opens and closes it —
+ * The tag rules this chat actually uses. A rule counts as used when some turn opens and closes it:
  * the same matched-pair test renderText applies, so an unclosed opener is literal text here too and
  * doesn't drag a rule into the export. The user's whole rule list is a global setting; a transcript
  * should only carry the ones its own text triggers.
@@ -116,7 +116,7 @@ export function escapeHtml(text: string): string {
  * shouldn't.
  *
  * react-dom/server is imported here rather than at the top of the file because it is 57 KB gzipped
- * and nothing else in the app needs it — a static import puts it in the vendor chunk every visitor
+ * and nothing else in the app needs it. A static import puts it in the vendor chunk every visitor
  * downloads, a dynamic one gives it a chunk of its own that only an HTML export fetches.
  */
 export async function messageHtml(turn: TranscriptTurn, tagRules?: TagRule[]): Promise<string> {
@@ -173,7 +173,7 @@ export async function buildHtml(t: Transcript, palette: Palette): Promise<string
   const title = escapeHtml(t.title)
 
   // Only carried when a rule fired: a chat with no tagged blocks shouldn't ship rules for them.
-  // Same look as chat.css — <details> holds the open/closed state, so no script is involved.
+  // Same look as chat.css: <details> holds the open/closed state, so no script is involved.
   const tagCss = t.tagRules.some((r) => r.mode === 'collapse')
     ? `.taggedBlock {
   margin: 6px 0;
@@ -306,7 +306,7 @@ ${tagCss}
 <h1>${title}</h1>
 ${body}
 <script>
-// Same scrollspy as the story export — the last bubble whose top has passed under the bar wins —
+// Same scrollspy as the story export: the last bubble whose top has passed under the bar wins,
 // driving a menu instead of a row of links, and the arrows step through the same list.
 (function () {
   var jump = document.getElementById('jump')
@@ -341,12 +341,15 @@ ${body}
  * parse: an importer has to drop the autoincrement ids and remap `chatId` onto the new chat.
  */
 export function buildJson(chat: Chat, messages: Message[]): string {
+  // Lorebook ids are row ids in this browser's database and name nothing on another device, so
+  // they are dropped rather than exported as numbers that would resolve to someone else's books.
+  const { lorebookIds: _lorebookIds, ...rest } = chat
   return JSON.stringify(
     {
       format: 'xeniaNessuvia.chat',
       version: 1,
       exportedAt: new Date().toISOString(),
-      chat,
+      chat: rest,
       messages: [...messages].sort(byTime),
     },
     null,

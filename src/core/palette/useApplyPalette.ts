@@ -9,7 +9,7 @@ let applied: string[] = []
 
 /**
  * Writes the active palette onto `document.documentElement`. Runtime vars there win over the
- * `:root` block in index.css, which stays as the fallback — Default sets the same values, so
+ * `:root` block in index.css, which stays as the fallback. Default sets the same values, so
  * nothing changes visually until another palette is picked.
  *
  * Mounted once, in App.
@@ -22,7 +22,7 @@ export function useApplyPalette() {
     const root = document.documentElement
     const style = root.style
 
-    // An unknown or missing skin id matches no rules, which is the same thing 'default' does — so
+    // An unknown or missing skin id matches no rules, which is the same thing 'default' does, so
     // there is nothing to validate here.
     root.dataset.skin = palette.skin || 'default'
 
@@ -34,7 +34,7 @@ export function useApplyPalette() {
     if (palette.mobileFullWidth) root.dataset.mobileFullWidth = ''
     else delete root.dataset.mobileFullWidth
 
-    // Fade only on an actual swap to another palette, not while live-editing the current one —
+    // Fade only on an actual swap to another palette, not while live-editing the current one:
     // editing wants instant feedback.
     if (palette.id !== lastId.current) {
       lastId.current = palette.id

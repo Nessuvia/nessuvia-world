@@ -3,7 +3,7 @@ import nlp from 'compromise'
 /**
  * The POS slots a pattern can name. Compromise carries many more tags; we map its fine-grained
  * tags onto this small set so the DSL stays learnable. A token may carry several slots (e.g.
- * "fox" is both Noun and Singular — only one needs to satisfy a slot).
+ * "fox" is both Noun and Singular; only one needs to satisfy a slot).
  */
 export type PosTag = 'adj' | 'verb' | 'noun' | 'adv' | 'det' | 'prep' | 'conj' | 'pron'
 
@@ -52,7 +52,7 @@ export function tagsToPos(tags: string[]): PosTag[] {
 /**
  * Tag with `compromise`. Char offsets come from walking `text.indexOf(term, cursor)` forward,
  * which stays correct against the source string even when compromise normalises whitespace in its
- * `pre`/`post`. Punctuation tokens (no POS slot and non-word text) are dropped — patterns match
+ * `pre`/`post`. Punctuation tokens (no POS slot and non-word text) are dropped: patterns match
  * words, and repair re-attaches the surrounding punctuation.
  *
  * `indexOf` from a moving cursor is O(n·m) worst case on degenerate input; fine for

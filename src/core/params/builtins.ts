@@ -14,7 +14,7 @@ const both: ConnectionType[] = ['chat', 'text']
 
 /**
  * The samplers seeded on first run, as ordinary rows. Editable, and once deleted they stay
- * deleted — the same contract the bundled palettes have. Nothing here is special-cased anywhere
+ * deleted, the same contract the bundled palettes have. Nothing here is special-cased anywhere
  * else in the app; `max_tokens` and `stop` are looked up by key where the code needs them, and a
  * connection without them still sends.
  */

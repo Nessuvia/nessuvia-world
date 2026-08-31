@@ -1,4 +1,4 @@
-/* Moved out of settings.css when Write grew its own color list — the pattern has two callers now,
+/* Moved out of settings.css when Write grew its own color list. The pattern has two callers now,
    so its styles travel with the component. */
 /* A fieldset so `disabled` greys the whole list at once; the browser default border and padding
    have to be cleared for it to lay out like the div it replaced. */
@@ -34,7 +34,7 @@
   flex: 1 1 auto;
 }
 
-/* Swatch flush right, Clear to its left — the label above already pushes the whole control right. */
+/* Swatch flush right, Clear to its left: the label above already pushes the whole control right. */
 .colorStackRow .colorInput {
   flex-direction: row-reverse;
 }
@@ -49,7 +49,7 @@
   flex: 0 0 auto;
 }
 
-/* The Text row is the fixed baseline — no reordering, so no grab affordance. */
+/* The Text row is the fixed baseline: no reordering, so no grab affordance. */
 .colorStackRow.fixed {
   cursor: default;
 }

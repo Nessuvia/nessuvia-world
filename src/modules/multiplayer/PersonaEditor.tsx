@@ -16,7 +16,7 @@ export interface PersonaDraft {
 
 /**
  * One editor for a room persona, used by a guest on its own and by the host on anyone's. It reports
- * a draft and nothing more — who may save it, and when the change takes effect, is the host's call.
+ * a draft and nothing more, who may save it, and when the change takes effect, is the host's call.
  */
 export default function PersonaEditor({
   persona,

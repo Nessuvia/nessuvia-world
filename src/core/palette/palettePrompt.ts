@@ -66,7 +66,7 @@ export function modeLadder(stored?: StructuredMode): StructuredMode[] {
 }
 
 /**
- * Shape only: field names, types, all required. No hex patterns and no numeric ranges — those are
+ * Shape only: field names, types, all required. No hex patterns and no numeric ranges: those are
  * where a strict backend is most likely to refuse the schema, and `coerceFields` already throws out
  * a value of the wrong shape whatever the endpoint did.
  *
@@ -74,7 +74,7 @@ export function modeLadder(stored?: StructuredMode): StructuredMode[] {
  */
 /**
  * Fields the model is never shown and never asked for. `backgrounds` holds image references and raw
- * CSS — nothing a color scheme should invent, and a nested object is what a strict schema backend
+ * CSS: nothing a color scheme should invent, and a nested object is what a strict schema backend
  * refuses. The webfont fields are a user pick from the Fontsource catalog, not a color the model
  * chooses, and a made-up `webfontId` would 404 the CDN. `coerceFields` keeps the base's value for
  * anything missing, so leaving them out preserves whatever the palette already had.
@@ -170,8 +170,8 @@ export function parsePaletteReply(text: string, base: Palette): Palette {
 }
 
 /** The first balanced `{…}` in the text, ignoring braces inside strings. Exported because every
- *  one-shot JSON request has the same problem — a model that fences the object or wraps it in a
- *  sentence — and one scanner is enough. `core/prompt/outline.ts` is the other caller. */
+ *  one-shot JSON request has the same problem: a model that fences the object or wraps it in a
+ *  sentence, and one scanner is enough. `core/prompt/outline.ts` is the other caller. */
 export function firstJsonObject(text: string): string {
   const start = text.indexOf('{')
   if (start === -1) return ''
@@ -194,4 +194,59 @@ export function firstJsonObject(text: string): string {
     else if (c === '}' && --depth === 0) return text.slice(start, i + 1)
   }
   return ''
+}
+
+/**
+ * The two things models get wrong inside a JSON string, fixed: an unescaped `"` and a raw newline.
+ * Both come from writing prose into a field. A beat like `She says "no" and leaves` balances as an
+ * object, so `firstJsonObject` returns it happily and `JSON.parse` is the one that fails.
+ *
+ * A quote is treated as the string's end only when the next non-space character is structural
+ * (`,` `}` `]` `:`) or the text runs out. Anything else is prose and gets escaped. That rule is
+ * wrong for a value that legitimately ends in a quote followed by more prose, but such a value is
+ * not valid JSON in the first place, so there is nothing correct to lose.
+ *
+ * Returns the text unchanged when nothing needed fixing, so a caller can tell a repair happened.
+ */
+export function repairJsonStrings(text: string): string {
+  let out = ''
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (!inString) {
+      out += c
+      if (c === '"') inString = true
+      continue
+    }
+    if (escaped) {
+      out += c
+      escaped = false
+      continue
+    }
+    if (c === '\\') {
+      out += c
+      escaped = true
+      continue
+    }
+    if (c === '"') {
+      let j = i + 1
+      while (j < text.length && (text[j] === ' ' || text[j] === '\t' || text[j] === '\n' || text[j] === '\r')) j++
+      if (j >= text.length || text[j] === ',' || text[j] === '}' || text[j] === ']' || text[j] === ':') {
+        out += c
+        inString = false
+      } else {
+        out += '\\"'
+      }
+      continue
+    }
+    // A raw control character is never legal inside a JSON string. Newlines and tabs are what a
+    // model actually emits; anything else in that range is dropped rather than guessed at.
+    if (c === '\n') out += '\\n'
+    else if (c === '\r') out += '\\r'
+    else if (c === '\t') out += '\\t'
+    else if (c < ' ') continue
+    else out += c
+  }
+  return out
 }

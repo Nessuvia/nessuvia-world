@@ -5,7 +5,7 @@ import RangeSlider from './RangeSlider'
 const roles: PromptBlock['role'][] = ['system', 'user', 'assistant']
 
 /** The {{tokens}} each kind of stack understands, as [token, what it stands for]. Chat's come from
- *  `swapTokens`, Story's from `storyTokens` — keep both lists in step with those files. */
+ *  `swapTokens`, Story's from `storyTokens`, keep both lists in step with those files. */
 const tokenGuide: Record<StackKind, [string, string][]> = {
   chat: [
     ['{{char}}', "The character's name"],
@@ -31,10 +31,9 @@ const tokenGuide: Record<StackKind, [string, string][]> = {
     ['{{previousChapterSummary}}', "The Chapter before it, recapped"],
     ['{{nextChapterTitle}}', 'The Chapter after it'],
     ['{{nextChapterBeats}}', 'Its planned beats, one per line'],
-    ['{{beat}}', "The plan line of the Block being written"],
+    ['{{beat}}', 'The instructions for the Block being written'],
     ['{{beatTargetWords}}', 'Its word target. Blank when unset'],
-    ['{{beatsDone}}', 'Other beats in this Chapter that are ticked'],
-    ['{{beatsRemaining}}', 'Other beats in this Chapter that are not'],
+    ['{{otherBeats}}', 'Every other beat in this Chapter, one per line'],
   ],
 }
 
@@ -56,7 +55,7 @@ export default function BlockModal({
   onDelete: () => void
   onClose: () => void
 }) {
-  // Controlled by the stack draft above — no local copy to keep in sync.
+  // Controlled by the stack draft above, no local copy to keep in sync.
   const draft = block
   const set = (patch: Partial<PromptBlock>) => onChange({ ...draft, ...patch })
   const hasChildren = !!draft.children

@@ -1,4 +1,4 @@
-// Run: node --experimental-strip-types src/core/prompt/checkBuildStoryPrompt.ts
+﻿// Run: node --experimental-strip-types src/core/prompt/checkBuildStoryPrompt.ts
 import assert from 'node:assert'
 import type { PromptBlock, PromptStack } from '../storage/types'
 import type { Budget } from './budget.ts'
@@ -8,6 +8,7 @@ import {
   fitEndBackward,
   fitStartForward,
   maxTrailingTokens,
+  storyScanText,
 } from './buildStoryPrompt.ts'
 
 let n = 0
@@ -45,7 +46,6 @@ const defaultish = () =>
     stack: defaultish(),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: 'The rain fell.',
     direction: 'Write two paragraphs.',
   }).messages
@@ -63,7 +63,6 @@ const defaultish = () =>
     stack: defaultish(),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: '',
     direction: 'Open the story.',
   })
@@ -78,7 +77,6 @@ const defaultish = () =>
     stack: stack([block({ source: 'storyContext' })]),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'once upon a time',
     direction: 'continue',
   }).messages
@@ -97,7 +95,6 @@ const defaultish = () =>
       stack: stack([block({ content: 'sys' }), block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: lines,
       direction: 'go',
     },
@@ -106,7 +103,7 @@ const defaultish = () =>
   assert.ok(built.droppedChars > 0, 'a tight budget drops the top of the Story')
   assert.ok(built.storyIncluded.includes('line 199'), 'the newest prose is kept')
   assert.ok(!built.storyIncluded.includes('line 0'), 'the oldest prose falls off first')
-  // Everything that survived is a contiguous tail — no reordering.
+  // Everything that survived is a contiguous tail: no reordering.
   const kept = built.storyIncluded.split('\n')
   assert.strictEqual(kept.at(-1), 'line 199')
 }
@@ -118,7 +115,6 @@ const defaultish = () =>
       stack: stack([block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: 'short story',
       direction: 'go',
     },
@@ -142,7 +138,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
   }).messages
@@ -163,7 +158,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
   })
@@ -188,7 +182,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       ]),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: lines,
       direction: 'go',
     },
@@ -213,66 +206,48 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: 'Name: Mark',
     tokens: {},
-    chapterGuide: '',
     storyText: 'prose',
     direction: 'go',
   }).messages
   assert.ok(!out.some((m) => m.content.includes('Name: Mark')))
 }
 
-// --- the Chapter guide rides in its own block, inside its wrapper -----------
+// --- fitStoryText replaces the line chop, and only when a budget exists -------
 {
-  const built = buildStoryPrompt({
-    stack: stack([
-      block({
-        source: 'chapterGuide',
-        content: '<chapters>',
-        closeContent: '</chapters>',
-      }),
-      block({ source: 'storyContext' }),
-    ]),
-    castText: '',
-    tokens: {},
-    chapterGuide: 'Chapter 1 — Morning [written]',
-    storyText: 'prose',
-    direction: 'go',
-  })
-  const text = built.messages.map((m) => m.content).join('\n')
-  assert.ok(text.includes('<chapters>\nChapter 1 — Morning [written]\n</chapters>'))
-  // Fixed prefix, not Story context: it's priced before the prose budget is worked out.
-  assert.ok(built.fixedTokens > 0)
-}
-
-// --- a stack with no Chapter guide block still builds ------------------------
-{
-  const out = buildStoryPrompt({
-    stack: stack([block({ source: 'storyContext' })]),
-    castText: '',
-    tokens: {},
-    chapterGuide: 'Chapter 1 — Morning [written]',
-    storyText: 'prose',
-    direction: 'go',
-  }).messages
-  assert.ok(!out.some((m) => m.content.includes('Chapter 1')))
-}
-
-// --- the guide survives a budget that drops prose ----------------------------
-{
+  const long = Array.from({ length: 200 }, (_, i) => `line ${i} of the prose`).join('\n')
   const tight: Budget = { contextLimit: 220, maxTokens: 60, safetyMarginPct: 0 }
+  let asked = -1
+
   const built = buildStoryPrompt(
     {
-      stack: stack([block({ source: 'chapterGuide' }), block({ source: 'storyContext' })]),
+      stack: stack([block({ source: 'storyContext' })]),
       castText: '',
       tokens: {},
-      chapterGuide: 'Chapter 1 — Morning [written]\n  John wakes.',
-      storyText: Array.from({ length: 200 }, (_, i) => `line ${i} of the prose`).join('\n'),
+      storyText: long,
+      fitStoryText: (available) => {
+        asked = available
+        return 'Beat 1: he wakes'
+      },
       direction: 'go',
     },
     tight,
   )
   const text = built.messages.map((m) => m.content).join('\n')
-  assert.ok(text.includes('John wakes.'))
-  assert.ok(built.droppedChars > 0)
+  assert.strictEqual(text.includes('Beat 1: he wakes'), true)
+  assert.ok(!text.includes('line 0 of the prose'))
+  // Handed the room left after the fixed prefix, not the whole window.
+  assert.ok(asked > 0 && asked < 220)
+
+  // No budget, no fit: the whole prose goes, closure or not.
+  const whole = buildStoryPrompt({
+    stack: stack([block({ source: 'storyContext' })]),
+    castText: '',
+    tokens: {},
+    storyText: long,
+    fitStoryText: () => 'Beat 1: he wakes',
+    direction: 'go',
+  })
+  assert.ok(whole.messages.map((m) => m.content).join('\n').includes('line 0 of the prose'))
 }
 
 // --- the trailing "What follows" block ---------------------------------------
@@ -288,7 +263,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: withTrailing(),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'He opened the door.',
     storyTrailing: 'She was already gone.',
     direction: 'describe the room',
@@ -303,7 +277,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: withTrailing(),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'He opened the door.',
     storyTrailing: '',
     direction: 'describe the room',
@@ -316,7 +289,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
       stack: withTrailing(),
       castText: '',
       tokens: {},
-      chapterGuide: '',
       storyText: 'He opened the door.',
       direction: 'describe the room',
     }).messages,
@@ -346,7 +318,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     stack: stack([block({ source: 'storyContext' }), block({ source: 'storyTrailing' })]),
     castText: '',
     tokens: {},
-    chapterGuide: '',
     storyText: 'the prose so far',
     storyTrailing: huge,
     direction: 'go',
@@ -373,7 +344,6 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: 'Name: Mark',
     tokens: { storyTitle: 'Last Call', chapterNumber: '2', beat: 'She asks him to leave' },
-    chapterGuide: '',
     // The manuscript writes a token of its own. It is prose, and comes through untouched.
     storyText: 'He said "{{storyTitle}}" and meant it.',
     direction: '',
@@ -401,13 +371,66 @@ assert.strictEqual(fitEndBackward('tiny', 100), 'tiny')
     ]),
     castText: '',
     tokens: { beat: '', beatTargetWords: '' },
-    chapterGuide: '',
     storyText: 'the prose so far',
     direction: '',
   })
   // Free prose: no beat, no target, so no user turn at all.
   assert.ok(!built.messages.some((m) => m.role === 'user'))
   assert.ok(!built.messages.some((m) => m.content.includes('Write this next')))
+}
+
+// --- world info renders in its block, and drops out when nothing matched ----
+{
+  const withWorld = () =>
+    stack([
+      block({ label: 'sys', content: 'You are a co-writer.' }),
+      block({
+        label: 'world',
+        source: 'worldInfo',
+        content: '<world>',
+        closeContent: '</world>',
+      }),
+      block({ label: 'story', source: 'storyContext' }),
+    ])
+  const args = { castText: '', tokens: {}, storyText: 'the prose', direction: '' }
+
+  const on = buildStoryPrompt({
+    ...args,
+    stack: withWorld(),
+    worldInfo: { before: 'Ferren is a port city.', after: '' },
+  })
+  const text = on.messages.map((m) => m.content).join('\n')
+  assert.ok(text.includes('<world>'))
+  assert.ok(text.includes('Ferren is a port city.'))
+  assert.ok(text.includes('</world>'))
+
+  // Nothing matched: the wrapper goes too, rather than sending empty tags.
+  const off = buildStoryPrompt({ ...args, stack: withWorld(), worldInfo: { before: '', after: '' } })
+  assert.ok(!off.messages.some((m) => m.content.includes('<world>')))
+  // And with no worldInfo argument at all, which is every caller that has no books.
+  const none = buildStoryPrompt({ ...args, stack: withWorld() })
+  assert.ok(!none.messages.some((m) => m.content.includes('<world>')))
+
+  // World info is priced with the fixed blocks, not taken out of the Story prose's allowance.
+  assert.ok(on.fixedTokens > off.fixedTokens)
+}
+
+// --- storyScanText: paragraphs stand in for messages, newest last -----------
+{
+  assert.deepStrictEqual(storyScanText('one\n\ntwo\n\n\n  \n\nthree'), [
+    { content: 'one' },
+    { content: 'two' },
+    { content: 'three' },
+  ])
+  // Extras land after the prose, so a scan depth of 1 sees the beat and not the last paragraph.
+  assert.deepStrictEqual(storyScanText('one\n\ntwo', ['', 'the beat']), [
+    { content: 'one' },
+    { content: 'two' },
+    { content: 'the beat' },
+  ])
+  assert.deepStrictEqual(storyScanText('', []), [])
+  // A single paragraph with hard line breaks stays one unit: a blank line is what splits.
+  assert.deepStrictEqual(storyScanText('a\nb'), [{ content: 'a\nb' }])
 }
 
 console.log('ok')

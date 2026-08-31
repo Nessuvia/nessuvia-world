@@ -19,7 +19,7 @@ export interface PaletteFile {
    * itself and the importer rewrites the ids (see `remapImages`).
    *
    * Optional: a file written before this existed, or a hand-written one, has no images and every
-   * `imageId` remaps to 0 — no image, which is what a slot with nothing set already means.
+   * `imageId` remaps to 0, no image, which is what a slot with nothing set already means.
    */
   images?: Record<number, PaletteFileImage>
 }
@@ -73,7 +73,7 @@ export function fileName(name: string): string {
 /**
  * Untrusted file input, read the same tolerant way an imported character card is: reject anything
  * that isn't a palette file, then coerce each field, falling back to the Default value for anything
- * missing or of the wrong type. Ids are dropped — the importer always appends.
+ * missing or of the wrong type. Ids are dropped; the importer always appends.
  *
  * The images come back alongside rather than merged in: writing them needs Dexie, which this module
  * has no business touching. The caller stores them and then calls `remapImages`.
@@ -88,7 +88,7 @@ export function parsePalettes(text: string): { palettes: Palette[]; images: Reco
 
 /**
  * Point a parsed palette's background slots at the ids the images actually landed on locally.
- * Anything unmapped becomes 0 — the slot shows no image of its own and falls back to the baseline,
+ * Anything unmapped becomes 0: the slot shows no image of its own and falls back to the baseline,
  * which is how an empty slot already behaves.
  */
 export function remapImages(palette: Palette, map: Record<number, number>): Palette {

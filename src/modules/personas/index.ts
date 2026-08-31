@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiUserLine } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 import './personas.css'
 
 registerModule({
@@ -8,5 +7,5 @@ registerModule({
   label: 'Personas',
   icon: RiUserLine,
   route: '/personas',
-  component: lazy(() => import('./PersonasView')),
+  component: lazyView(() => import('./PersonasView')),
 })

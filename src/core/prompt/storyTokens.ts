@@ -1,15 +1,16 @@
-// The {{tokens}} a Story stack understands. Write mode's answer to `swapTokens` — a different set
+// The {{tokens}} a Story stack understands. Write mode's answer to `swapTokens`: a different set
 // of names over different data, so it is a separate table rather than an arm of the chat one.
 //
 // Extension-ful imports on purpose: checkStoryTokens.ts runs this under
 // `node --experimental-strip-types`.
+import type { BeatWeight } from '../storage/types.ts'
+import { splitByWeight } from './beatWeights.ts'
 
 /** The Block fields a token reads. `Block` satisfies this structurally. */
 export interface TokenBlock {
   id: string
   beat: string
-  targetWords: number
-  done: boolean
+  weight: BeatWeight
 }
 
 /** The Chapter fields a token reads. `Chapter` satisfies this structurally. */
@@ -17,6 +18,7 @@ export interface TokenChapter {
   id?: number
   title: string
   summary: string
+  targetWords: number
   blocks: TokenBlock[]
 }
 
@@ -24,6 +26,7 @@ export interface StoryTokenArgs {
   title: string
   premise: string
   ending: string
+  themes: string
   /** Names of the enabled cast, in cast order. The `cast` bound block sends the full cards; this is
    *  the same people as a list you can write a sentence around. */
   castNames: string[]
@@ -43,7 +46,7 @@ const beatLines = (blocks: TokenBlock[]) =>
 /**
  * Every Story token and its value. An unset field resolves to '' rather than being left out, so a
  * sentence built around a token that has nothing behind it comes out blank instead of showing the
- * token to the model — the same rule `castTokens` follows.
+ * token to the model, the same rule `castTokens` follows.
  */
 export function storyTokens(args: StoryTokenArgs): Record<string, string> {
   const { chapters, chapterId, blockId } = args
@@ -51,29 +54,40 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
   const chapter = at === -1 ? undefined : chapters[at]
   const previous = at > 0 ? chapters[at - 1] : undefined
   const next = at === -1 ? undefined : chapters[at + 1]
-  const block = chapter?.blocks.find((b) => b.id === blockId)
+  const blockAt = chapter?.blocks.findIndex((b) => b.id === blockId) ?? -1
+  const block = blockAt === -1 ? undefined : chapter?.blocks[blockAt]
   const others = (chapter?.blocks ?? []).filter((b) => b.id !== blockId && b.beat.trim())
+
+  // The beat's word target is derived, never stored: the Chapter holds the number and the weights
+  // divide it. An unset Chapter target gives zeroes, which reads as unset the same way.
+  const target =
+    chapter && blockAt !== -1
+      ? splitByWeight(chapter.targetWords, chapter.blocks.map((b) => b.weight))[blockAt]
+      : 0
 
   return {
     storyTitle: args.title.trim(),
     premise: args.premise.trim(),
     ending: args.ending.trim(),
+    themes: args.themes.trim(),
     castNames: args.castNames.filter((n) => n.trim()).join(', '),
 
     chapterNumber: at === -1 ? '' : String(at + 1),
     chapterCount: String(chapters.length),
     chapterTitle: chapter?.title.trim() ?? '',
     chapterSummary: chapter?.summary.trim() ?? '',
+    chapterTargetWords: chapter && chapter.targetWords > 0 ? String(chapter.targetWords) : '',
     previousChapterSummary: previous?.summary.trim() ?? '',
     nextChapterTitle: next?.title.trim() ?? '',
     nextChapterBeats: next ? beatLines(next.blocks) : '',
 
     beat: block?.beat.trim() ?? '',
-    // 0 is "unset" on the Block, and a prompt saying "about 0 words" is worse than one saying
-    // nothing, so it resolves blank like every other unset field.
-    beatTargetWords: block && block.targetWords > 0 ? String(block.targetWords) : '',
-    beatsDone: beatLines(others.filter((b) => b.done)),
-    beatsRemaining: beatLines(others.filter((b) => !b.done)),
+    // A prompt saying "about 0 words" is worse than one saying nothing, so an unset target resolves
+    // blank like every other unset field.
+    beatTargetWords: target > 0 ? String(target) : '',
+    // Every other beat in the Chapter, in order. There is no covered/remaining split: nothing
+    // tracks which beats are written, and the plan reads the same either way.
+    otherBeats: beatLines(others),
   }
 }
 
@@ -83,11 +97,12 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
  *
  * A line whose known tokens ALL resolve to '' is dropped whole, sentence and all. Without that,
  * "Aim for about {{beatTargetWords}} words." survives as an instruction with a hole in it every
- * time the field is unset — and a block whose every line is one of those drops out of the prompt
- * entirely, which is what makes a Beat block safe to leave in a stack while writing free prose.
+ * time the field is unset, and a block whose every line is one of those drops out of the prompt
+ * entirely, which is what makes a Beat block safe to leave in a stack while writing a beat that has
+ * no instructions on it yet.
  * A line mixing an empty token with a filled one is kept: something on it still has content.
  *
- * Only ever applied to a prompt block's own text — never to Story prose. A {{token}} the Author
+ * Only ever applied to a prompt block's own text, never to Story prose. A {{token}} the Author
  * typed into their manuscript is manuscript.
  */
 export function swapStoryTokens(text: string, values: Record<string, string>): string {

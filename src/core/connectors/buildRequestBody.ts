@@ -11,7 +11,7 @@ import { flattenPrompt } from '../prompt/flattenPrompt.ts'
  * this, so none of them can drift from the others. Nothing else in the app builds a body.
  *
  * Every sampler in the body comes from `connection.params`, resolved against the def library.
- * A param the connection does not carry is not sent at all — that omission is the point, since it
+ * A param the connection does not carry is not sent at all. That omission is the point, since it
  * lets the backend apply its own default and keeps picky endpoints from choking on keys they
  * don't know.
  */
@@ -20,7 +20,7 @@ export function buildRequestBody(
   connection: Connection,
   /** The param library, for the key → shape lookup. */
   defs: ParamDef[],
-  /** Per-request fields the connection has no setting for — today only `response_format`, on the
+  /** Per-request fields the connection has no setting for: today only `response_format`, on the
    *  palette request. Applied last, so it wins over the connection's params. */
   extra?: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -42,7 +42,7 @@ export function buildRequestBody(
     if (!def) continue
     const value = coerceValue(def, param.value)
     if (value === undefined) continue
-    // A `stop` param merges with the template's sequences rather than replacing them — the
+    // A `stop` param merges with the template's sequences rather than replacing them: the
     // template's are what close the model's turn, and losing them means it never stops.
     if (def.key === 'stop' && Array.isArray(body.stop) && Array.isArray(value)) {
       body.stop = [...new Set([...(body.stop as string[]), ...(value as string[])])]
@@ -58,7 +58,7 @@ export function buildRequestBody(
 /**
  * Where a request is actually POSTed. Accepts a full path, a `/v1` base, or a bare root; the
  * connection type picks the tail. A path that already names either completions endpoint is left
- * exactly as typed — local backends put these under paths no rule here could guess
+ * exactly as typed. Local backends put these under paths no rule here could guess
  * (`/api/v1`, `/completion`, a proxy prefix), so a full URL is taken at its word.
  */
 export function completionUrl(endpointUrl: string, type: Connection['type'] = 'chat'): string {

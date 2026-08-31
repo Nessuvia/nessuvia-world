@@ -19,7 +19,7 @@ export interface BucketConfig {
   accessKeyId: string
   secretAccessKey: string
   /** Encrypts the settings object before it is uploaded. Empty uploads it as plain text. Never sent
-   *  to the bucket in the clear, and not part of bucketConfigured — the tables sync without it. */
+   *  to the bucket in the clear, and not part of bucketConfigured: the tables sync without it. */
   passphrase: string
 }
 

@@ -19,7 +19,7 @@ import {
  * the CSS transition and let it ease home.
  *
  * The swipe is eligible from anywhere rather than from an edge strip, which only works because
- * nothing else in the app scrolls sideways — see the overflow rules in index.css.
+ * nothing else in the app scrolls sideways: see the overflow rules in index.css.
  *
  * Open state is the caller's: a drawer is usually something the caller can open on its own (a
  * button, picking a Story), and two sources of truth for one panel is the bug that follows.

@@ -57,7 +57,7 @@ export default function ParamInput({
           max={def.max ?? 1}
           step={def.step ?? 0.01}
           // A range input has no empty state, so the override editor's "inherit" shows as the
-          // inherited value until the user moves it — the number box next to it is the real control.
+          // inherited value until the user moves it, the number box next to it is the real control.
           value={text === '' ? (placeholder ?? '0') : text}
           onChange={(e) => onChange(Number(e.target.value))}
         />

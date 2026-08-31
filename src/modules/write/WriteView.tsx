@@ -20,7 +20,6 @@ import {
   RiFileCopyLine,
   RiImageEditLine,
   RiItalic,
-  RiListCheck3,
   RiMapPinLine,
   RiMoreLine,
   RiSparkling2Line,
@@ -31,16 +30,16 @@ import { decorateProse, readProse, restoreCaret, saveCaret } from './proseMarkup
 import { loremParagraphs } from './loremPreview'
 import { exportStoryHtml, exportStoryJson, exportStoryTxt } from './exportStory'
 import { newBlock, useWrite } from '../../core/stores/writeStore'
-import { reasoningFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
-import { isBeat } from '../../core/prompt/chapterGuide'
-import { beatText, storedBeat } from './beatSlots'
+import { instructionChain, reasoningFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
+import { beatTargets } from '../../core/prompt/beatWeights'
+import { WeightPicker } from './WeightPicker'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
 import { usePalette } from '../../core/stores/palettesStore'
 import { effectiveFont } from '../../core/palette/palette'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
-import type { Block, BlockContext, CastEntry, Chapter, Story } from '../../core/storage/types'
+import type { BeatWeight, Block, BlockContext, CastEntry, Chapter, Story } from '../../core/storage/types'
 import { StoryBeats } from './StoryRail'
 import PlotLayout from './PlotLayout'
 import { useMediaQuery } from '../../app/useMediaQuery'
@@ -145,14 +144,14 @@ function Shelf() {
 }
 
 function stamp(ms: number): string {
-  if (!ms) return '—'
+  if (!ms) return '--'
   return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 // Shelf preview panel: a bigger cover and what the Story holds, with Continue to open the editor.
 //
 // On a phone it is a drawer on the right edge rather than a column beside the grid. Picking a
-// cover is what opens it, so a swipe from closed is not eligible — there would be nothing in it.
+// cover is what opens it, so a swipe from closed is not eligible, there would be nothing in it.
 // A swipe right, or the close button, sends it back out; the Story it was showing is dropped once
 // it has finished leaving, so the slide out isn't cut short by the panel unmounting mid-move.
 function StoryPreview({ story, onClose }: { story: Story; onClose: () => void }) {
@@ -406,26 +405,43 @@ const contextLabels: Record<BlockContext, string> = {
 const JumpToPlot = createContext<(chapterId: number, beatId: string) => void>(() => {})
 
 // Regen with instructions. Reuses .dialogBackdrop / .dialog / .dialogActions from chat.css. The
-// target sits here because a rewrite is the moment the Author notices the beat came out too short.
+// length sits here because a rewrite is the moment the Author notices the beat came out too short.
 function RegenDialog({
   label,
-  targetWords,
+  weight,
+  words,
+  chain,
   onClose,
   onRegen,
 }: {
   label: string
-  targetWords: number
+  weight: BeatWeight
+  /** The words this beat works out to at the weight below. Derived, so it moves as the weight does. */
+  words: number
+  /** Every instruction that led to the version on screen, oldest first. Shown because they are sent
+   *  again alongside whatever is typed here: a regen carries them, it does not start over. */
+  chain: string[]
   onClose: () => void
-  onRegen: (instruction: string, targetWords: number) => void
+  onRegen: (instruction: string, weight: BeatWeight) => void
 }) {
   const [instruction, setInstruction] = useState('')
-  const [target, setTarget] = useState(targetWords)
+  const [draft, setDraft] = useState(weight)
 
   return (
     <div className="dialogBackdrop" onClick={onClose}>
       <div className="dialog regenDialog" onClick={(e) => e.stopPropagation()}>
         <h3>Regen with instructions</h3>
         <p className="hint">{label}</p>
+        {chain.length > 0 && (
+          <div className="regenChain">
+            <p className="hint">Already asked for, and sent again:</p>
+            <ol className="regenChainList">
+              {chain.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ol>
+          </div>
+        )}
         <textarea
           rows={8}
           autoFocus
@@ -435,33 +451,25 @@ function RegenDialog({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && instruction.trim()) {
               e.preventDefault()
-              onRegen(instruction.trim(), target)
+              onRegen(instruction.trim(), draft)
             }
           }}
         />
         <div className="regenTarget">
           <label>
-            Target words
-            <input
-              type="number"
-              min={0}
-              step={50}
-              value={target || ''}
-              placeholder="0"
-              onChange={(e) => setTarget(Math.max(0, Number(e.target.value) || 0))}
+            Length
+            <WeightPicker
+              value={draft}
+              words={weight === draft ? words : 0}
+              onChange={setDraft}
             />
           </label>
-          {[-100, -50, 50, 100].map((d) => (
-            <button key={d} type="button" onClick={() => setTarget(Math.max(0, target + d))}>
-              {d > 0 ? `+${d}` : d}
-            </button>
-          ))}
         </div>
         <div className="dialogActions">
           <button type="button" className="secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" disabled={!instruction.trim()} onClick={() => onRegen(instruction.trim(), target)}>
+          <button type="button" disabled={!instruction.trim()} onClick={() => onRegen(instruction.trim(), draft)}>
             Regen
           </button>
         </div>
@@ -470,13 +478,13 @@ function RegenDialog({
   )
 }
 
-// The header above a beat Block: its plan line, and every control that acts on the Block. A free
-// stretch gets none of this — see BlockRegion.
+// The header above a beat: its plan line, and every control that acts on the Block.
 function BlockHead({
   block,
   chapterId,
   chapterIndex,
   beatIndex,
+  targetWords,
   onPatch,
   onRemove,
   preview,
@@ -488,7 +496,9 @@ function BlockHead({
   chapterId: number
   chapterIndex: number
   beatIndex: number
-  // Returns the store write, so the regen dialog can land a target change before it asks for prose.
+  /** This beat's share of its Chapter's word target. Derived from the weights, never stored. */
+  targetWords: number
+  // Returns the store write, so the regen dialog can land a weight change before it asks for prose.
   onPatch: (patch: Partial<Block>) => void | Promise<void>
   onRemove: () => void
   preview: boolean
@@ -508,13 +518,13 @@ function BlockHead({
   const menuRef = useCloseOnOutside<HTMLDivElement>(menu, () => setMenu(false))
   const jumpToPlot = useContext(JumpToPlot)
 
-  // The beat field is always a textarea — there is no read mode to swap out of, which is what used
+  // The beat field is always a textarea, there is no read mode to swap out of, which is what used
   // to reflow the text on click. Local draft with a debounced save, the same reason PlotLayout's
   // BeatText keeps one: onPatch awaits a Dexie write, so a controlled value lands a render late
   // and React puts the caret back at the end of the line.
-  const [draft, setDraft] = useState(() => beatText(block.beat))
+  const [draft, setDraft] = useState(() => block.beat)
   const timer = useRef<number | undefined>(undefined)
-  const stored = beatText(block.beat)
+  const stored = block.beat
   const lastSeen = useRef(stored)
   // Re-seed when the beat changes underneath the field (swipe, bulk add, another surface editing
   // it) but never on the store echo of what was just typed here.
@@ -536,7 +546,7 @@ function BlockHead({
     timer.current = window.setTimeout(() => {
       timer.current = undefined
       lastSeen.current = text
-      onPatch({ beat: storedBeat(text) })
+      onPatch({ beat: text })
     }, 400)
   }
 
@@ -545,7 +555,7 @@ function BlockHead({
     timer.current = undefined
     if (draft === stored) return
     lastSeen.current = draft
-    onPatch({ beat: storedBeat(draft) })
+    onPatch({ beat: draft })
   }
 
   const total = swipeCount(block)
@@ -554,11 +564,11 @@ function BlockHead({
   // RegenDialog names the beat it is about to rewrite, so it wants the whole line.
   const label = `${crumb}: ${block.beat.trim() || 'Empty beat'}`
 
-  async function regen(instruction: string, targetWords: number) {
+  async function regen(instruction: string, weight: BeatWeight) {
     setRegen(false)
-    // The target is read off the stored Block when the prompt is built, so the patch has to land
-    // first — onPatch returns the store write for exactly this.
-    if (targetWords !== block.targetWords) await onPatch({ targetWords })
+    // The target is derived off the stored Block when the prompt is built, so a weight change has
+    // to land first; onPatch returns the store write for exactly this.
+    if (weight !== block.weight) await onPatch({ weight })
     regenBlock(chapterId, block.id, instruction)
   }
 
@@ -566,14 +576,8 @@ function BlockHead({
     <div className="blockHead" contentEditable={false}>
       {/* The beat's name plate. Nothing here is editable, so it never moves. */}
       <div className="blockPlan">
-        <input
-          type="checkbox"
-          checked={block.done}
-          title="Mark this beat done. Nothing ticks it for you."
-          onChange={(e) => onPatch({ done: e.target.checked })}
-        />
         <span className="blockCrumb">{crumb}</span>
-        {block.targetWords > 0 && <span className="blockTarget">{block.targetWords}w</span>}
+        {targetWords > 0 && <span className="blockTarget">{targetWords}w</span>}
       </div>
 
       {/* The beat is written here, so a plan change doesn't mean a trip to the Plot Layout tab. */}
@@ -583,14 +587,6 @@ function BlockHead({
         placeholder="What happens in this beat"
         onChange={(e) => editBeat(e.target.value)}
         onBlur={flushBeat}
-        // A beat is one line in the Chapter guide — storedBeat collapses newlines anyway, so
-        // Enter saves instead of inserting one the field would lose.
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            e.currentTarget.blur()
-          }
-        }}
       />
 
       {/* Every control that acts on the Block, on its own row under the plan line. */}
@@ -614,6 +610,14 @@ function BlockHead({
           >
             <RiArrowRightSLine size={21} />
           </button>
+        </span>
+      )}
+
+      {/* What this version was asked to be. Without it a swipe strip is a count of takes with no
+          way to tell them apart. */}
+      {total > 1 && block.instructions?.[at] && (
+        <span className="blockSwipeNote" title={block.instructions[at]}>
+          {block.instructions[at]}
         </span>
       )}
 
@@ -697,37 +701,23 @@ function BlockHead({
               <input
                 type="checkbox"
                 checked={preview}
-                disabled={block.targetWords <= 0}
+                disabled={targetWords <= 0}
                 title={
-                  block.targetWords > 0
+                  targetWords > 0
                     ? 'Fill an empty beat with placeholder text as long as the target.'
-                    : 'Set a target first.'
+                    : "Set the Chapter's word target first."
                 }
                 onChange={(e) => onPreview(e.target.checked)}
               />
             </label>
             <label className="blockMenuTarget">
-              Target words
-              <input
-                type="number"
-                min={0}
-                step={50}
-                value={block.targetWords || ''}
-                placeholder="0"
-                onChange={(e) =>
-                  onPatch({ targetWords: Math.max(0, Number(e.target.value) || 0) })
-                }
+              Length
+              <WeightPicker
+                value={block.weight}
+                words={targetWords}
+                onChange={(weight) => onPatch({ weight })}
               />
             </label>
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false)
-                onPatch({ beat: '' })
-              }}
-            >
-              Convert to free prose
-            </button>
             <button
               type="button"
               className="danger"
@@ -757,7 +747,9 @@ function BlockHead({
       {regenOpen && (
         <RegenDialog
           label={label}
-          targetWords={block.targetWords}
+          weight={block.weight}
+          words={targetWords}
+          chain={instructionChain(block)}
           onClose={() => setRegen(false)}
           onRegen={regen}
         />
@@ -766,16 +758,16 @@ function BlockHead({
   )
 }
 
-// One Block's region: a contenteditable holding that Block's raw prose. Uncontrolled — the DOM is
+// One Block's region: a contenteditable holding that Block's raw prose. Uncontrolled, the DOM is
 // the source of truth for typing; React only re-syncs it when the Block's rev changes (open,
 // generation, swipe), so a keystroke never triggers a re-render that would move the caret.
 //
 // Inline markers (italics/bold/quotes) are decorated in place by proseMarkup, never by React. The
 // markers stay in the DOM as their own spans and are only hidden with CSS, so reading the prose back
-// out still yields exactly what the Author typed — the Block never loses an asterisk. Toggle
+// out still yields exactly what the Author typed, the Block never loses an asterisk. Toggle
 // Styling flips a class; it doesn't re-parse.
 //
-// Decoration runs on the same debounced tick as the save rather than per keystroke — rebuilding the
+// Decoration runs on the same debounced tick as the save rather than per keystroke, rebuilding the
 // DOM under a live caret is the fragile part, and doing it while typing has paused keeps the caret
 // restore to one predictable moment.
 //
@@ -786,23 +778,25 @@ function BlockRegion({
   chapterId,
   chapterIndex,
   beatIndex,
+  targetWords,
   first,
   onPatch,
   onRemove,
-  onMakeBeat,
 }: {
   block: Block
   chapterId: number
   chapterIndex: number
   beatIndex: number
+  /** This beat's share of its Chapter's word target. Derived from the weights, never stored. */
+  targetWords: number
   first: boolean
   onPatch: (patch: Partial<Block>) => void | Promise<void>
   onRemove: () => void
-  onMakeBeat: () => void
 }) {
   const id = block.id
   const rev = useWrite((s) => s.revs[id] ?? 0)
   const streamingText = useWrite((s) => s.streamingText)
+  const streamingDraft = useWrite((s) => s.streamingDraft)
   const streamingReasoning = useWrite((s) => s.streamingReasoning)
   // One switch for the whole app, shared with chat - there is no per-beat toggle.
   const showReasoning = useSettings((s) => s.appearance.showReasoning)
@@ -829,12 +823,11 @@ function BlockRegion({
   // per-Block, capped at 200 states; a Story-wide stack is the upgrade path.
   const history = useRef<{ text: string; caret: number }[]>([])
   const histIndex = useRef(-1)
-  const beat = isBeat(block)
-  // Preview Word Count: per-beat and deliberately not persisted — it's a ruler you hold up while
+  // Preview Word Count: per-beat and deliberately not persisted, it's a ruler you hold up while
   // setting a target, not a property of the beat. a Block field is the upgrade path if
   // Authors want it to survive a reload.
   const [preview, setPreview] = useState(false)
-  // Display only, not persisted — see writeStore.collapsedBeats. It lives in the store rather than
+  // Display only, not persisted, see writeStore.collapsedBeats. It lives in the store rather than
   // here so the rail's beat list can show the same state and fold them in bulk.
   const collapsedBeats = useWrite((s) => s.collapsedBeats)
   const collapsed = collapsedBeats.includes(id)
@@ -847,17 +840,17 @@ function BlockRegion({
   // new length. Nothing else in this component re-renders per keystroke, so the text sits still
   // while the Author writes.
   const previewText = useMemo(
-    () => (preview && empty ? loremParagraphs(block.targetWords) : ''),
-    [preview, empty, block.targetWords],
+    () => (preview && empty ? loremParagraphs(targetWords) : ''),
+    [preview, empty, targetWords],
   )
 
-  // Re-sync the DOM only on out-of-band changes (open, generation, swipe) — not on every keystroke.
+  // Re-sync the DOM only on out-of-band changes (open, generation, swipe), not on every keystroke.
   useLayoutEffect(() => {
     if (ref.current && readProse(ref.current) !== block.content) {
       decorateProse(ref.current, block.content, colorOrder)
       decorated.current = block.content
     }
-    // Open or an out-of-band commit reseeds history — undo doesn't cross those boundaries.
+    // Open or an out-of-band commit reseeds history, undo doesn't cross those boundaries.
     history.current = [{ text: block.content, caret: 0 }]
     histIndex.current = 0
     // A commit or a swipe hands over where the caret should land; the rebuild above would otherwise
@@ -893,10 +886,11 @@ function BlockRegion({
     }
   }, [saveBlockText, chapterId, id])
 
-  // The streaming tail isn't editable, so it can be decorated freely as it grows.
+  // The streaming tail isn't editable, so it can be decorated freely as it grows. Second Pass's
+  // draft renders here too, dimmed by the class on the wrapper, until the edited prose replaces it.
   useLayoutEffect(() => {
-    if (tail.current) decorateProse(tail.current, streamingText, colorOrder)
-  }, [streamingText, takingStream, orderKey])
+    if (tail.current) decorateProse(tail.current, streamingDraft || streamingText, colorOrder)
+  }, [streamingText, streamingDraft, takingStream, orderKey])
 
   function onInput() {
     window.clearTimeout(timer.current)
@@ -904,7 +898,7 @@ function BlockRegion({
     if (!el) return
     timer.current = window.setTimeout(() => {
       timer.current = undefined
-      // Read at fire time, not when the timer was set — an IME commit or a paste can land between.
+      // Read at fire time, not when the timer was set, an IME commit or a paste can land between.
       const text = readProse(el)
       saveBlockText(chapterId, id, text)
       if (text === decorated.current) return
@@ -952,35 +946,23 @@ function BlockRegion({
 
   return (
     <div
-      className={`${beat ? 'blockRegion beat' : 'blockRegion free'}${previewText ? ' previewing' : ''}${
+      className={`blockRegion beat${previewText ? ' previewing' : ''}${
         collapsed ? ' collapsed' : ''
       }`}
     >
-      {beat ? (
-        <BlockHead
-          block={block}
-          chapterId={chapterId}
-          chapterIndex={chapterIndex}
-          beatIndex={beatIndex}
-          onPatch={onPatch}
-          onRemove={onRemove}
-          preview={preview}
-          onPreview={setPreview}
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-        />
-      ) : (
-        // A free stretch has to look like nothing, or a Chapter of unplanned writing reads as a
-        // stack of empty forms. These show on hover only (write.css).
-        <div className="freeTools" contentEditable={false}>
-          <button type="button" title="Make this a beat" onClick={onMakeBeat}>
-            <RiListCheck3 size={21} />
-          </button>
-          <button type="button" title="Delete this stretch" onClick={onRemove}>
-            <RiCloseLine size={21} />
-          </button>
-        </div>
-      )}
+      <BlockHead
+        block={block}
+        chapterId={chapterId}
+        chapterIndex={chapterIndex}
+        beatIndex={beatIndex}
+        targetWords={targetWords}
+        onPatch={onPatch}
+        onRemove={onRemove}
+        preview={preview}
+        onPreview={setPreview}
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+      />
       {showReasoning && (takingStream ? streamingReasoning : reasoningFor(block)) && (
         <details className="taggedBlock reasoningBlock" contentEditable={false}>
           <summary>Reasoning</summary>
@@ -1000,11 +982,9 @@ function BlockRegion({
         data-placeholder={
           previewText
             ? ''
-            : beat
-            ? 'Write this beat, or press the spark to have the Co-Writer generate it.'
             : first
               ? 'Start writing, or press Direct to have the Co-Writer open the Story.'
-              : 'Empty.'
+              : 'Write this beat, or press the spark to have the Co-Writer generate it.'
         }
       />
       {previewText && (
@@ -1019,7 +999,7 @@ function BlockRegion({
       {takingStream && (
         // The streaming region: locked (not editable) so only the tail is off-limits while the
         // Author edits other Blocks. Committed onto the Block when generation finishes.
-        <div className="streamingTail" contentEditable={false}>
+        <div className={`streamingTail${streamingDraft ? ' secondPassDraft' : ''}`} contentEditable={false}>
           {/* Filled by decorateProse, so the tail formats as it arrives. */}
           <span ref={tail} />
           <span className="caret">▌</span>
@@ -1029,31 +1009,29 @@ function BlockRegion({
   )
 }
 
-// The thin strip between two Blocks. Hidden until hovered (write.css) — it sits in the middle of a
+// The thin strip between two Blocks. Hidden until hovered (write.css), it sits in the middle of a
 // document being read.
-function BlockGap({ onAdd }: { onAdd: (beat: boolean) => void }) {
+function BlockGap({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="blockGap" contentEditable={false}>
-      <button type="button" title="Add a beat here" onClick={() => onAdd(true)}>
+      <button type="button" title="Add a beat here" onClick={onAdd}>
         <RiAddLine size={18} /> Beat
-      </button>
-      <button type="button" title="Add free prose here" onClick={() => onAdd(false)}>
-        <RiAddLine size={18} /> Prose
       </button>
     </div>
   )
 }
 
-// One Chapter: its divider, then its Blocks in order. The Chapter itself holds no prose — a Block
-// does — so this is a mapper plus the structural edits that act on the `blocks` array.
+// One Chapter: its divider, then its Blocks in order. The Chapter itself holds no prose, a Block
+// does, so this is a mapper plus the structural edits that act on the `blocks` array.
 function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) {
   const id = chapter.id!
   const updateChapter = useWrite((s) => s.updateChapter)
   const blocks = chapter.blocks
 
-  const setBlocks = (next: Block[]) =>
-    // Never empty: a Chapter with nothing in it has nowhere to type.
-    updateChapter(id, { blocks: next.length ? next : [newBlock()] })
+  // A Chapter with no beats is the ordinary state of one that has not been outlined; the Plot
+  // Layout offers to generate them, and the gap button adds one by hand.
+  const setBlocks = (next: Block[]) => updateChapter(id, { blocks: next })
+  const targets = beatTargets(chapter)
 
   const patch = (blockId: string, p: Partial<Block>) =>
     setBlocks(blocks.map((b) => (b.id === blockId ? { ...b, ...p } : b)))
@@ -1063,17 +1041,12 @@ function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) 
     setBlocks(blocks.filter((b) => b.id !== block.id))
   }
 
-  function addAfter(blockId: string | null, beat: boolean) {
+  function addAfter(blockId: string | null) {
     const at = blockId === null ? -1 : blocks.findIndex((b) => b.id === blockId)
     const next = [...blocks]
-    // ' ' rather than '': a beat with an empty line is a free stretch, and this is a beat.
-    next.splice(at + 1, 0, newBlock(beat ? ' ' : ''))
+    next.splice(at + 1, 0, newBlock())
     setBlocks(next)
   }
-
-  // Beat numbering counts beats, not Blocks, so a free stretch between two beats doesn't renumber
-  // them.
-  let beatIndex = -1
 
   return (
     <div className="chapterRegion">
@@ -1084,22 +1057,21 @@ function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) 
           <span>{chapter.title || `Chapter ${index + 1}`}</span>
         </div>
       )}
-      <BlockGap onAdd={(beat) => addAfter(null, beat)} />
+      <BlockGap onAdd={() => addAfter(null)} />
       {blocks.map((block, i) => {
-        if (isBeat(block)) beatIndex += 1
         return (
           <Fragment key={block.id}>
             <BlockRegion
               block={block}
               chapterId={id}
               chapterIndex={index}
-              beatIndex={beatIndex}
+              beatIndex={i}
+              targetWords={targets[i] ?? 0}
               first={index === 0 && i === 0}
               onPatch={(p) => patch(block.id, p)}
               onRemove={() => remove(block)}
-              onMakeBeat={() => patch(block.id, { beat: ' ' })}
             />
-            <BlockGap onAdd={(beat) => addAfter(block.id, beat)} />
+            <BlockGap onAdd={() => addAfter(block.id)} />
           </Fragment>
         )
       })}
@@ -1108,7 +1080,7 @@ function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) 
 }
 
 // The document: one region per Chapter, stacked, dividers drawn between them. It reads as one
-// continuous page — prose, a rule carrying the Chapter title, more prose.
+// continuous page, prose, a rule carrying the Chapter title, more prose.
 function StoryDocument() {
   const chapters = useWrite((s) => s.chapters)
   const streaming = useWrite(streamingHere)
@@ -1117,7 +1089,7 @@ function StoryDocument() {
   const palette = usePalette()
   const streamingBlockId = useWrite((s) => s.streamingBlockId)
 
-  // Follow the block being written, not the end of the document — a beat generated mid-Story used
+  // Follow the block being written, not the end of the document, a beat generated mid-Story used
   // to scroll the Author to the bottom. Only nudge when the block's tail has slipped just below the
   // fold; if it is further off than a screen the Author has scrolled away on purpose, so leave it.
   useEffect(() => {
@@ -1151,7 +1123,7 @@ function StoryDocument() {
   )
 }
 
-// The Chapter rail above the prose: where in the Story the cursor is, and a way to jump. Compact —
+// The Chapter rail above the prose: where in the Story the cursor is, and a way to jump. Compact
 // no beats; the plan is the Plot Layout tab's job. One slot, one job.
 //
 // The collapsed state is global rather than per Story: whether the rail shows is a working
@@ -1237,7 +1209,7 @@ function StoryEditor() {
     return () => closeStory()
   }, [id, openStory, closeStory])
 
-  // Escape cancels wherever you are — the Stop buttons only exist next to the beat and on the
+  // Escape cancels wherever you are, the Stop buttons only exist next to the beat and on the
   // rail's beat row, and generation can be started from a tab that shows neither.
   useEffect(() => {
     if (!streaming) return
@@ -1334,7 +1306,7 @@ function StoryEditor() {
               aria-pressed={styling}
               onClick={toggleStyling}
             >
-              <RiItalic size={21} /> Toggle Styling
+              <RiItalic size={21} /> <span className="stylingToggleLabel">Toggle Styling</span>
             </button>
           )}
         </div>

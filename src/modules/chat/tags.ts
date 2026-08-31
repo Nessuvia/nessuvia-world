@@ -40,7 +40,7 @@ export interface TagGroup<T> {
  * the counts sum to the roster size and no face repeats down the page. Untagged characters go to a
  * trailing group.
  *
- * `only` restricts which groups come back — the selected tags in the filter dropdown. A character
+ * `only` restricts which groups come back: the selected tags in the filter dropdown. A character
  * whose primary tag isn't selected is dropped rather than rehomed: their group is a property of the
  * character, not of what you happen to be filtering by.
  *

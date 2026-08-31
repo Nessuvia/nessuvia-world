@@ -8,7 +8,7 @@ import { emptyColors } from '../storage/types'
 // there. Move importCard into core if a second core caller ever wants it.
 import { bundledCharacters } from '../../modules/characters/bundledCharacters'
 import { importBook, importCard } from '../../modules/characters/importCard'
-import { useWorldInfo } from './worldInfoStore'
+import { useLorebooks } from './lorebooksStore'
 import { useSettings } from './settingsStore'
 
 export function newCharacter(): Character {
@@ -38,6 +38,16 @@ export function newCharacter(): Character {
   }
 }
 
+/**
+ * The card's `character_book` as a Lorebook row, or nothing when it carried none. Returned as a
+ * list because that is the shape `Character.lorebookIds` wants; a card only ever has one book.
+ */
+async function importedBookIds(json: unknown): Promise<number[]> {
+  const imported = importBook(json)
+  if (!imported.entries.length) return []
+  return [await useLorebooks.getState().create(imported)]
+}
+
 /** Name for the UI (lists, character page, chats). {{char}} and the API payload use `name`. */
 export function displayName(c: Pick<Character, 'name' | 'displayName'>): string {
   return c.displayName?.trim() || c.name
@@ -50,9 +60,11 @@ interface CharactersState {
   save(character: Character): Promise<number>
   /** The one card-import path: saves the character, then its lorebook against the new id. Every
    *  caller goes through here so no import route can quietly drop a book.
-   *  `tags` overrides whatever the card carried — the import review screen passes the ones the user
-   *  kept. Omitted (seeding, cards with no tags) means the card's own tags stand. */
-  importCharacter(json: unknown, avatar?: string, tags?: string[]): Promise<number>
+   *  `tags` overrides whatever the card carried, the import review screen passes the ones the user
+   *  kept. Omitted (seeding, cards with no tags) means the card's own tags stand.
+   *  `includeBook` false leaves the card's embedded lorebook unimported, the import review screen
+   *  passes the user's answer. The card itself still keeps it in `rawCard`. */
+  importCharacter(json: unknown, avatar?: string, tags?: string[], includeBook?: boolean): Promise<number>
   remove(id: number): Promise<void>
 }
 
@@ -68,19 +80,19 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
       useSettings.getState().markCharactersSeeded()
       const now = Date.now()
       for (const card of await bundledCharacters()) {
-        const id = await storage.put('characters', {
+        // Bundled cards go through the same book import as a user's, so a seeded character with a
+        // lorebook arrives with it.
+        const lorebookIds = await importedBookIds(card.rawCard)
+        await storage.put('characters', {
           ...card,
+          ...(lorebookIds.length ? { lorebookIds } : {}),
           createdAt: now,
           updatedAt: now,
         } as unknown as StoredRecord)
-        // Bundled cards go through the same book import as a user's, so a seeded character with a
-        // lorebook arrives with it.
-        const { entries } = importBook(card.rawCard)
-        if (entries.length) await useWorldInfo.getState().addAll(id, entries)
       }
     }
     const rows = (await storage.getAll('characters')) as unknown as Character[]
-    // Default `colors` for records saved before the field existed — not a migration, just a read
+    // Default `colors` for records saved before the field existed, not a migration, just a read
     // default, the same way useAppearance() re-merges appearance defaults.
     for (const c of rows) {
       c.colors = { ...emptyColors(), ...c.colors }
@@ -98,15 +110,16 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
     return id
   },
 
-  importCharacter: async (json, avatar, tags) => {
-    const id = await get().save({
+  importCharacter: async (json, avatar, tags, includeBook = true) => {
+    // The book is written first so its id can go on the character in the same save, otherwise a
+    // card import would need a second write just to link what it already knows.
+    const lorebookIds = includeBook ? await importedBookIds(json) : []
+    return get().save({
       ...importCard(json),
       ...(avatar ? { avatar } : {}),
       ...(tags ? { tags } : {}),
+      ...(lorebookIds.length ? { lorebookIds } : {}),
     })
-    const { entries } = importBook(json)
-    if (entries.length) await useWorldInfo.getState().addAll(id, entries)
-    return id
   },
 
   remove: async (id) => {
@@ -118,7 +131,8 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
       }
       await storage.remove('chats', chat.id!)
     }
-    await useWorldInfo.getState().removeFor(id)
+    // No lorebook cascade: a book is independent now and can be attached to other characters, so
+    // deleting one leaves its imported book behind in the Lorebooks list to be deleted there.
     await storage.remove('characters', id)
     await get().load()
   },

@@ -39,7 +39,7 @@ assert.deepStrictEqual(mixed[2], ' now')
 assert.deepStrictEqual(renderText('2 * 3 = 6'), ['2 * 3 = 6'])
 assert.deepStrictEqual(renderText('*dangling'), ['*dangling'])
 
-// untrusted input stays literal text — no element is created for it
+// untrusted input stays literal text: no element is created for it
 const script = '<script>alert(1)</script>'
 const rendered = renderText(script)
 assert.deepStrictEqual(rendered, [script])
@@ -159,7 +159,7 @@ assert.deepStrictEqual(
   ['hello there'],
 )
 
-// literal `find` is escaped — `.` matches a literal dot, not any char
+// literal `find` is escaped: `.` matches a literal dot, not any char
 assert.deepStrictEqual(
   renderText('a.b axb', { replaceRules: [rule({ find: 'a.b', replace: 'X' })] }),
   ['X axb'],
@@ -197,18 +197,18 @@ assert.deepStrictEqual(
   ['yo'],
 )
 
-// replacement feeds the inline parser — inserting **bold** yields a strong element
+// replacement feeds the inline parser: inserting **bold** yields a strong element
 const injected = renderText('name', { replaceRules: [rule({ find: 'name', replace: '**Nessu**' })] })
 assert.deepStrictEqual(tags(injected), ['strong'])
 
 
 
-// `code` — one <code>, content literal (the * stays an asterisk rather than becoming <em>)
+// `code`: one <code>, content literal (the * stays an asterisk rather than becoming <em>)
 const inlineCode = renderText('a `x*y*z` b')
 assert.deepStrictEqual(tags(inlineCode), ['code'])
 assert.deepStrictEqual((inlineCode[1] as any).props.children, 'x*y*z')
 
-// fenced block — <pre><code>, language line dropped, hugging newlines trimmed
+// fenced block: <pre><code>, language line dropped, hugging newlines trimmed
 const fenced = renderText('see:\n```js\nlet a = 1\n```\ndone')
 assert.deepStrictEqual(tags(fenced), ['pre'])
 assert.deepStrictEqual((fenced[1] as any).props.children.props.children, 'let a = 1')

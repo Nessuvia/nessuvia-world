@@ -3,7 +3,7 @@
 // without pulling React in.
 
 /** Pinned ids first (pin order), then the rest in declared order. Pinned ids that no longer
- *  name a section are dropped rather than treated as an error — a section can be removed. */
+ *  name a section are dropped rather than treated as an error: a section can be removed. */
 export function railOrder(ids: readonly string[], pinned: readonly string[]): string[] {
   const front = pinned.filter((id) => ids.includes(id))
   return [...front, ...ids.filter((id) => !front.includes(id))]

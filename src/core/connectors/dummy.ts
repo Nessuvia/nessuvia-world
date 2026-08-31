@@ -34,7 +34,7 @@ function lorem(): string {
 
 /**
  * Debug-only keyword responses. The last user message picks a canned shape so streaming/rendering
- * paths are easy to exercise. First match wins — they don't combine.
+ * paths are easy to exercise. First match wins; they don't combine.
  */
 function debugReply(userText: string): string {
   const t = userText.toLowerCase()

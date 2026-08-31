@@ -3,12 +3,12 @@
  *
  * `@scope` does the confining natively: every selector inside only matches inside
  * `.pageBackgroundLayer`, so user CSS can't restyle the sidebar, the app chrome, or page content the
- * way unscoped injection could. `.pageBackground` stays writable as the documented handle — it's a
+ * way unscoped injection could. `.pageBackground` stays writable as the documented handle: it's a
  * descendant of the scope root, not the root itself, which is the whole reason the layer is a
  * separate element from the thing the user targets.
  *
  * The one way out of a `@scope` block is a stray `}`: it closes the block early and everything after
- * it applies globally. Palettes are importable, so that's untrusted input — parse the wrapped text
+ * it applies globally. Palettes are importable, so that's untrusted input: parse the wrapped text
  * and require it collapse to exactly the one `@scope` rule, otherwise refuse the whole thing.
  */
 
@@ -19,7 +19,7 @@ export const scopeRootClass = 'pageBackgroundLayer'
 
 /**
  * Per-layer scope roots. Two background layers exist at once during a crossfade, and each needs its
- * own CSS confined to its own element — `.pageBackgroundLayer` is on both, so it can't do that.
+ * own CSS confined to its own element. `.pageBackgroundLayer` is on both, so it can't do that.
  */
 export const scopeRootClassFor = (parity: 0 | 1) => `${scopeRootClass}${parity}`
 
@@ -35,7 +35,7 @@ export interface ScopeResult {
    * Keyframes are the proxy, not a real answer: a background can move via `transition` on a var, or
    * an `animation` naming a keyframe the app already declares, and neither shows up here. It covers
    * what animated backgrounds actually look like, and the cost of guessing wrong is a blur that
-   * stutters or one that's missing — not a broken page.
+   * stutters or one that's missing, not a broken page.
    */
   animated: boolean
 }
@@ -53,7 +53,7 @@ const urlToken = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)"'\s]*))\s*\)/gi
  * `<img src="image.jpg">` uses in the HTML box. It exists so one set of CSS can paint a different
  * picture per page: the four page slots share the CSS and each supplies its own image.
  *
- * Only the stand-in name is touched — any other `url(…)` stays the address the user wrote. The
+ * Only the stand-in name is touched. Any other `url(…)` stays the address the user wrote. The
  * substituted value always lands inside a double-quoted string with its quotes and backslashes
  * escaped, so an image address can't close the string and reach the surrounding rule.
  *
@@ -80,7 +80,7 @@ export function scopeBackgroundCss(raw: string, root: string = scopeRootClass): 
   // `@scope` only holds style rules and nested conditional groups, so a `@keyframes` written inside
   // it is dropped by the parser and the animation silently never runs. Hoist them back out.
   // names stay as written, so a background can redefine an app animation of the same
-  // name — prefix them here if that ever bites.
+  // name (prefix them here if that ever bites).
   const flat = new CSSStyleSheet()
   flat.replaceSync(raw)
   const keyframes: string[] = []

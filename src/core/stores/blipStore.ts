@@ -13,7 +13,7 @@ import { persist } from 'zustand/middleware'
  * Notification API's chime comes with a permission prompt and a system toast), and WebAudio is
  * shorter than shipping an audio file.
  *
- * fixed notes at a fixed volume, and a mute is the obvious next knob — appearance in
+ * fixed notes at a fixed volume, and a mute is the obvious next knob, appearance in
  * settingsStore is where it would live.
  */
 function playBlip() {

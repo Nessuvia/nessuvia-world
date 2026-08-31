@@ -10,7 +10,7 @@ export function currentOwnerId(): string {
   return ownerId
 }
 
-/** No caller today — every row is owned by `localOwnerId`. Kept as the seam a multi-owner backend
+/** No caller today, every row is owned by `localOwnerId`. Kept as the seam a multi-owner backend
  *  would write through, per the ownerId note in CLAUDE.md. Anything calling this must run before
  *  the first load(), since db.ts stamps the value at write time. */
 export function setOwnerId(id: string) {
@@ -21,6 +21,7 @@ export type TableName =
   | 'characters'
   | 'personas'
   | 'worldInfo'
+  | 'lorebooks'
   | 'chats'
   | 'messages'
   | 'promptStacks'
@@ -55,6 +56,9 @@ export const tableNames: TableName[] = [
   'characters',
   'personas',
   'worldInfo',
+  // The books those entries belong to. Both halves ride along in a backup or there is no book to
+  // restore, only orphaned entries.
+  'lorebooks',
   'chats',
   'messages',
   'promptStacks',

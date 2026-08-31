@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react'
-import type { Message, PromptStack, WorldInfoEntry } from '../../core/storage/types'
+import type { Message, PromptStack } from '../../core/storage/types'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
 import { buildStoryPrompt } from '../../core/prompt/buildStoryPrompt'
 import { storyTokens } from '../../core/prompt/storyTokens'
-import { worldInfoText } from '../../core/prompt/worldInfo'
-import { useWorldInfo } from '../../core/stores/worldInfoStore'
+import { emptyWorldInfo, type ResolvedWorldInfo } from '../../core/prompt/worldInfo'
+import { worldInfoFor } from '../../core/stores/chatStore'
 import { countTokens, loadTokenizer, perMessageOverhead } from '../../core/prompt/budget'
+import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
 import { usePersonas } from '../../core/stores/personasStore'
-import { useSettings, type Connection } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection, type Connection } from '../../core/stores/settingsStore'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
 import { budgetOf, maxTokensOf } from '../../core/params/connectionParams'
+import { hasSource } from './stackKinds'
 
 const defaultUserLine = 'Hello there.'
 
-// Example inputs for the Story-stack preview — never persisted, editable, reset on reload.
+// Example inputs for the Story-stack preview, never persisted, editable, reset on reload.
 const exampleStory = 'The tavern had emptied hours ago. Nessu wiped the last glass and set it down.'
 const exampleDirection = 'Write a short paragraph continuing the scene.'
 const exampleCast = 'Name: Nessuvia\nNessu is the Development Team Lead.'
@@ -24,26 +26,38 @@ const exampleTokens = storyTokens({
   title: 'Last Call',
   premise: 'A barkeeper closes up and finds someone still sitting in the dark.',
   ending: 'She hands back the key.',
+  themes: 'What closing time asks of you.',
   castNames: ['Nessuvia'],
   chapters: [
-    { id: 1, title: 'Opening', summary: 'The tavern fills and empties.', blocks: [] },
+    {
+      id: 1,
+      title: 'Opening',
+      summary: 'The tavern fills and empties.',
+      targetWords: 0,
+      blocks: [],
+    },
     {
       id: 2,
       title: 'Last Call',
       summary: '',
+      targetWords: 800,
       blocks: [
-        { id: 'a', beat: 'Nessu notices the last customer', targetWords: 0, done: true },
-        { id: 'b', beat: 'She asks him to leave', targetWords: 250, done: false },
-        { id: 'c', beat: 'He does not', targetWords: 0, done: false },
+        { id: 'a', beat: 'Nessu notices the last customer', weight: 'brief' },
+        { id: 'b', beat: 'She asks him to leave', weight: 'long' },
+        { id: 'c', beat: 'He does not', weight: 'normal' },
       ],
     },
-    { id: 3, title: 'After', summary: '', blocks: [{ id: 'd', beat: 'Dawn', targetWords: 0, done: false }] },
+    {
+      id: 3,
+      title: 'After',
+      summary: '',
+      targetWords: 0,
+      blocks: [{ id: 'd', beat: 'Dawn', weight: 'normal' }],
+    },
   ],
   chapterId: 2,
   blockId: 'b',
 })
-const exampleGuide =
-  'Chapter 1 — Closing Time [writing now]\n  Nessu shuts the tavern.\n  Beats:\n    · the last glass\nChapter 2 — The Letter [not yet written]\n  A letter arrives with no name on it.'
 
 export default function PromptPreview({
   stack,
@@ -55,10 +69,13 @@ export default function PromptPreview({
   onToggleCollapsed: () => void
 }) {
   const [ready, setReady] = useState(false)
+  const activeConnection = useActiveConnection()
+  const tokenizerId = activeConnection ? tokenizerFor(activeConnection) : defaultTokenizer
 
   useEffect(() => {
-    loadTokenizer().then(() => setReady(true))
-  }, [])
+    setReady(false)
+    loadTokenizer(tokenizerId).then(() => setReady(true))
+  }, [tokenizerId])
 
   if (collapsed) {
     return <CollapseRail label="Preview" onToggle={onToggleCollapsed} />
@@ -89,9 +106,9 @@ function budgetFor(connection?: Connection) {
 }
 
 // A Story stack has no character and no chat history: the Co-Writer takes a Story-context blob and
-// a Direction, so the preview mirrors that — example prose + an example Direction, nothing else.
+// a Direction, so the preview mirrors that, example prose + an example Direction, nothing else.
 function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: React.ReactNode; ready: boolean }) {
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const [storyText, setStoryText] = useState(exampleStory)
   const [direction, setDirection] = useState(exampleDirection)
 
@@ -100,7 +117,6 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
       stack,
       castText: exampleCast,
       tokens: exampleTokens,
-      chapterGuide: exampleGuide,
       storyText,
       direction,
     },
@@ -122,7 +138,7 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
         </label>
       </div>
 
-      {!connection && <p className="hint">No active connection — token limits unknown.</p>}
+      {!connection && <p className="hint">No active connection, token limits unknown.</p>}
       {!ready && <p className="hint">Loading tokenizer…</p>}
 
       {built.droppedChars > 0 && (
@@ -149,7 +165,7 @@ function StoryPreview({ stack, header, ready }: { stack: PromptStack; header: Re
 
 function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: React.ReactNode; ready: boolean }) {
   const { characters, load } = useCharacters()
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const personas = usePersonas((s) => s.personas)
   const ensurePersona = usePersonas((s) => s.ensureActive)
   const activePersonaId = useSettings((s) => s.activePersonaId)
@@ -157,7 +173,7 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
   const [characterId, setCharacterId] = useState<number | null>(null)
   const [charLine, setCharLine] = useState<string | null>(null)
   const [userLine, setUserLine] = useState(defaultUserLine)
-  const [entries, setEntries] = useState<WorldInfoEntry[]>([])
+  const [worldInfo, setWorldInfo] = useState<ResolvedWorldInfo>(emptyWorldInfo)
 
   useEffect(() => {
     load()
@@ -165,16 +181,10 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
   }, [load, ensurePersona])
 
   const character = characters.find((c) => c.id === characterId) ?? characters[0]
-  const previewedId = character?.id ?? null
-
-  useEffect(() => {
-    if (!previewedId) return setEntries([])
-    useWorldInfo.getState().fetchFor(previewedId).then(setEntries)
-  }, [previewedId])
 
   const persona = personas.find((p) => p.id === activePersonaId) ?? personas[0]
 
-  // example lines only, never persisted — reload resets them.
+  // example lines only, never persisted, reload resets them.
   const history: Message[] = [
     {
       ownerId: 'local',
@@ -186,6 +196,20 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
     { ownerId: 'local', chatId: 0, role: 'user', content: userLine, createdAt: 2 },
   ]
 
+  // No chat here, so the books in play are the character's plus every global one. Matched against
+  // the example lines above, so a key typed into the user line shows its entry appearing.
+  // Deps are the values `history` is built from, the array itself is new on every render.
+  useEffect(() => {
+    if (!character) return setWorldInfo(emptyWorldInfo)
+    let live = true
+    worldInfoFor(character, null, history, stack.worldInfoBudget).then((resolved) => {
+      if (live) setWorldInfo(resolved)
+    })
+    return () => {
+      live = false
+    }
+  }, [character, charLine, userLine, stack.worldInfoBudget])
+
   if (!character || !persona) {
     return (
       <section className="panel stackZone">
@@ -195,12 +219,8 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
     )
   }
 
-  // The same call the send path makes — the preview can't drift from what gets sent. Counts and
+  // The same call the send path makes, the preview can't drift from what gets sent. Counts and
   // warnings read from this one, so indentation never touches the numbers.
-  // Matched against the example lines above, so a key typed into the user line shows its entry
-  // appearing in the preview.
-  const worldInfo = worldInfoText(entries, history, character.worldBook)
-
   const built = buildPrompt({ stack, character, persona, messages: history, worldInfo }, budgetOf(connection))
   // A second, display-only pass with nested content indented. Same inputs, so its messages line up
   // 1:1 with `built` (indentation doesn't change role boundaries), and the <pre> shows this text.
@@ -243,13 +263,13 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
         </label>
       </div>
 
-      {!connection && <p className="hint">No active connection — token limits unknown.</p>}
+      {!connection && <p className="hint">No active connection, token limits unknown.</p>}
       {!ready && <p className="hint">Loading tokenizer…</p>}
 
       {built.overflow && (
         <p className="error">
           The context limit can't fit the fixed blocks plus the reply reserve. No history is being
-          sent — raise contextLimit or lower maxTokens.
+          sent, raise contextLimit or lower maxTokens.
         </p>
       )}
 
@@ -257,6 +277,19 @@ function ChatPreview({ stack, header, ready }: { stack: PromptStack; header: Rea
         <p className="hint">
           {built.droppedCount} older history message{built.droppedCount === 1 ? '' : 's'} would be
           dropped.
+        </p>
+      )}
+
+      {worldInfo.dropped.length > 0 && (
+        <p className="hint">
+          Over the world info budget, not sent: {worldInfo.dropped.map((d) => d.name || 'Unnamed').join(', ')}.
+        </p>
+      )}
+
+      {worldInfo.atDepth.length > 0 && !hasSource(stack, 'worldInfoDepth') && (
+        <p className="hint">
+          Entries positioned at a depth are going in as system turns. Add a World info, at depth
+          block to set their role.
         </p>
       )}
 

@@ -2,8 +2,9 @@ import type { Character } from '../storage/types'
 import { emptyColors } from '../storage/types.ts'
 
 /**
- * The Narrator's fixed id. Negative so it can never collide with a Dexie autoincrement key, and
- * not 0 because `worldInfoFor` guards on `if (!speaker.id)` and would treat 0 as "no speaker".
+ * The Narrator's fixed id. Negative so it can never collide with a Dexie autoincrement key.
+ * The Narrator carries no `lorebookIds`, so a turn of theirs sees only the global books and the
+ * ones attached to the chat.
  */
 export const narratorId = -1
 
@@ -29,12 +30,12 @@ export function castBlock(members: CastMember[]): string {
 }
 
 /**
- * A Character-shaped Narrator for `buildPrompt` — a speaker with a name and an id, and nothing
+ * A Character-shaped Narrator for `buildPrompt`: a speaker with a name and an id, and nothing
  * else. Every instruction the Narrator gets comes from the prompt stack's `[if Narrator]` branch,
  * so there is deliberately no description here: a card field would be a second, invisible source
  * of narrator instructions that the stack editor could not show or override.
  *
- * Never written to Dexie — `ownerId` is '' so it does not look like a persistable record.
+ * Never written to Dexie: `ownerId` is '' so it does not look like a persistable record.
  */
 export function narratorCharacter(): Character {
   return {

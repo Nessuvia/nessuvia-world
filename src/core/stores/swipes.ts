@@ -12,6 +12,13 @@ export interface Swipeable {
   swipeIndex?: number
   requestSnapshots?: (string | undefined)[]
   reasonings?: (string | undefined)[]
+  /** What the user asked for when producing each swipe. Parallel to `swipes`, holes where a swipe
+   *  was a plain re-roll with nothing typed. */
+  instructions?: (string | undefined)[]
+  /** The first-pass text, before Second Pass edited it. Parallel to `swipes`, a hole where the pass
+   *  was off or nothing was flagged and the draft became the reply unchanged. This is what replaced
+   *  the Grammar Hammer's old "show original" toggle, and unlike that toggle it survives a reload. */
+  drafts?: (string | undefined)[]
 }
 
 /** How many alternates a message has. No swipes array = the one thing it says. */
@@ -31,13 +38,15 @@ function seeded(message: Swipeable): string[] {
 
 /**
  * A finished regeneration: the new text lands as the last swipe and becomes the selected one.
- * `null` means nothing to store — a failed request leaves the message exactly as it was.
+ * `null` means nothing to store, a failed request leaves the message exactly as it was.
  */
 export function regenerated<T extends Swipeable>(
   message: T,
   text: string,
   snapshot?: string,
   reasoning?: string,
+  instruction?: string,
+  draft?: string,
 ): T | null {
   if (!text) return null
   // An untouched record (Write's Blocks start empty) has nothing worth keeping as swipe 1, so the
@@ -49,15 +58,35 @@ export function regenerated<T extends Swipeable>(
   const requestSnapshots = [...(message.requestSnapshots ?? [])]
   requestSnapshots.length = swipes.length - 1
   requestSnapshots.push(snapshot)
-  // reasonings pad the same way — old swipes without a captured reasoning stay holes.
+  // reasonings pad the same way, old swipes without a captured reasoning stay holes.
   const reasonings = [...(message.reasonings ?? [])]
   reasonings.length = swipes.length - 1
   reasonings.push(reasoning || undefined)
-  return { ...message, swipes, swipeIndex: swipes.length - 1, content: text, requestSnapshots, reasonings }
+  // instructions pad the same way. A plain re-roll leaves a hole, which is the honest record: that
+  // take was not asked to fix anything.
+  const instructions = [...(message.instructions ?? [])]
+  instructions.length = swipes.length - 1
+  instructions.push(instruction?.trim() || undefined)
+  // drafts pad the same way. A draft identical to the text is not worth keeping: it means the pass
+  // was skipped, and storing both copies would only make the UI offer a comparison with no
+  // difference in it.
+  const drafts = [...(message.drafts ?? [])]
+  drafts.length = swipes.length - 1
+  drafts.push(draft && draft !== text ? draft : undefined)
+  return {
+    ...message,
+    swipes,
+    swipeIndex: swipes.length - 1,
+    content: text,
+    requestSnapshots,
+    reasonings,
+    instructions,
+    drafts,
+  }
 }
 
 /**
- * A finished continuation: `text` is the whole reply — the partial plus what the model just added —
+ * A finished continuation: `text` is the whole reply, the partial plus what the model just added,
  * and it replaces the selected swipe in place. A continuation is not a new take on the message, so
  * it must not become a swipe of its own; re-rolling still does that.
  *
@@ -95,8 +124,13 @@ export function reasoningFor(message: Swipeable): string | undefined {
   return message.reasonings?.[swipeIndex(message)]
 }
 
+/** The pre-Second-Pass text for the currently selected swipe, when the pass actually changed it. */
+export function draftFor(message: Swipeable): string | undefined {
+  return message.drafts?.[swipeIndex(message)]
+}
+
 /**
- * Drop swipes by index. Returns null when nothing would be left — the caller deletes the message.
+ * Drop swipes by index. Returns null when nothing would be left, the caller deletes the message.
  * The selection slides back to the nearest surviving swipe at or before where it was.
  */
 export function deletedSwipes<T extends Swipeable>(message: T, indices: number[]): T | null {
@@ -114,7 +148,19 @@ export function deletedSwipes<T extends Swipeable>(message: T, indices: number[]
     content: swipes[at],
     requestSnapshots: keep(message.requestSnapshots),
     reasonings: keep(message.reasonings),
+    instructions: keep(message.instructions),
+    drafts: keep(message.drafts),
   }
+}
+
+/**
+ * The instructions that led to the selected swipe, oldest first. Everything after `swipeIndex` is
+ * left out on purpose: swiping back to an earlier take is how you drop a correction you no longer
+ * want, so the chain a regen sends has to stop where the selection does.
+ */
+export function instructionChain(message: Swipeable): string[] {
+  const upTo = message.instructions?.slice(0, swipeIndex(message) + 1) ?? []
+  return upTo.filter((i): i is string => !!i?.trim()).map((i) => i.trim())
 }
 
 /** Select an alternate. Out-of-range clamps rather than throwing. */

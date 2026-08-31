@@ -48,15 +48,15 @@ interface LayerSpec {
  * Two elements per layer, not one. `.pageBackgroundLayer` is the box: positioned inside `.appShell`
  * so it spans the window and the sidebar sits over it, clipped and contained so user HTML can't move
  * page content, and the `@scope` root that keeps user CSS from reaching anything outside it.
- * `.pageBackground` is the documented handle inside it — what the user's CSS targets and where their
+ * `.pageBackground` is the documented handle inside it, what the user's CSS targets and where their
  * HTML is placed.
  *
- * Which slot applies comes from the route — chat, write and prompts each have one, everything else uses
+ * Which slot applies comes from the route, chat, write and prompts each have one, everything else uses
  * the baseline.
  *
  * A change to any of that builds a whole new layer rather than editing the live one: the image is
  * decoded first, the HTML goes in while the element is still transparent, and the two layers
- * crossfade. That's why there are two `@scope` roots and two `<style>` elements — during the fade
+ * crossfade. That's why there are two `@scope` roots and two `<style>` elements, during the fade
  * both sets of user CSS are live at once and each has to reach only its own layer.
  *
  * Mounted once, in App.
@@ -79,7 +79,7 @@ export default function PageBackground() {
   const slot = preview ? preview.slot : slotForPath(pathname)
 
   const background = useMemo(() => {
-    // The host sends no imageId — an uploaded image's bytes stay in its own table — so a shared
+    // The host sends no imageId, an uploaded image's bytes stay in its own table, so a shared
     // background reaches the layer through `url` only.
     if (shared) return { imageId: 0, ...shared.background }
     const stored = palette.backgrounds
@@ -102,7 +102,7 @@ export default function PageBackground() {
 
   const nextKey = useRef(0)
   // Parity is not derived from the key: a cancelled swap still burns a key, so `key % 2` can repeat
-  // the parity of the layer already on screen — two layers sharing a <style> and a scope root, where
+  // the parity of the layer already on screen, two layers sharing a <style> and a scope root, where
   // the outgoing one's cleanup wipes the incoming one's CSS. It's assigned against the layer being
   // kept instead, inside the state updater.
   const build = () => ({
@@ -125,7 +125,7 @@ export default function PageBackground() {
   useEffect(() => {
     const spec = build()
     if (editing || contentSig(spec) === contentSig(layers[layers.length - 1])) {
-      // Nothing visible differs — only the slot did, because the slot falls back to `all`. Fading
+      // Nothing visible differs, only the slot did, because the slot falls back to `all`. Fading
       // one background into an identical copy of itself is a visible flicker for no reason.
       // Same element, new content: keeping the key and parity means no fade and no second layer.
       setLayers((prev) => {
@@ -138,7 +138,7 @@ export default function PageBackground() {
     const swap = () => {
       if (cancelled) return
       setLayers((prev) => {
-        // Only the newest layer is kept — a third swap mid-fade replaces the one still fading out
+        // Only the newest layer is kept, a third swap mid-fade replaces the one still fading out
         // rather than stacking, so there are never more than two.
         const keep = prev[prev.length - 1]
         return [keep, { ...spec, parity: (1 - keep.parity) as 0 | 1 }]
@@ -152,7 +152,7 @@ export default function PageBackground() {
     // eslint-disable-next-line
   }, [signature, editing])
 
-  // `data-bgAnimated` on <html>, from the newest layer's CSS — skins drop backdrop-filter under it,
+  // `data-bgAnimated` on <html>, from the newest layer's CSS, skins drop backdrop-filter under it,
   // because a blur over a backdrop that repaints every frame is re-run every frame, once per blurred
   // element. Set here rather than in BackgroundLayer so there is one writer: during a crossfade both
   // layers are live, and the incoming one is the one that decides.
@@ -185,23 +185,23 @@ function BackgroundLayer({ spec, leaving }: { spec: LayerSpec; leaving: boolean 
   const layer = useRef<HTMLDivElement>(null)
 
   // The user's own elements, sanitized to the structural allowlist, placed inside the layer via
-  // replaceChildren — never innerHTML: this origin holds API keys, so nothing bypasses sanitizeHtml.
+  // replaceChildren, never innerHTML: this origin holds API keys, so nothing bypasses sanitizeHtml.
   // sanitizeBackgroundHtml hands back a fragment, so the subtree is built off-document and attached
   // in one go, while this layer is still transparent.
   useEffect(() => {
     const el = layer.current
     if (!el) return
     // Reject-the-whole-thing, same rule the panel applies on Apply: a stored value with anything off
-    // the allowlist renders nothing. Rendering the stripped remainder is worse than rendering none —
+    // the allowlist renders nothing. Rendering the stripped remainder is worse than rendering none
     // it's a half-built layout, and for a raw-text tag it was the stylesheet source shown as text.
-    // spec.src is handed in so `<img src="image.jpg">` resolves to this slot's own image — the
+    // spec.src is handed in so `<img src="image.jpg">` resolves to this slot's own image, the
     // uploaded one is a data URL in IndexedDB and has no address the user could type.
     const { nodes, invalid } = sanitizeBackgroundHtml(spec.html, spec.src)
     el.replaceChildren(...(invalid.length ? [] : [nodes]))
   }, [spec.html, spec.src])
 
   useEffect(() => {
-    // One <style> element per layer, contents replaced — the same shape useApplyPalette uses for
+    // One <style> element per layer, contents replaced, the same shape useApplyPalette uses for
     // root vars.
     const id = `backgroundCss${spec.parity}`
     let style = document.getElementById(id) as HTMLStyleElement | null
@@ -211,7 +211,7 @@ function BackgroundLayer({ spec, leaving }: { spec: LayerSpec; leaving: boolean 
     }
     // Wrapped in @scope so it only reaches inside this layer, and refused whole if it breaks out.
     // spec.src is substituted for `url(image.jpg)` first, the CSS half of the same stand-in name the
-    // HTML box uses — that's what lets four pages share one stylesheet and each paint its own image.
+    // HTML box uses, that's what lets four pages share one stylesheet and each paint its own image.
     style.textContent = scopeBackgroundCss(
       substituteImageUrl(spec.css, spec.src),
       scopeRootClassFor(spec.parity),
@@ -264,7 +264,7 @@ function slotForPath(pathname: string): BackgroundSlot {
 
 /**
  * Resolves once the image is painted-ready, so the fade reveals the picture rather than a blank box.
- * Never rejects, and gives up after `decodeTimeout` — a bad URL must not strand the old background
+ * Never rejects, and gives up after `decodeTimeout`, a bad URL must not strand the old background
  * on screen forever.
  */
 function decoded(src: string): Promise<void> {

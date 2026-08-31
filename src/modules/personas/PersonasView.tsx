@@ -8,7 +8,7 @@ import TwoColumn from '../../app/TwoColumn'
 import AvatarCropDialog from '../characters/AvatarCropDialog'
 import GalleryLightbox from '../characters/GalleryLightbox'
 
-// one screen, inline editor — a persona is three fields, it doesn't need its own route.
+// one screen, inline editor, a persona is three fields, it doesn't need its own route.
 export default function PersonasView() {
   const { personas, loading, ensureActive, save, create, remove } = usePersonas()
   const activePersonaId = useSettings((s) => s.activePersonaId)
@@ -30,7 +30,7 @@ export default function PersonasView() {
   }
 
   // The one write path: the debounce below and Ctrl+S both go through it. An unnamed persona is
-  // never written — a blank name is what the list shows, so it would read as a broken row.
+  // never written, a blank name is what the list shows, so it would read as a broken row.
   async function persist() {
     if (!draft?.name.trim()) return
     await save(draft)
@@ -50,7 +50,7 @@ export default function PersonasView() {
   }
 
   // Load the picked file into the crop dialog. The ORIGINAL lands on `avatar` and the dialog's rect
-  // on `avatarCrop` — one copy of the pixels, and "View full" shows the whole image.
+  // on `avatarCrop`, one copy of the pixels, and "View full" shows the whole image.
   function readAvatar(file: File) {
     const reader = new FileReader()
     reader.onload = () => setCropSrc(String(reader.result))
@@ -91,7 +91,7 @@ export default function PersonasView() {
             className={`card ${p.id === activePersonaId ? 'active' : ''} ${
               p.id === draft?.id ? 'editing' : ''
             }`}
-            // Whole row opens the editor, clicking the open row closes it — same as the palette
+            // Whole row opens the editor, clicking the open row closes it, same as the palette
             // list. The controls inside stop the click so they don't toggle the panel too.
             onClick={async () => {
               if (p.id === draft?.id) {

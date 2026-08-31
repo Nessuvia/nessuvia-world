@@ -6,7 +6,12 @@ import { useSettings } from '../../core/stores/settingsStore'
 import { bucketConfigured, type BucketConfig } from '../../core/sync/bucketConfig'
 import { r2AccountId, r2Endpoint, r2Region } from '../../core/sync/r2Endpoint'
 import { testBucket } from '../../core/sync/syncClient'
-import { useSync, type Direction, type TableComparison } from '../../core/sync/syncStore'
+import {
+  useSync,
+  type Direction,
+  type Progress,
+  type TableComparison,
+} from '../../core/sync/syncStore'
 
 /** Both all-tables buttons act on every table, so the decision map is one direction across the
  *  board. Kept for the case where the user knows which side is right and skips the comparison. */
@@ -29,7 +34,7 @@ export default function SyncView() {
   const palette = usePalette()
   return (
     <div className="sync screenFrame">
-      {/* The frame stays put and this one child scrolls — the setup disclosure makes the page
+      {/* The frame stays put and this one child scrolls, the setup disclosure makes the page
           taller than the viewport as soon as it opens. */}
       <div className="syncFormal screenBody">
         {/* Follows the palette's chat width, the same var chat reads. Global rather than per-page:
@@ -79,8 +84,17 @@ function Section({
 }
 
 function R2Section() {
-  const { status, error, log, comparison, compare, apply, pushSettings, pullSettings, clearError } =
-    useSync()
+  const {
+    status,
+    error,
+    progress,
+    comparison,
+    compare,
+    apply,
+    pushSettings,
+    pullSettings,
+    clearError,
+  } = useSync()
   const bucket = useSettings((s) => s.bucket)
   const setBucket = useSettings((s) => s.setBucket)
   const lastSyncedAt = useSettings((s) => s.lastSyncedAt)
@@ -222,9 +236,7 @@ function R2Section() {
         />
       )}
 
-      {/* Keyed on the first line so a new run remounts the disclosure open, and collapsing it
-          mid-run sticks. */}
-      {log.length > 0 && <RunLog key={log[0]} log={log} />}
+      {progress && <RunProgress progress={progress} />}
 
       {error && <SyncError error={error} onDismiss={clearError} />}
     </Section>
@@ -232,7 +244,7 @@ function R2Section() {
 }
 
 /** R2's endpoint is its account ID in a fixed hostname and its region is always `auto`, so those
- *  two fields are filled in rather than asked for. The stored BucketConfig is the same either way —
+ *  two fields are filled in rather than asked for. The stored BucketConfig is the same either way
  *  nothing below this component knows which form wrote it. */
 function R2Form({
   bucket,
@@ -320,7 +332,7 @@ function SetupSteps() {
           bucket only.
         </li>
         <li>
-          Paste the account ID, the bucket name, and both halves of the token — the access key ID
+          Paste the account ID, the bucket name, and both halves of the token, the access key ID
           and the secret access key.
         </li>
         <li>Add this CORS policy to the bucket:</li>
@@ -344,16 +356,27 @@ function SetupSteps() {
   )
 }
 
-function RunLog({ log }: { log: string[] }) {
+/** One line, replaced as the run moves on. Nothing is kept: the only line worth reading twice is a
+ *  failure, and that one is left standing. */
+function RunProgress({ progress }: { progress: Progress }) {
+  const percent = progress.total ? Math.round((progress.done / progress.total) * 100) : 0
   return (
-    <details className="syncSetup syncLog" open>
-      <summary>Last run</summary>
-      <ol>
-        {log.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ol>
-    </details>
+    <div className="syncProgress">
+      <div className="syncProgressTrack">
+        <div
+          className={progress.failed ? 'syncProgressBar syncProgressBarFailed' : 'syncProgressBar'}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <div className="syncProgressRow">
+        <span
+          className={progress.failed ? 'syncProgressLine syncProgressLineFailed' : 'syncProgressLine'}
+        >
+          {progress.label}
+        </span>
+        <span className="syncProgressPercent">{percent}%</span>
+      </div>
+    </div>
   )
 }
 
@@ -458,7 +481,7 @@ function BucketForm({
 }
 
 /**
- * The per-table decision list. A table changed on both sides has no suggestion and no default —
+ * The per-table decision list. A table changed on both sides has no suggestion and no default
  * `apply` refuses until every one of them has a direction, so this is where that gets answered.
  */
 function ComparisonTable({

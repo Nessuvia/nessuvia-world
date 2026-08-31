@@ -3,27 +3,22 @@ import {
   RiArrowRightSLine,
   RiCodeSSlashLine,
   RiDeleteBinLine,
-  RiHammerLine,
   RiMoreLine,
   RiPencilLine,
   RiRefreshLine,
   RiSendPlaneLine,
 } from '@remixicon/react'
-import { useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { AvatarSource, CharacterColors, Message } from '../../core/storage/types'
 import { Avatar } from '../../app/Avatar'
 import { reasoningFor, snapshotFor, swipeCount, swipeIndex } from '../../core/stores/swipes'
 import { useAppearance } from '../../core/stores/settingsStore'
 import { usePalette } from '../../core/stores/palettesStore'
 import { renderText } from './renderText'
-import { stripText } from '../../core/hammer/strip'
 import RewriteBox from './RewriteBox'
 import PromptInspector from '../../app/PromptInspector'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 
-// Per-message "show original" toggle state. Display-only, in-memory: survives re-renders within a
-// session but not a reload — fine for a view toggle. A Set of message ids the user has un-stripped.
-const showOriginalIds = new Set<string>()
 
 /** Per-speaker color overrides as CSS vars. Only overridden fields are set: an empty '--textColor'
  *  would resolve var() to empty and wipe the global set on .chatView instead of inheriting it.
@@ -47,11 +42,13 @@ export default function MessageBubble({
   canRegenerate,
   greeting,
   streamingText,
+  streamingDraft = '',
   streamingReasoning,
   defaultInstruction,
   rewriting,
   onRewriteOpen,
   onEdit,
+  onEditingChange,
   onReprompt,
   onDelete,
   onRegenerate,
@@ -71,14 +68,19 @@ export default function MessageBubble({
   greeting: boolean
   /** Non-null while this message is being re-rolled: shown in place of its stored content. */
   streamingText: string | null
+  /** Second Pass's first take while it is still provisional; '' once the edit starts.
+   *  Optional: a view that never streams a draft (multiplayer guests) simply omits it. */
+  streamingDraft?: string
   /** Reasoning so far for that re-roll; empty when there is none. */
   streamingReasoning: string
-  /** Called only when the rewrite box opens — building it quotes every later message. */
+  /** Called only when the rewrite box opens, building it quotes every later message. */
   defaultInstruction: () => string
   /** Owned by ChatView: an empty composer submit opens this on the last reply. */
   rewriting: boolean
   onRewriteOpen: (open: boolean) => void
   onEdit: (content: string) => void
+  /** Fires when the inline edit box opens and closes. The composer hides while it is open. */
+  onEditingChange?: (editing: boolean) => void
   /** Only passed for the last user message: generate a reply to it, as if it were just sent. */
   onReprompt?: () => void
   onDelete: () => void
@@ -91,9 +93,15 @@ export default function MessageBubble({
   readOnly?: boolean
 }) {
   const [draft, setDraft] = useState<string | null>(null)
+  const editing = draft !== null
+  // Through a ref: the parent passes a fresh closure every render, and depending on it would fire
+  // the callback on every render rather than on the open/close edge.
+  const editingCb = useRef(onEditingChange)
+  editingCb.current = onEditingChange
+  useEffect(() => editingCb.current?.(editing), [editing])
   const [pickingSwipes, setPickingSwipes] = useState(false)
   // Quick actions is a <details>, but a bare <details> only closes when its own summary is clicked
-  // again — it sat open while the pointer went back to the message. Controlled so the standard
+  // again, it sat open while the pointer went back to the message. Controlled so the standard
   // dropdown dismissal applies: a click anywhere outside, or Escape.
   const [quickActions, setQuickActions] = useState(false)
   const quickRef = useCloseOnOutside<HTMLDetailsElement>(quickActions, () =>
@@ -105,33 +113,19 @@ export default function MessageBubble({
   const appearance = useAppearance()
   const tagRules = appearance.tagRules
   const replaceRules = appearance.replaceRules
-  const gh = appearance.grammarHammer
   const palette = usePalette()
   const order = palette.colorOrder
 
   const assistant = message.role === 'assistant'
   const count = swipeCount(message)
   const at = swipeIndex(message)
-  // The right arrow at the end re-rolls — the familiar behaviour. The greeting never re-rolls:
+  // The right arrow at the end re-rolls, the familiar behaviour. The greeting never re-rolls:
   // its arrows loop through the greeting options instead.
   const nextIsNew = !greeting && at >= count - 1
-  // The greeting has no model regeneration at all — arrows only cycle the seeded greetings.
+  // The greeting has no model regeneration at all, arrows only cycle the seeded greetings.
   const modelRegen = canRegenerate && !greeting
   // `who` already resolves the speaker's display name (or the stamped name for a deleted card).
   const name = who
-
-  // Grammar Hammer: strip is computed on the completed message only — never on `streamingText`, so
-  // a partial token stream doesn't produce garbage matches. The hammer icon toggles this message
-  // between stripped and original; default is stripped when the feature is on and something matched.
-  const strip = useMemo(() => {
-    if (!gh.enabled || !gh.rules.length || streamingText !== null) return null
-    const res = stripText(message.content, gh.rules, message.role)
-    return res.removed.length > 0 ? res : null
-    // message.content + rule set identity govern the cache; ids are stable, patterns are the value.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gh.enabled, gh.rules, message.content, message.role, streamingText])
-  const [showOriginal, setShowOriginal] = useState(() => showOriginalIds.has(String(message.id ?? '')))
-  const hammerActive = gh.enabled && strip !== null && !showOriginal
 
   return (
     <div className={`bubble message ${message.role}`} style={colorVars(colors, palette.overwriteCharColor)}>
@@ -184,22 +178,6 @@ export default function MessageBubble({
           <button type="button" title="Edit" onClick={() => setDraft(message.content)}>
             <RiPencilLine size={16} />
           </button>
-          {strip && (
-            <button
-              type="button"
-              title={showOriginal ? 'Show stripped' : 'Show original'}
-              aria-pressed={hammerActive}
-              className={hammerActive ? 'active' : ''}
-              onClick={() => {
-                const next = !showOriginal
-                setShowOriginal(next)
-                if (next) showOriginalIds.add(String(message.id ?? ''))
-                else showOriginalIds.delete(String(message.id ?? ''))
-              }}
-            >
-              <RiHammerLine size={16} />
-            </button>
-          )}
           {onReprompt && (
             <button type="button" title="Re-Prompt" onClick={onReprompt}>
               <RiSendPlaneLine size={16} />
@@ -257,12 +235,11 @@ export default function MessageBubble({
               <button
                 type="button"
                 onClick={() => {
-                  const text = hammerActive && strip ? strip.text : message.content
-                  navigator.clipboard.writeText(text)
+                  navigator.clipboard.writeText(message.content)
                   setQuickActions(false)
                 }}
               >
-                {hammerActive ? 'Copy (stripped)' : 'Copy'}
+                Copy
               </button>
               {assistant && (
                 <button
@@ -286,17 +263,6 @@ export default function MessageBubble({
                   Delete Swipe(s)
                 </button>
               )}
-              {strip && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(message.content)
-                    setQuickActions(false)
-                  }}
-                >
-                  Copy original
-                </button>
-              )}
             </div>
           </details>
         </span>
@@ -318,12 +284,13 @@ export default function MessageBubble({
       )}
 
       {streamingText !== null ? (
-        <div className="messageBody">
-          {renderText(streamingText, { tagRules, replaceRules, order, role: message.role })}
+        // Second Pass's provisional first take, dimmed, replaced by the edited reply when it starts.
+        <div className={`messageBody${streamingDraft ? ' secondPassDraft' : ''}`}>
+          {renderText(streamingDraft || streamingText, { tagRules, replaceRules, order, role: message.role })}
           <span className="caret">▌</span>
         </div>
       ) : draft === null ? (
-        <div className="messageBody">{renderText(message.content, { tagRules, replaceRules, grammarHammerRules: gh.rules, grammarHammerEnabled: hammerActive, order, role: message.role })}</div>
+        <div className="messageBody">{renderText(message.content, { tagRules, replaceRules, order, role: message.role })}</div>
       ) : (
         <textarea
           autoFocus
@@ -383,7 +350,7 @@ export default function MessageBubble({
 }
 
 /** Pick alternates to delete. Numbers toggle selection; the last one clicked shows in the preview.
- *  rendered inline in the bubble, not portalled — the backdrop is position:fixed anyway. */
+ *  rendered inline in the bubble, not portalled, the backdrop is position:fixed anyway. */
 function SwipePicker({
   swipes,
   onCancel,

@@ -1,5 +1,5 @@
 /*
- * Glass. Every color here comes from the active palette, so the skin composes with any of them —
+ * Glass. Every color here comes from the active palette, so the skin composes with any of them:
  * a light palette gets light glass.
  *
  * The four vars below are the knobs, declared in skins.ts and overridable per palette. They are
@@ -7,7 +7,7 @@
  * palette can already set (radius, the surface ramp) is deliberately not repeated here.
  *
  * What makes this read as glass rather than as fog: the tint stays low, the blur stays moderate, and
- * the *edges* carry the effect — a bright hairline along the top where light would catch, and a dim
+ * the *edges* carry the effect: a bright hairline along the top where light would catch, and a dim
  * one below. A high tint plus a heavy blur is a frosted panel with no edges, which looks like haze.
  */
 [data-skin='glass'] {
@@ -25,7 +25,7 @@
  */
 /*
  * Per-surface tint and blur are separate vars from the two knobs, and every surface sets both. A
- * surface rule cannot write `--glassTint: calc(var(--glassTint) + 18%)` — a custom property that
+ * surface rule cannot write `--glassTint: calc(var(--glassTint) + 18%)`. A custom property that
  * references itself is a cycle, so it and everything built from it become invalid and the surface
  * paints as nothing at all. That is why these exist, and why the shared rule below sets them for the
  * base case instead of letting the surface rules fall back: a value left unset would inherit from
@@ -50,12 +50,12 @@
  * The blur, and the two things that keep it affordable.
  *
  * A backdrop-filter result is cached only while the backdrop holds still. Once a custom background
- * animates, every blurred element re-runs a full-window blur pass per frame — so the cost is set by
+ * animates, every blurred element re-runs a full-window blur pass per frame, so the cost is set by
  * how many of these exist, not by how heavy the background is.
  *
  * Hence no `.bubble`: there is one per message, so including it scaled the per-frame cost with the
  * length of the chat. Bubbles keep the tint, the border and the edges, and sit inside an
- * already-blurred `.panel` — nested backdrop-filters do not compound anyway (see `.card` below).
+ * already-blurred `.panel`. Nested backdrop-filters do not compound anyway (see `.card` below).
  *
  * And hence `:not([data-bg-animated])`: `.panel` and `.card` are per-item in list views too (palettes,
  * the prompt stack's zones), so trimming the selector is not enough on its own.
@@ -63,7 +63,7 @@
  * blur to a plain tint for exactly the backgrounds that cannot afford it. A moving background is
  * already carrying the visual interest the glass was there to provide.
  *
- * -webkit- prefix included: Safari still needs it. Saturation is kept close to 1 — pushing it is
+ * -webkit- prefix included: Safari still needs it. Saturation is kept close to 1: pushing it is
  * what gives cheap glass its tinted-plastic look.
  */
 [data-skin='glass']:not([data-bg-animated]) #root .panel,
@@ -114,7 +114,7 @@
   background: color-mix(in srgb, var(--surfaceActive) var(--glassTint), transparent);
 }
 
-/* Cards sit inside panels, already looking through one layer, so they get less tint again — nested
+/* Cards sit inside panels, already looking through one layer, so they get less tint again. Nested
    backdrop-filters do not compound, which is why this is a tint choice and not a blur one. */
 [data-skin='glass'] #root .card {
   --surfaceTint: max(0%, calc(var(--glassTint) - 14%));

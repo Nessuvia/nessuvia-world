@@ -13,7 +13,7 @@ export interface Character {
   altDescriptions: { title: string; content: string }[]
   activeDescriptionIndex: number // -1 = use `description` verbatim
   alternateGreetings: string[]
-  // Labels for the greetings above, by the same index — the card spec has nowhere to put them, so
+  // Labels for the greetings above, by the same index, the card spec has nowhere to put them, so
   // they ride in our own extensions block and are dropped by any other reader. Absent or short
   // means the rest are unnamed; only the editor writes it, and it splices alongside a delete.
   greetingTitles?: string[]
@@ -22,14 +22,14 @@ export interface Character {
   // every list load pulls in full) and this becomes an array of {url} | {imageId} objects.
   gallery: string[]
   // Free-text tags. Order matters: tags[0] is the character's group in the picker's grouped view.
-  // Unindexed on purpose — the whole roster is in memory, so filtering is an array pass.
+  // Unindexed on purpose, the whole roster is in memory, so filtering is an array pass.
   tags: string[]
   /** Card `system_prompt`. Reaches the model through a `characterSystemPrompt` block; empty falls
    *  back to that block's own content. Character-level, so it applies to every chat with them.
    *  per-chat override belongs on Chat as an optional field, when one chat needs to
    *  differ from the rest. */
   systemPrompt: string
-  /** Card `post_history_instructions` — the "ujb/jailbreak". Same rules as `systemPrompt`. */
+  /** Card `post_history_instructions`, the "ujb/jailbreak". Same rules as `systemPrompt`. */
   postHistoryInstructions: string
   // The three below are card metadata. The spec forbids all of them in prompt engineering, so
   // nothing in core/prompt may read them.
@@ -39,8 +39,9 @@ export interface Character {
   rawCard?: unknown // original parsed card, untouched
   paramOverrides?: ParamOverrides
   stackId?: number // declared now, no UI until it's wanted
-  /** Imported lorebook metadata. The entries themselves live in the `worldInfo` table. */
-  worldBook?: WorldBook
+  /** Lorebooks that travel with this character: attached in every chat they speak in. An imported
+   *  card's `character_book` lands here as a single id. Absent = none. */
+  lorebookIds?: number[]
   createdAt: number
   updatedAt: number
   colors: CharacterColors // per-speaker overrides; each '' = fall through to the global appearance color
@@ -59,33 +60,53 @@ export interface AvatarCrop {
 }
 
 /**
- * A lorebook entry, owned by one character. Global/shared books are the planned next level: when
- * they land this record keeps `characterId`, and a book gains a row of its own — no migration.
+ * A lorebook: a named set of entries that exists on its own. Attached to characters
+ * (`Character.lorebookIds`), to a single chat (`Chat.lorebookIds`), or to everything at once via
+ * `global`. The entries are the big payload and live in the `worldInfo` table, keyed by `bookId`.
+ */
+export interface Lorebook {
+  id?: number
+  ownerId: string
+  name: string
+  description: string
+  scanDepth?: number // card's `scan_depth`: the default for entries that don't override it
+  tokenBudget?: number // card's `token_budget`: cap on what this book may add to one prompt
+  /** Applies to every chat, on top of whatever the character and the chat attach. */
+  global: boolean
+}
+
+/** Where a matched entry goes in the prompt. `beforeChar`/`afterChar` order it within the World
+ *  info block; `atDepth` lifts it out of that block and splices it N messages from the end of
+ *  history, the way an author's note with a depth is placed. */
+export type EntryPosition = 'beforeChar' | 'afterChar' | 'atDepth'
+
+/**
+ * One lorebook entry, owned by one book.
  */
 export interface WorldInfoEntry {
   id?: number
   ownerId: string
-  characterId: number
+  bookId: number
   name: string // row label; cards keep it in `comment`, so import falls back through name and keys
-  keys: string[] // trigger words, matched case-insensitively
+  keys: string[] // trigger words; matched case-insensitively unless `caseSensitive`
+  /** Gated keys: a primary hit only counts once these pass `selectiveLogic`. Empty = no gate. */
+  secondaryKeys: string[]
+  /** How `secondaryKeys` gate a primary hit. SillyTavern's numbering, which is what imports carry:
+   *  0 AND_ANY (any secondary present), 1 NOT_ALL (fails when all are present), 2 NOT_ANY (fails
+   *  when any is present), 3 AND_ALL (all must be present). */
+  selectiveLogic: number
+  caseSensitive?: boolean // absent = insensitive, which is what most books want
   content: string
   always: boolean // inject regardless of keys (a card's `constant`)
   enabled: boolean
   scanDepth?: number // trailing messages to scan for keys; absent = the book's, then defaultDepth
   order: number // position among matches (a card's `insertion_order`)
+  position: EntryPosition
+  depth?: number // messages from the end, for `atDepth` only; absent = 4, SillyTavern's default
   // The untouched card entry, same contract as Character.rawCard. This is what keeps the fields
-  // this release ignores — secondary_keys, selective, priority, probability, position, extensions —
-  // from being lost on import and re-export.
+  // this release ignores, probability, excludeRecursion, characterFilter, group weighting, from
+  // being lost on import and re-export.
   raw?: unknown
-}
-
-/** Book-level metadata from a card's `character_book`. Four scalars, so it rides on the Character
- *  record; the entries are the big payload and get their own table. */
-export interface WorldBook {
-  name: string
-  description: string
-  scanDepth?: number // card's `scan_depth`: the default for entries that don't override it
-  tokenBudget?: number // card's `token_budget`: cap on the whole block's text
 }
 
 /** Anything that renders as an avatar. Character and Persona both satisfy it structurally. */
@@ -96,7 +117,7 @@ export interface AvatarSource {
 
 /** Per-speaker color overrides. Same set as the global appearance knobs; an empty string on any
  *  field means "no override, use the global color". Flat and named (mirrors Appearance) so it can
- *  grow a field when we actually add one — not an open Record. */
+ *  grow a field when we actually add one, not an open Record. */
 export interface CharacterColors {
   textColor: string
   emphasisColor: string
@@ -108,7 +129,7 @@ export function emptyColors(): CharacterColors {
   return { textColor: '', emphasisColor: '', boldColor: '', quoteColor: '' }
 }
 
-/** Partial patches over a Connection's params. Field names mirror Connection exactly — no mapping
+/** Partial patches over a Connection's params. Field names mirror Connection exactly, no mapping
  *  layer. An unset field falls through to the next level down (chat > character > connection). */
 export interface ParamOverrides {
   contextLimit?: number
@@ -170,6 +191,9 @@ export interface Chat {
   selfReplyCount?: number
   /** Width of the chat area as a percentage of its container. Default 100. */
   chatWidth?: number
+  /** Lorebooks attached to this chat alone, on top of the speaker's and every global one. Absent =
+   *  none. Never exported with the chat: book ids mean nothing on another device. */
+  lorebookIds?: number[]
   authorNote?: string
   authorNoteDepth?: number // messages from the end; default 2
   /** Pinned to the sidebar for quick access. Absent = not bookmarked. */
@@ -197,7 +221,7 @@ export interface Message {
   personaName?: string
   /** Alternates for an assistant message. Empty/absent = never regenerated.
    *  `content` always mirrors swipes[swipeIndex]; readers that don't care about swipes keep working.
-   *  swipes duplicate the chosen text into content — one denormalised field beats
+   *  swipes duplicate the chosen text into content, one denormalised field beats
    *  touching every reader. */
   swipes?: string[]
   swipeIndex?: number
@@ -208,15 +232,18 @@ export interface Message {
   speakerId?: number
   speakerName?: string
   /** The request that produced each swipe, parallel to `swipes`, for the inspector. Each entry is
-   *  a key-free JSON string — a string so Dexie never indexes into it, and undefined where the
+   *  a key-free JSON string, a string so Dexie never indexes into it, and undefined where the
    *  snapshot was never taken or was past ~256 KB. The field is unindexed, so its shape can change
    *  without a schema version. */
   requestSnapshots?: (string | undefined)[]
+  /** The first-pass text for each swipe, parallel to `swipes`, where Second Pass changed it. Holes
+   *  everywhere else. Unindexed, like the other parallel arrays. */
+  drafts?: (string | undefined)[]
   createdAt: number
 }
 
 /** A Story is the top-level Write work: title + Cover, plus its attached cast. It holds no stack id
- *  — the Story stack is globally active (sub-goal B). Its prose lives in Chapters, not here. */
+ * , the Story stack is globally active (sub-goal B). Its prose lives in Chapters, not here. */
 export interface Story {
   id?: number
   ownerId: string
@@ -229,7 +256,7 @@ export interface Story {
    *  and sent as the final user turn. The Direction box in the Story panel writes it. */
   direction: string
   /** Percent of the editor column the prose is displayed at. Per Story, like the Chat record's
-   *  `chatWidth` — reading width is a property of the work, not a global default. Absent = 100. */
+   *  `chatWidth`, reading width is a property of the work, not a global default. Absent = 100. */
   storyWidth?: number
   /** Sampling overrides for this Story, over the connection's own values. The cast contributes
    *  nothing: with several characters attached there is no non-arbitrary winner. */
@@ -240,8 +267,29 @@ export interface Story {
   /** The intended ending, edited on the Plot Layout tab after the last Chapter. Reaches the model
    *  only through {{ending}}, if the Story stack places it. */
   ending?: string
+  /** What the work is meant to be about, one line or a list. Feeds Story generation and reaches the
+   *  model through {{themes}}. */
+  themes?: string
+  genre?: string
+  tone?: string
+  setting?: string
+  /** The whole work's word target, set by the length preset on the Story generation screen. Kept so
+   *  regenerating an outline opens on what was asked for last time, and so the Plot Layout can show
+   *  the Story's chapter targets against a whole. 0 or absent = unset. */
+  targetWords?: number
   /** Premise and Ending render as thin markers on the Plot Layout strip when true. */
   capsCollapsed?: boolean
+  /** Standalone lorebooks the Author attached to this Story. Books a cast character carries are
+   *  not listed here: those are derived from the cast, so adding the character is what attaches
+   *  them. Absent = none. Never exported with the Story: book ids mean nothing on another device. */
+  lorebookIds?: number[]
+  /** Book ids switched off for this Story, whichever way the book got here. The row greys out and
+   *  its entries stop reaching the prompt; the attachment itself is left alone. Absent = all on. */
+  lorebookOff?: number[]
+  /** Book ids the Author removed from this Story's list that this Story did not attach itself: a
+   *  cast character's book, or a global one. Without this the next render would derive them
+   *  straight back. Absent = nothing removed. */
+  lorebookDropped?: number[]
   createdAt: number
   updatedAt: number
 }
@@ -252,30 +300,30 @@ export interface CastEntry {
   enabled: boolean
 }
 
-/** One planned step inside a Chapter: a line of intent, a word target, and a checkbox the Author
- *  ticks. Beats have no table of their own, so they carry their own key. */
+/** How long a beat runs relative to the others in its Chapter. Five named sizes rather than a word
+ *  count: the Author is saying "this one is the big scene", and the words fall out of the Chapter's
+ *  target. Multipliers live in `core/prompt/beatWeights.ts`. */
+export type BeatWeight = 'sketch' | 'brief' | 'normal' | 'long' | 'major'
+
 /** How much of the surrounding prose a Block's generation sees. `both` is the default; the other
- *  three are how you write a passage that shouldn't be coloured by what sits around it — a flashback,
+ *  three are how you write a passage that shouldn't be coloured by what sits around it, a flashback,
  *  an opening drafted before the scene leading into it exists. */
 export type BlockContext = 'before' | 'after' | 'both' | 'none'
 
 /**
- * One stretch of a Chapter, and the unit prose is actually stored in. A Chapter is an ordered list
- * of these.
- *
- * `beat` empty means a free stretch: plain prose, drawn with no box and no header. `beat` non-empty
- * means a planned section, drawn as a labelled dashed box with its own controls. Converting between
- * the two is writing or clearing that one field — there is no second kind of record, and no
- * ordering rule between two homes for prose.
+ * One beat of a Chapter, and the unit prose is actually stored in. A Chapter is an ordered list of
+ * these, and there is no second kind: free prose was removed, so an empty `beat` is an ordinary
+ * unwritten beat rather than a different sort of Block.
  */
 export interface Block {
   id: string // crypto.randomUUID(); Blocks have no table, so they need their own key
-  /** The plan line: what is meant to happen here. '' makes this a free stretch. */
+  /** The instructions: what is meant to happen here, one line or many. '' is a beat the Author has
+   *  not planned yet. When the prose no longer fits the window, this is what the Block sends. */
   beat: string
-  /** Words this beat is meant to run to. 0 means unset. Meaningless on a free stretch. */
-  targetWords: number
-  /** Ticked by hand. Nothing auto-checks it — generating a beat does not mark it done. */
-  done: boolean
+  /** How long this beat runs relative to its neighbours. The Chapter's word target is divided by
+   *  these, so a climax gets more words than a transition. There is no per-beat word number: see
+   *  `core/prompt/beatWeights.ts`, which derives them. */
+  weight: BeatWeight
   /** The prose. Named `content` so `core/stores/swipes.ts` accepts a Block unchanged; it always
    *  mirrors `swipes[swipeIndex]`, the same denormalisation `Message` uses. */
   content: string
@@ -284,12 +332,19 @@ export interface Block {
   swipeIndex?: number
   /** The model's reasoning for each swipe, parallel to `swipes` (holes where none/absent). */
   reasonings?: (string | undefined)[]
+  /** What the Author asked for when producing each swipe, parallel to `swipes`. A plain re-roll
+   *  leaves a hole. Regenerating sends every instruction up to the selected swipe, so this is the
+   *  record of what the current take was asked to be, not decoration. */
+  instructions?: (string | undefined)[]
+  /** The first-pass text for each swipe, parallel to `swipes`. See `Message.drafts`. */
+  drafts?: (string | undefined)[]
   context: BlockContext
 }
 
-/** What a Chapter contributes to the Chapter guide. 'both' is the default and the useful one: an
- *  unwritten Chapter has no summary yet, so it sends beats; a written Chapter has both, and the
- *  trim demotes it to summary alone when the guide runs out of room. */
+/** What a Chapter contributes once its prose has been degraded to beat instructions, which is the
+ *  only time this is read: full prose is sent whatever it says. 'both' is the default and the
+ *  useful one, giving the Chapter's title-and-summary header over its beat lines. 'summary' keeps
+ *  the header alone, 'beats' the beat lines under a bare title, 'off' nothing at all. */
 export type GuideSend = 'off' | 'beats' | 'summary' | 'both'
 
 /** An ordered unit of a Story: a title, a recap, and its prose as an ordered list of Blocks. A
@@ -303,12 +358,14 @@ export interface Chapter {
   title: string
   /** Recap only: what the Chapter turned out to contain. Intent lives in the beats. */
   summary: string
-  /** The Chapter's prose and its plan, in one ordered list. Beat Blocks are the plan; free Blocks
-   *  are prose written outside it. Never empty in practice — opening a Chapter with none seeds a
-   *  free Block so there is always somewhere to type. */
+  /** The Chapter's prose and its plan, in one ordered list. Every Block is a beat. Empty is the
+   *  ordinary state of a Chapter that has not been outlined yet; the editor offers to generate. */
   blocks: Block[]
-  /** What this Chapter contributes to the Chapter guide. Its prose still scrolls in as Story
-   *  context whatever this says. */
+  /** Words this Chapter is meant to run to, divided across its beats by their weights. 0 = unset,
+   *  which leaves every derived beat target at 0 and sends no length instruction. */
+  targetWords: number
+  /** What this Chapter contributes once the budget has degraded its prose to beat instructions.
+   *  Its full prose sends whatever this says, for as long as it fits. */
   guideSend: GuideSend
   createdAt: number
   updatedAt: number
@@ -326,12 +383,18 @@ export type BlockSource =
   | 'characterPostHistory'
   | 'personaDescription' // the active persona's description
   | 'authorNote' // the chat's author's note; skipped when empty. Chat stacks only.
-  | 'worldInfo' // the speaking character's matched lorebook entries; skipped when none match
+  // The three lorebook slots, one per EntryPosition. Each is skipped when nothing matched for it.
+  // `worldInfo` keeps its name rather than becoming `worldInfoBefore`: stacks written before the
+  // split carry it, and it still means the same slot.
+  | 'worldInfo' // matched entries positioned beforeChar
+  | 'worldInfoAfter' // matched entries positioned afterChar
+  // Entries positioned atDepth. The block carries the role they're injected with; each entry's own
+  // `depth` decides how far back it lands, so the block's place in the stack doesn't matter.
+  | 'worldInfoDepth'
   | 'chatHistory' // mandatory, exactly one per chat stack
   // Story-stack bound sources (Write mode). Wiring lives in sub-goal C; here they're just sources.
   | 'cast' // the Story's enabled characters/personas (full cards)
   | 'storyContext' // the scrolling Story prose; mandatory, exactly one per story stack
-  | 'chapterGuide' // the Chapter list with state stamps; optional, at most one per story stack
   | 'storyTrailing' // prose after the caret, to the end of the active Chapter; empty with no caret
 
 export interface PromptBlock {
@@ -344,7 +407,7 @@ export interface PromptBlock {
    *  the block pickable in chat settings; `activeOption` chooses which one is used. */
   options?: { name: string; content: string }[]
   activeOption?: number
-  /** Text after the children — the closing half of a wrapper (`</characters>`). */
+  /** Text after the children, the closing half of a wrapper (`</characters>`). */
   closeContent?: string
   /** Only meaningful on an authorNote block: inject N messages from the end of history.
    *  Undefined = the block sits where it sits in the stack. */
@@ -365,7 +428,7 @@ export interface PromptBlock {
 }
 
 /** Only the range arm is built today; add a new arm + its modal/chat control per new kind.
- *  A range carries two values — the two ends of a span, dragged separately. `value2` is held at
+ *  A range carries two values, the two ends of a span, dragged separately. `value2` is held at
  *  or above `value`. Omit `value2` for a single-value scroll: one thumb, and {{blockVal2}}
  *  resolves to `value` too. */
 export type BlockInput = {
@@ -385,8 +448,13 @@ export interface PromptStack {
    *  for rows written before the field existed. */
   kind?: 'chat' | 'story'
   active: PromptBlock[] // order = array order
+  /** Tokens the three World info slots may take between them. Absent or 0 = no cap, which is what
+   *  every stack has until it's set. Entries are filled in priority order (`entry.order`) and the
+   *  rest are dropped, so lore yields to the budget instead of chat history yielding to lore.
+   *  A plain field, not indexed: no Dexie version bump. */
+  worldInfoBudget?: number
   /** Overrides for the small utility prompts (`core/prompt/miscPrompts.ts`), keyed by def id.
-   *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned — a plain
+   *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned, a plain
    *  field, so an older row simply has none. */
   miscPrompts?: Record<string, string>
 }

@@ -22,7 +22,7 @@ export const useParamDefs = create<ParamDefsState>()((set, get) => ({
 
   load: async () => {
     // The samplers that ship with the build, seeded on first run as ordinary rows: editable, and
-    // once deleted they stay gone. The flag is what makes a delete stick — without it every load
+    // once deleted they stay gone. The flag is what makes a delete stick, without it every load
     // would write them back. Same contract as the bundled palettes.
     if (!useSettings.getState().seededParamDefs) {
       useSettings.getState().markParamDefsSeeded()
@@ -60,7 +60,7 @@ export const useParamDefs = create<ParamDefsState>()((set, get) => ({
   },
 }))
 
-/** The library outside React — for the send path and the previews, which read it once per call
+/** The library outside React, for the send path and the previews, which read it once per call
  *  rather than rendering it. */
 export function paramDefList(): ParamDef[] {
   return useParamDefs.getState().defs

@@ -7,7 +7,7 @@ import type { BackgroundSlot } from '../palette/palette'
  * layer also renders `slot` rather than the route's, so a chat background is visible while the panel
  * that edits it is open.
  *
- * In memory only — nothing here survives a reload, which is the point: a reload is a way out of
+ * In memory only, nothing here survives a reload, which is the point: a reload is a way out of
  * css/html that made the page unreadable.
  */
 interface BackgroundCssState {

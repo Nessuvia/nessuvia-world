@@ -75,7 +75,7 @@
   font-size: 14px;
 }
 
-/* The character sheet — header over the editor, one column. */
+/* The character sheet: header over the editor, one column. */
 .characterSheet {
   display: flex;
   flex-direction: column;
@@ -361,11 +361,13 @@
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 4px);
   text-align: center;
+  cursor: pointer;
 }
 
 /* The two hit zones. Neither paints itself as a button: the card is still one object, and the
    avatar's play overlay is what says the halves do different things. */
-.pickerCard > button {
+.pickerCard > button,
+.pickerNameBlock {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -408,7 +410,8 @@
   }
 }
 
-.pickerNameButton:hover .characterName {
+.pickerCard:hover .characterName,
+.pickerCard:focus-visible .characterName {
   color: var(--textBright);
 }
 
@@ -698,7 +701,7 @@
 }
 
 /* The panel's gap only reaches its own children; inside a <details> they're plain block flow.
-   Not `display: flex` on the details itself — that costs the disclosure marker. */
+   Not `display: flex` on the details itself: that costs the disclosure marker. */
 .chatSettings details > *:not(summary) {
   margin-top: 8px;
 }
@@ -760,8 +763,36 @@
   width: 80px;
 }
 
+/* Grammar Hammer's rule list: cards, not nested under the enable toggle. */
+.grammarRuleList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .chatSettings label.ruleToggleRow {
-  padding-left: 16px;
+  width: 100%;
+}
+
+.ruleToggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ruleToggleName {
+  color: var(--text);
+}
+
+.ruleTogglePattern {
+  color: var(--textMuted);
+  font-size: 12px;
+  font-family: monospace;
+  overflow-wrap: break-word;
 }
 
 .chatSettings .optionalBlock {
@@ -776,7 +807,7 @@
   gap: 4px;
 }
 
-/* The prompt preview's own styles live in app/promptPreviewPanel.css — Chat and Story share it. */
+/* The prompt preview's own styles live in app/promptPreviewPanel.css. Chat and Story share it. */
 
 .messageList {
   flex: 1;
@@ -824,15 +855,24 @@
 /* The right edge lines up with the composer's textarea: leave the Send button's column empty. */
 .chatBottomBar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   padding-right: calc(var(--composerButton) + 8px);
 }
 
 .chatToolbar {
   display: flex;
+  align-items: center;
   gap: 6px;
   margin-left: auto;
+}
+
+/* Match the roster chips and the add dropdown so the row reads as one height. */
+.chatView .chatToolbar button {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 .rangeInputs {
@@ -1062,7 +1102,7 @@
   position: absolute;
   right: 0;
   /* Drift: a dropdown, so this belongs at var(--zDropdown). Left at 10 until checked in the
-     browser — it may have been raised to clear something specific. */
+     browser: it may have been raised to clear something specific. */
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -1209,7 +1249,7 @@
   gap: 8px;
 }
 
-/* .personaSwitch* live in app/personaSwitcher.css — the sidebar uses them too. */
+/* .personaSwitch* live in app/personaSwitcher.css. The sidebar uses them too. */
 
 .composer textarea {
   flex: 1;
@@ -1291,8 +1331,15 @@
     width: 100%;
   }
 
+  /* Editing a message needs the vertical room the composer and the roster row take. */
+  .chatComposerSlot.editingOpen,
+  .chatBottomBar.editingOpen {
+    display: none;
+  }
+
+  /* No composer button to clear on a phone, but the trash still needs to sit off the edge. */
   .chatBottomBar {
-    padding-right: 0;
+    padding-right: 8px;
   }
 
   /* Title on its own line, star/Rename/Delete under it. One line for all four cramps the buttons
@@ -1554,7 +1601,47 @@
   color: var(--textMuted);
 }
 
-/* ---- Import tag review --------------------------------------------------- */
+/* ---- Import review ------------------------------------------------------- */
+
+.importReviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.importReviewTitle {
+  margin: 0;
+  font-size: 14px;
+}
+
+.importReviewCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.importReviewEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.importReviewEntryName {
+  margin: 0;
+  color: var(--textBright);
+}
+
+.importReviewEntryKeys {
+  margin: 0;
+}
+
+.importReviewEntryText {
+  margin: 0;
+  color: var(--textSoft);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
 
 .importTagBadges {
   display: flex;

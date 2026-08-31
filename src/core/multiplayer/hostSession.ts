@@ -4,7 +4,7 @@
  *
  * The host's browser owns the chat: it holds the connection and the key, builds every prompt and
  * streams every reply. `channel.ts` only relays. `chatStore` and the connectors learn nothing about
- * multiplayer — the stream relay below is a subscription from the outside.
+ * multiplayer. The stream relay below is a subscription from the outside.
  */
 import type { Character, Chat, Message } from '../storage/types'
 import { openChannel, newSessionId } from './channel'
@@ -52,7 +52,7 @@ const maxAvatarBytes = 256 * 1024
 /** ~5 stream events a second, so a reply costs roughly 50 events per recipient. */
 const streamIntervalMs = 200
 
-/** A `state` carries a recent window, not the whole transcript — `append` keeps guests current. */
+/** A `state` carries a recent window, not the whole transcript. `append` keeps guests current. */
 const stateMessageWindow = 60
 
 export interface HostSession {
@@ -65,12 +65,12 @@ export interface HostSession {
   reorder(from: number, to: number): void
   /** Pass the current turn without a message. */
   skipTurn(): void
-  /** Rename the session's chat. Host only — guests read the title in their left panel. */
+  /** Rename the session's chat. Host only; guests read the title in their left panel. */
   setTitle(title: string): Promise<void>
   /** Allow or forbid guests editing their own persona. */
   setPersonaLock(locked: boolean): void
   /**
-   * Write a participant's persona from the host's side. Applies at once, whoever holds the turn —
+   * Write a participant's persona from the host's side. Applies at once, whoever holds the turn:
    * the host is the authority and does not queue behind it. Session-scoped: this writes the
    * participant in the room, not the host's stored persona row.
    */
@@ -138,7 +138,7 @@ export async function createSession(
 
   const persona = await usePersonas.getState().ensureActive()
   const sessionId = newSessionId()
-  // Same unbounded original the character portraits are — downscale before it joins the roster.
+  // Same unbounded original the character portraits are. Downscale before it joins the roster.
   const hostAvatar = await downscaleAvatar(persona.avatar)
 
   // Every await finishes before the store is touched. `phase` leaving 'idle' is what swaps the
@@ -216,7 +216,7 @@ export async function createSession(
   }
 
   // Last: the room is only shown once the store holds the roster and `activeSession()` answers, so
-  // the panels never render against a half-built session. Only from 'idle' — if the channel came
+  // the panels never render against a half-built session. Only from 'idle': if the channel came
   // up in the meantime, 'live' is the newer truth and must not be walked back to 'connecting'.
   if (useMultiplayer.getState().phase === 'idle') store.setPhase('connecting')
   return session
@@ -255,7 +255,7 @@ function sharedAppearance(): SharedAppearance {
     overwriteCharColor: palette.overwriteCharColor,
     colorOrder: palette.colorOrder,
     background: {
-      // An uploaded image's bytes stay on the host — `imageId` has no meaning on a guest.
+      // An uploaded image's bytes stay on the host: `imageId` has no meaning on a guest.
       url: background.url,
       fit: background.fit,
       excludeNav: background.excludeNav,
@@ -269,7 +269,7 @@ function sharedAppearance(): SharedAppearance {
 
 /**
  * A guest persona is untrusted input off the wire. Cap the strings and size-check the avatar
- * before either can reach state — a 10 MB avatar or a 50 KB name is the case to handle.
+ * before either can reach state: a 10 MB avatar or a 50 KB name is the case to handle.
  */
 function validPersona(persona: GuestPersona | undefined): Participant | undefined {
   if (!persona || typeof persona.guestId !== 'string' || !persona.guestId) return undefined
@@ -378,7 +378,7 @@ function guestPersonaChange(guestId: string, persona: GuestPersona) {
   const next = validPersona({ ...persona, guestId })
   if (!next) return
   pendingPersonas.set(guestId, next)
-  // Applied at once when it is not their turn — "next turn" is already now.
+  // Applied at once when it is not their turn: "next turn" is already now.
   if (store.order[store.turnIndex] !== guestId) applyPendingPersonas()
 }
 
@@ -615,7 +615,7 @@ function sendEvent(event: HostEvent) {
  */
 /**
  * True when the transcript changed in a way `append` cannot carry: a line removed, or a line's id or
- * content rewritten. A plain append is false — the relay sends that as an `append`.
+ * content rewritten. A plain append is false: the relay sends that as an `append`.
  */
 function revised(previous: Message[], next: Message[]): boolean {
   if (next.length < previous.length) return true
@@ -642,7 +642,7 @@ function startStreamRelay(chatId: number): () => void {
 
   const unsubscribe = useChats.subscribe((state, previous) => {
     // A turn's message is stored and reloaded before the request goes out, so this fires while the
-    // reply is still being waited on — guests see the line as soon as it is said rather than when
+    // reply is still being waited on: guests see the line as soon as it is said rather than when
     // the reply lands. Whoever said it, host or guest, it arrives through the same `send`.
     if (state.chat?.id === chatId && state.messages.length > previous.messages.length) {
       const last = state.messages.at(-1)

@@ -28,7 +28,7 @@ export function maxTokensOf(connection: Connection): number {
 
 /**
  * The three numbers the token budget needs. `max_tokens` is a request param and the other two
- * aren't, so this is where the two halves are put back together — every trimHistory caller goes
+ * aren't, so this is where the two halves are put back together, every trimHistory caller goes
  * through here rather than passing a Connection and hoping the field names line up.
  */
 export function budgetOf(connection: Connection): Budget

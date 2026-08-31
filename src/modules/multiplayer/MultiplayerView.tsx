@@ -69,7 +69,7 @@ function Landing(): JSX.Element {
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const [persona, setPersona] = useState<Persona | null>(null)
   /** Whose turn the preview assembles: `narratorId` for the Narrator row, otherwise a character
-   *  id. Undefined is slot 1. Preview-only — it is not carried into the session. */
+   *  id. Undefined is slot 1. Preview-only, it is not carried into the session. */
   const [previewSpeakerId, setPreviewSpeakerId] = useState<number | undefined>(undefined)
 
   useEffect(() => {
@@ -282,7 +282,7 @@ function speakerIdOf(chosen: number | undefined, cast: Character[]): number | un
  * Which description of a character the prompt uses. Global scope: this writes
  * `activeDescriptionIndex` on the stored card, the same field the Characters tab edits, so the
  * choice outlives the session and every other chat with this character sees it. The narrower level
- * (per-session, or per-chat) needs an override field the send path reads — `characterAt` in
+ * (per-session, or per-chat) needs an override field the send path reads, `characterAt` in
  * chatStore resolves the speaker from the characters store, not from the session cast, so a cast
  * copy alone would not change what gets sent.
  *
@@ -323,7 +323,7 @@ function DescriptionPicker({
  * The picked stack assembled with the real cast, so the host can read what a slot token turns into
  * before the room opens. Calls `buildPrompt` with the same arguments the session will
  * (`nameSpeakers` on, the cast in slot order), so the preview can't drift from what gets sent.
- * Speaker-bound blocks resolve against the row the host picked — slot 1 by default, or the
+ * Speaker-bound blocks resolve against the row the host picked, slot 1 by default, or the
  * Narrator, which is how `[if Narrator]` branches get read before the room opens.
  */
 function StackPreview({
@@ -373,7 +373,7 @@ function StackPreview({
     messages: [],
     cast,
     // Only the host is in the room before it opens, so {{personas}} previews one line. Guests are
-    // appended to this same block as they join — `pushSessionPersonas` rebuilds it per turn.
+    // appended to this same block as they join, `pushSessionPersonas` rebuilds it per turn.
     personas: castBlock([{ name: persona.name, description: persona.description }]),
     nameSpeakers: true,
     indent: true,

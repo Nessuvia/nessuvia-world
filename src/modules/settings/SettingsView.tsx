@@ -4,7 +4,7 @@ import { newConnection, useSettings } from '../../core/stores/settingsStore'
 import ConnectionEditor from './ConnectionEditor'
 import TagRulesPanel from './TagRulesPanel'
 import FindReplacePanel from './FindReplacePanel'
-import GrammarHammerPanel from './GrammarHammerPanel'
+import SecondPassPanel from './SecondPassPanel'
 import RelayPanel from './RelayPanel'
 import { modules } from '../../app/moduleRegistry'
 import { wipeEverything } from '../../core/storage/wipe'
@@ -101,7 +101,7 @@ export default function SettingsView() {
                     className={`card ${c.id === activeConnectionId ? 'active' : ''} ${
                       c.id === editing?.id ? 'editing' : ''
                     }`}
-                    // Whole row opens the editor, clicking the open row closes it — same as the
+                    // Whole row opens the editor, clicking the open row closes it, same as the
                     // persona list. The controls inside stop the click so they don't toggle too.
                     onClick={() => {
                       setIsNew(false)
@@ -290,11 +290,12 @@ export default function SettingsView() {
         </div>
       ) : tab === 'relay' ? (
         <RelayPanel />
+      ) : tab === 'secondPass' ? (
+        <SecondPassPanel />
       ) : (
         <div className="textRulesCards">
           <TagRulesPanel />
           <FindReplacePanel />
-          <GrammarHammerPanel />
         </div>
       )}
       </div>

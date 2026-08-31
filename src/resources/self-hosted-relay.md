@@ -53,7 +53,7 @@ broke rather than a symptom further down.
 - **The tunnel.** `Registered tunnel connection` in the `cloudflared` log, not the boxed hostname,
   which prints well before the tunnel is up. On failure it recognises the port 7844 text and points
   at the VPN entry below.
-- **The path.** A request to `https://<hostname>/connection/websocket`, expecting `400` — Centrifugo
+- **The path.** A request to `https://<hostname>/connection/websocket`, expecting `400`. Centrifugo
   rejecting a request that is not a websocket handshake proves the path reached it. Any other status
   is reported and the address is still printed. No response at all is a DNS or TLS failure, and there
   the script stops, because the browser resolves the same name the same way.
@@ -109,7 +109,7 @@ Then continue from step 3 of the quick guide.
 ### Why a public address is needed at all
 
 The app is served over https, so the browser will not open a plaintext websocket from it. A
-`ws://localhost:8000` address cannot work no matter what the relay is doing — the browser blocks it
+`ws://localhost:8000` address cannot work no matter what the relay is doing. The browser blocks it
 as mixed content and there is no override. So the relay needs a hostname with a real certificate,
 and `cloudflared` is the shortest route to one.
 
@@ -129,7 +129,7 @@ characters. Anonymous clients need `allow_subscribe_for_anonymous` and `allow_pu
 on it. The host and the guests all publish.
 
 **Presence and join/leave.** `presence`, `join_leave` and `force_push_join_leave`. Without the
-pushes, a guest who closes their tab stays in the roster forever — a dropped connection is the only
+pushes, a guest who closes their tab stays in the roster forever. A dropped connection is the only
 signal there is that they are gone.
 
 An anonymous connection's presence entry has no identity in it, because Centrifugo fills `user` and
@@ -196,14 +196,14 @@ curl -sS --connect-timeout 5 http://portquiz.net:7844 >/dev/null && echo "7844 i
 
 If that succeeds while the precheck fails, the port is open and the route is the problem. **A VPN is
 the usual cause.** It holds the default route, and Cloudflare's tunnel edge range does not route
-through it. Mullvad, Tailscale, WireGuard and the commercial clients all do this.
+through it. Mullvad and Tailscale, WireGuard included, and the commercial clients all do this.
 
 The fix is to exclude the `cloudflared` binary from the VPN by its executable path. Mullvad calls
 this split tunneling; others call it split routing or an app exclusion. Two things to know:
 
 - The exclusion is read when the process starts, so a `cloudflared` already running keeps the old
   route until you restart it.
-- Excluding it means Cloudflare sees your real IP for the tunnel connection. Guests never do — they
+- Excluding it means Cloudflare sees your real IP for the tunnel connection. Guests never do, they
   only ever resolve the `trycloudflare.com` hostname.
 
 Disconnecting the VPN for the session also works, and costs more privacy than excluding one binary.
@@ -229,7 +229,7 @@ record being missing.
 
 When the public resolver has the record and yours does not, **your DNS server is blocking it.**
 Blocklists cover `trycloudflare.com` subdomains fairly often, since quick tunnels get used for
-phishing. AdGuard DNS (`94.140.14.*`) and Mullvad DNS (`194.242.2.*`) both do this — AdGuard answers
+phishing. AdGuard DNS (`94.140.14.*`) and Mullvad DNS (`194.242.2.*`) both do this. AdGuard answers
 NXDOMAIN and Mullvad answers REFUSED. The AAAA record can survive the filter while the A record does
 not, which looks like a working lookup until something tries to connect, because a machine with no
 global IPv6 address cannot use an AAAA-only answer.
@@ -268,7 +268,7 @@ not involved and restarting Centrifugo will not help. Look at the `cloudflared` 
 Same cause as Error 1033, seen from the other side. Check the tunnel before anything else.
 
 If the tunnel is registered and `curl` returns `400`, then the connection is being refused rather
-than lost, and `client.allowed_origins` in `config.json` is the thing to check — it has to list the
+than lost, and `client.allowed_origins` in `config.json` is the thing to check: it has to list the
 site you are loading the app from.
 
 ### The path check returns something other than 400

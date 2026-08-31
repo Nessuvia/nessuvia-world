@@ -9,7 +9,7 @@
  * A guest's link says which relay the room is on, so the guest's copy names it.
  *
  * Acceptance is persisted for hosts only. `multiplayerStore.ts` holds a guest's tab to writing
- * nothing to localStorage and nothing to Dexie, and one convenience flag is not worth breaking it —
+ * nothing to localStorage and nothing to Dexie, and one convenience flag is not worth breaking it
  * so `JoinView` keeps the accepted state in React and shows the notice again next session.
  */
 import type { JSX } from 'react'

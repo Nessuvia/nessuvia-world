@@ -20,14 +20,14 @@ const colorField: Record<MarkerKind, keyof CharacterColors> = {
  * to hand should write where the user is looking. The palette's own marker colors are still edited
  * in Settings → Themes.
  *
- * The marker order stays global — `CharacterColors` holds no order of its own, and a per-character
+ * The marker order stays global, `CharacterColors` holds no order of its own, and a per-character
  * precedence order is a bigger idea than this control. Upgrade path if it's ever wanted: an order
  * field on CharacterColors, resolved the same way the colors are.
  */
 export default function SpeakerColors({ chat }: { chat: Chat }) {
   const characters = useCharacters((s) => s.characters)
   const save = useCharacters((s) => s.save)
-  // The order is read from the palette but not editable here — precedence is not a per-character
+  // The order is read from the palette but not editable here, precedence is not a per-character
   // idea, so it stays in Settings → Themes where one list governs every speaker.
   const palette = usePalette()
 

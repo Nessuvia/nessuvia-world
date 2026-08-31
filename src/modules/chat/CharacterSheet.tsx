@@ -4,6 +4,7 @@ import { RiMoreLine } from '@remixicon/react'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { useChats } from '../../core/stores/chatStore'
 import { useWorldInfo } from '../../core/stores/worldInfoStore'
+import { useLorebooks } from '../../core/stores/lorebooksStore'
 import { Avatar } from '../../app/Avatar'
 import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import CharacterEditor from '../characters/CharacterEditor'
@@ -11,7 +12,7 @@ import { exportCardJson, exportCardPng } from '../characters/exportCard'
 import ChatList from './ChatList'
 
 /**
- * One character, read and edited on the same page — `/chat/c/:characterId`, or `/chat/c/new`.
+ * One character, read and edited on the same page, `/chat/c/:characterId`, or `/chat/c/new`.
  *
  * The description used to be kept off the read view on the grounds that it's the model's view of
  * the character rather than the reader's. That split cost more than it bought: the card system
@@ -43,9 +44,18 @@ export default function CharacterSheet() {
   // Still loading an existing character. `/chat/c/new` has no id and drops straight through.
   if (id !== null && !character) return <p className="placeholder">Loading…</p>
 
-  // Read at export time rather than held in state — nothing else on this page needs them.
-  const bookEntries = () =>
-    character?.id ? useWorldInfo.getState().fetchFor(character.id) : Promise.resolve([])
+  // Read at export time rather than held in state, nothing else on this page needs them. A card
+  // carries one `character_book`, so the export takes the character's first attached lorebook and
+  // leaves any others out.
+  const exportBook = async () => {
+    const bookId = character?.lorebookIds?.[0]
+    if (!bookId) return { entries: [], book: undefined }
+    await useLorebooks.getState().load()
+    return {
+      entries: await useWorldInfo.getState().fetchFor(bookId),
+      book: useLorebooks.getState().books.find((b) => b.id === bookId),
+    }
+  }
 
   // The list is sorted by createdAt; "last" here means last written to.
   const lastChat = chats.reduce(
@@ -117,7 +127,8 @@ export default function CharacterSheet() {
                   onClick={async () => {
                     setMenuOpen(false)
                     try {
-                      await exportCardPng(character, await bookEntries())
+                      const { entries, book } = await exportBook()
+                      await exportCardPng(character, entries, book)
                     } catch (e) {
                       setExportError(e instanceof Error ? e.message : 'Export failed.')
                     }
@@ -129,7 +140,7 @@ export default function CharacterSheet() {
                   type="button"
                   onClick={() => {
                     setMenuOpen(false)
-                    bookEntries().then((entries) => exportCardJson(character, entries))
+                    exportBook().then(({ entries, book }) => exportCardJson(character, entries, book))
                   }}
                 >
                   Export JSON

@@ -19,11 +19,11 @@ import './bodyMap.css'
 // front/back, define regions by clicking points, dragging a rectangle/oval, or wand-selecting a
 // same-colored area over the base image, edit the reusable action set, then export the JSON.
 //
-// Hosts on the page, not a modal — the figure + region panel need the room.
+// Hosts on the page, not a modal, the figure + region panel need the room.
 
 type DrawTool = 'point' | 'rect' | 'circle' | 'wand'
 
-// Rect/circle are draw-and-release shortcuts, not a distinct geometry — the drag is converted to
+// Rect/circle are draw-and-release shortcuts, not a distinct geometry, the drag is converted to
 // a polygon on release so Region keeps its single point-list shape (types.ts stays untouched).
 function rectPolygon(x0: number, y0: number, x1: number, y1: number): [number, number][] {
   const x = [Math.round(Math.min(x0, x1)), Math.round(Math.max(x0, x1))]
@@ -73,7 +73,7 @@ export default function BodyMapAuthor() {
   const [tool, setTool] = useState<DrawTool>('point')
   // Image-space drag start/end for the rect/circle tools; null when not dragging.
   const [drag, setDrag] = useState<{ start: [number, number]; end: [number, number] } | null>(null)
-  // A rect/circle shape that's been drawn but not committed yet — shown with a draggable bounding
+  // A rect/circle shape that's been drawn but not committed yet, shown with a draggable bounding
   // box until the user clicks outside the figure, which locks it in as a region.
   const [pending, setPending] = useState<{ tool: DrawTool; x0: number; y0: number; x1: number; y1: number } | null>(
     null,
@@ -86,7 +86,7 @@ export default function BodyMapAuthor() {
   } | null>(null)
   const figureRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  // One-deep undo of structural region edits (add / remove / delete-all). Renames aren't tracked —
+  // One-deep undo of structural region edits (add / remove / delete-all). Renames aren't tracked
   // per-keystroke snapshots would make undo revert a single character.
   const [prevRegions, setPrevRegions] = useState<Region[] | null>(null)
   // The library row this map came from (null = unsaved). Save overwrites it; Save as new clears it.
@@ -162,7 +162,7 @@ export default function BodyMapAuthor() {
 
   // Reads the base image into an offscreen canvas at natural size, flood-fills from the clicked
   // pixel within `tolerance`, and hands the fill's bounding box to the same pending-shape workflow
-  // rect/oval use — the wand is a faster way to land at a rectangle, not a distinct geometry.
+  // rect/oval use, the wand is a faster way to land at a rectangle, not a distinct geometry.
   function runWand(x: number, y: number) {
     const img = imgRef.current
     if (!img) return
@@ -252,7 +252,7 @@ export default function BodyMapAuthor() {
   }
 
   function commitPending() {
-    // Side effects (addRegion) must not live inside the setPending updater — React invokes
+    // Side effects (addRegion) must not live inside the setPending updater, React invokes
     // updater functions twice in dev to check purity, which was double-adding the region.
     if (!pending) return
     addRegion(pending.tool === 'circle' ? ovalPolygon(pending.x0, pending.y0, pending.x1, pending.y1) : rectPolygon(pending.x0, pending.y0, pending.x1, pending.y1))
@@ -594,7 +594,7 @@ export default function BodyMapAuthor() {
                 className={`region active${selectedId === r.partId ? ' selected' : ''}`}
                 points={(r.polygon ?? []).map((p) => p.join(',')).join(' ')}
                 // Clicking a region selects its row. stopPropagation so it doesn't also drop a draft
-                // point — the tradeoff is you draw new polygons on empty areas, not over regions.
+                // point, the tradeoff is you draw new polygons on empty areas, not over regions.
                 onClick={(e) => {
                   e.stopPropagation()
                   setSelectedId(r.partId)
@@ -668,7 +668,7 @@ function ActionEditor({
   function quickAdd() {
     const state = qaState.trim()
     if (!state || !qaGrammar.trim()) return
-    // {{state}} is a build-time macro, not a runtime token — resolve it into the stored
+    // {{state}} is a build-time macro, not a runtime token, resolve it into the stored
     // template now so the row shows the real text and {{state}} can't leak into output.
     // {{user}}/{{char}}/{{part}} stay literal for resolveTemplate at apply time.
     const descriptionTemplate = qaGrammar.replaceAll('{{state}}', state)

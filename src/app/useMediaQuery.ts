@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 /**
  * True while the media query matches, and re-renders when that flips. For layout that changes
- * shape rather than style — CSS handles anything a stylesheet can say on its own.
+ * shape rather than style: CSS handles anything a stylesheet can say on its own.
  */
 export function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches)

@@ -1,4 +1,4 @@
-// Pure tree ops for the stack editor. Every function returns new arrays — the draft is replaced,
+// Pure tree ops for the stack editor. Every function returns new arrays: the draft is replaced,
 // never mutated, so React sees the change and undo stays possible later.
 import type { PromptBlock } from '../../core/storage/types'
 
@@ -25,7 +25,7 @@ export function findBlock(list: PromptBlock[], id: string): PromptBlock | undefi
   return undefined
 }
 
-/** True when `id` is the block itself or anywhere below it — a block can't be dropped into itself. */
+/** True when `id` is the block itself or anywhere below it: a block can't be dropped into itself. */
 export function contains(block: PromptBlock, id: string): boolean {
   return block.id === id || (block.children ?? []).some((child) => contains(child, id))
 }
@@ -101,7 +101,7 @@ export type MoveDir = 'up' | 'down' | 'left' | 'right'
 /**
  * Keyboard move of one block: up/down reorder within its sibling list, right nests into the block
  * directly above, left pops out to sit just after its parent. Returns a new list, or null for a
- * no-op — the edge of its sibling list, already top level, or a nest Chat History can't take part in.
+ * no-op: the edge of its sibling list, already top level, or a nest Chat History can't take part in.
  */
 export function moveByKey(list: PromptBlock[], id: string, dir: MoveDir): PromptBlock[] | null {
   const loc = siblingsOf(list, id)

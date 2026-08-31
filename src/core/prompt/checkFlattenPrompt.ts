@@ -28,7 +28,7 @@ const messages = [
   const template = defaultTemplate()
   const out = flattenPrompt(messages, template)
   assert.ok(out.endsWith(template.modelPrefix), 'the model turn is not open')
-  // The model's own suffix must not follow it — that would close the turn before it starts.
+  // The model's own suffix must not follow it: that would close the turn before it starts.
   assert.ok(!out.endsWith(template.modelSuffix))
 }
 

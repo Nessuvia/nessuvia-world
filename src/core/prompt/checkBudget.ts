@@ -30,7 +30,7 @@ const budget = { contextLimit: 1000, maxTokens: 0, safetyMarginPct: 0 }
   assert.ok(out.messages.length > 0 && out.messages.length < history.length)
   assert.strictEqual(out.messages.at(-1), history.at(-1))
   assert.strictEqual(out.droppedCount, history.length - out.messages.length)
-  // The kept slice is a contiguous tail — order is never touched.
+  // The kept slice is a contiguous tail. Order is never touched.
   assert.deepStrictEqual(out.messages, history.slice(out.droppedCount))
 }
 

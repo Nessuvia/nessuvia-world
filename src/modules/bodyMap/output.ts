@@ -20,7 +20,7 @@ export function resolveAction(action: AppliedAction, part: string, ctx: HostCont
 }
 
 /** Join multiple actions on one part into a single line's worth of text. Comma-separated
- *  descriptions — the documented collapse for Phase 1. */
+ *  descriptions: the documented collapse for Phase 1. */
 export function collapseActions(descriptions: string[]): string {
   return descriptions.join(', ')
 }

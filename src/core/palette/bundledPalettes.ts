@@ -3,7 +3,7 @@ import type { Palette } from './palette'
 
 /**
  * Palette files that ship with the build. Drop an exported `.json` into `bundled/` and it seeds
- * itself on a fresh install, and shows up in the Bundled picker — no list to edit.
+ * itself on a fresh install, and shows up in the Bundled picker. No list to edit.
  *
  * Each file is parsed on its own: image ids are per-file, so they have to be remapped per file too.
  */

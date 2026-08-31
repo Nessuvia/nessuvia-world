@@ -9,7 +9,7 @@ export interface PickerItem {
   label: string
   avatar?: string
   avatarCrop?: AvatarCrop
-  /** Shown at the end of the row in small caps — 'character', 'persona'. Omit for a single-kind list. */
+  /** Shown at the end of the row in small caps, 'character', 'persona'. Omit for a single-kind list. */
   kind?: string
 }
 
@@ -18,7 +18,7 @@ export interface PickerItem {
  * Filtering and the search box live here; what the items are and what picking one does belong to
  * the caller.
  *
- * Two shapes, from the same rows. Without `selectedKeys` it is a one-shot list — click a row and
+ * Two shapes, from the same rows. Without `selectedKeys` it is a one-shot list, click a row and
  * the caller closes it. With `selectedKeys` it stays put and rows carry their own on/off state,
  * which is what a multi-select wants.
  */
@@ -37,7 +37,7 @@ export default function EntityPicker({
   emptyText?: string
   /** Keys currently on. Given at all, rows become toggles and keep a selected background. */
   selectedKeys?: string[]
-  /** Keys that cannot be picked right now — a selection cap already met, say. */
+  /** Keys that cannot be picked right now, a selection cap already met, say. */
   disabledKeys?: string[]
   /** Rows visible before the list scrolls. */
   rows?: number

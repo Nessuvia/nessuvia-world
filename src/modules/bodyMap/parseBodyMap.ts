@@ -32,7 +32,7 @@ function isPoint(p: unknown): p is [number, number] {
   return Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number'
 }
 
-/** Keep only well-formed regions. A bad region is dropped, not fatal — a model that fumbles one
+/** Keep only well-formed regions. A bad region is dropped, not fatal: a model that fumbles one
  *  part shouldn't sink the whole map. */
 function coerceRegions(raw: unknown): Region[] {
   if (!Array.isArray(raw)) return []
@@ -72,7 +72,7 @@ function coerceActions(raw: unknown): BodyMap['actions'] {
 }
 
 /** Validate and coerce an arbitrary parsed object into a BodyMap. Throws when there are no usable
- *  regions — everything else falls back to a safe default. */
+ *  regions. Everything else falls back to a safe default. */
 export function coerceBodyMap(raw: unknown): BodyMap {
   if (!raw || typeof raw !== 'object') throw new Error('The reply held no map.')
   const o = raw as Record<string, unknown>

@@ -8,7 +8,7 @@ import type { InstructTemplate } from '../params/paramDef.ts'
  * role's prefix and suffix; `firstPrefix` (the BOS token) is emitted once at the very front, and
  * the assistant turn is left open at the end so the model continues rather than starts over.
  *
- * The message contents are never rewritten — only wrapped. Formatting is a transport concern here
+ * The message contents are never rewritten, only wrapped. Formatting is a transport concern here
  * the same way it is a display concern elsewhere.
  */
 export function flattenPrompt(messages: ChatMessage[], template: InstructTemplate): string {

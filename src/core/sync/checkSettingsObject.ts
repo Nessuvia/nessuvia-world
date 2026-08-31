@@ -24,7 +24,7 @@ assert.equal(merged.lastSyncedAt, 222)
 assert.equal(merged.bucket.bucket, 'mine')
 
 // A device that has never synced has no bookkeeping to keep, so theirs is dropped rather than
-// inherited — inheriting it would claim tables are synced that were never pushed from here.
+// inherited: inheriting it would claim tables are synced that were never pushed from here.
 const fresh = JSON.parse(keepDeviceFields(theirs, JSON.stringify({ state: {} }))).state
 assert.equal('tableHashes' in fresh, false)
 assert.equal('bucket' in fresh, false)

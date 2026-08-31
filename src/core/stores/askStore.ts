@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { sendMessage } from '../connectors/openaiCompatible'
+import { runSecondPass } from '../secondPass/runSecondPass'
 import type { ChatMessage } from '../connectors/connectorInterface'
 import { snapshotOf } from '../connectors/snapshot'
 import { currentOwnerId } from '../storage/storageInterface'
@@ -13,14 +13,14 @@ import { characterTokens, swapTokens } from '../prompt/swapTokens'
 import { maxTokensOf } from '../params/connectionParams'
 
 /**
- * Ask turns are `Message` records so the whole Chat message UI works on them unchanged — swipes,
+ * Ask turns are `Message` records so the whole Chat message UI works on them unchanged, swipes,
  * snapshots, reasoning, edit, delete. They live in localStorage rather than Dexie: there is one
  * Ask conversation, not a list of them, and `chatId` is 0 for all of them.
  */
 export type AskTurn = Message
 
 // Ids only have to be unique within the one saved transcript, so a counter seeded past whatever
-// was reloaded is enough — no store to hand them out.
+// was reloaded is enough, no store to hand them out.
 let nextId = 1
 const withId = (turn: Omit<Message, 'id'>): Message => ({ ...turn, id: nextId++ })
 
@@ -32,6 +32,8 @@ interface AskState {
   turns: AskTurn[]
   streaming: boolean
   streamingText: string
+  /** Second Pass's provisional first take; '' once the edited reply starts. */
+  streamingDraft: string
   /** Reasoning as it arrives. Only reset when a stream starts; nothing renders it while idle. */
   streamingReasoning: string
   /** The turn being re-rolled, so the stream renders in place instead of at the bottom. */
@@ -76,7 +78,7 @@ function askSwap(text: string): string {
  * The whole request. Built here rather than through the prompt stack system: Ask has no cards, no
  * persona and no lore, so the prompt is the system box, the transcript and the suffix.
  *
- * `history` is what the model sees as the conversation — the full transcript on a send, everything
+ * `history` is what the model sees as the conversation, the full transcript on a send, everything
  * before the target on a re-roll. `appendSystem` carries the rewrite instruction.
  */
 function buildAskMessages(history: AskTurn[], appendSystem?: string): ChatMessage[] {
@@ -90,7 +92,7 @@ function buildAskMessages(history: AskTurn[], appendSystem?: string): ChatMessag
   if (character && tokens) {
     const prompt = askAssistantPrompt.trim() || defaultAssistantPrompt
     const framing = swap(prompt)
-    // The card travels with the framing — the prompt asks the model to weigh what kind of
+    // The card travels with the framing, the prompt asks the model to weigh what kind of
     // character this is, which it can only do from the card. A prompt that places
     // {{charDescription}} itself has already said where the card goes, so it isn't appended
     // a second time.
@@ -114,6 +116,7 @@ export const useAsk = create<AskState>()(
       turns: [],
       streaming: false,
       streamingText: '',
+      streamingDraft: '',
       streamingReasoning: '',
       regeneratingId: null,
       error: '',
@@ -122,7 +125,7 @@ export const useAsk = create<AskState>()(
         if (get().streaming || !text.trim()) return
         const connection = activeConnection()
         if (!connection) {
-          set({ error: 'No active connection — pick one in Settings.' })
+          set({ error: 'No active connection, pick one in Settings.' })
           return
         }
 
@@ -132,24 +135,29 @@ export const useAsk = create<AskState>()(
           ...get().turns,
           withId({ ownerId: currentOwnerId(), chatId: 0, role: 'user', content: askSwap(text), createdAt: Date.now() }),
         ]
-        set({ turns, streaming: true, streamingText: '', streamingReasoning: '', error: '' })
+        set({ turns, streaming: true, streamingText: '', streamingDraft: '', streamingReasoning: '', error: '' })
 
         const messages = buildAskMessages(turns)
         const controller = new AbortController()
         abort = controller
         let reply = ''
+        let draft = ''
         let reasoning = ''
         let finishReason = ''
         const snapshot = snapshotOf(messages, connection)
         try {
-          for await (const chunk of sendMessage(messages, connection, controller.signal)) {
+          for await (const chunk of runSecondPass(messages, connection, controller.signal)) {
             if (chunk.reasoning) {
               reasoning += chunk.reasoning
               set({ streamingReasoning: reasoning })
             }
+            if (chunk.draft) {
+              draft += chunk.draft
+              set({ streamingDraft: draft })
+            }
             if (chunk.content) {
               reply += chunk.content
-              set({ streamingText: reply })
+              set({ streamingText: reply, streamingDraft: '' })
             }
             if (chunk.finishReason) finishReason = chunk.finishReason
           }
@@ -161,6 +169,7 @@ export const useAsk = create<AskState>()(
               turns: reply ? [...turns, assistantTurn(reply, snapshot, reasoning)] : turns,
               streaming: false,
               streamingText: '',
+          streamingDraft: '',
               error: (err as Error).message,
             })
             return
@@ -173,6 +182,7 @@ export const useAsk = create<AskState>()(
           turns: reply ? [...turns, assistantTurn(reply, snapshot, reasoning)] : turns,
           streaming: false,
           streamingText: '',
+          streamingDraft: '',
           error:
             finishReason === 'length'
               ? `Response stopped at the ${maxTokensOf(connection)} token limit. Raise Max tokens in the connection.`
@@ -184,19 +194,19 @@ export const useAsk = create<AskState>()(
         if (get().streaming) return
         const connection = activeConnection()
         if (!connection) {
-          set({ error: 'No active connection — pick one in Settings.' })
+          set({ error: 'No active connection, pick one in Settings.' })
           return
         }
         const at = get().turns.findIndex((t) => t.id === messageId)
         const target = get().turns[at]
         if (!target || target.role !== 'assistant') return
 
-        set({ streaming: true, streamingText: '', streamingReasoning: '', error: '', regeneratingId: messageId })
+        set({ streaming: true, streamingText: '', streamingDraft: '', streamingReasoning: '', error: '', regeneratingId: messageId })
 
         // Your instruction if you gave one; otherwise, on an old turn, the default that tells the
         // model what came after it. Re-rolling the last turn appends nothing.
         // As if this turn didn't exist yet: history is everything before it. Anything after it is
-        // neither sent nor touched — it only reaches the model through the instruction.
+        // neither sent nor touched, it only reaches the model through the instruction.
         const later = get().turns.slice(at + 1)
         const appendSystem = instruction?.trim()
           ? rewritePrompt(target.content, askSwap(instruction))
@@ -206,18 +216,23 @@ export const useAsk = create<AskState>()(
         const controller = new AbortController()
         abort = controller
         let text = ''
+        let draft = ''
         let reasoning = ''
         let finishReason = ''
         const snapshot = snapshotOf(messages, connection)
         try {
-          for await (const chunk of sendMessage(messages, connection, controller.signal)) {
+          for await (const chunk of runSecondPass(messages, connection, controller.signal)) {
             if (chunk.reasoning) {
               reasoning += chunk.reasoning
               set({ streamingReasoning: reasoning })
             }
+            if (chunk.draft) {
+              draft += chunk.draft
+              set({ streamingDraft: draft })
+            }
             if (chunk.content) {
               text += chunk.content
-              set({ streamingText: text })
+              set({ streamingText: text, streamingDraft: '' })
             }
             if (chunk.finishReason) finishReason = chunk.finishReason
           }
@@ -227,6 +242,7 @@ export const useAsk = create<AskState>()(
             set({
               streaming: false,
               streamingText: '',
+          streamingDraft: '',
               regeneratingId: null,
               error: (err as Error).message,
             })
@@ -236,10 +252,11 @@ export const useAsk = create<AskState>()(
           abort = null
         }
 
-        const updated = regenerated(target, text, snapshot, reasoning)
+        const updated = regenerated(target, text, snapshot, reasoning, undefined, draft)
         set((s) => ({
           streaming: false,
           streamingText: '',
+          streamingDraft: '',
           regeneratingId: null,
           turns: updated ? s.turns.map((t) => (t.id === messageId ? updated : t)) : s.turns,
           error:
@@ -272,7 +289,7 @@ export const useAsk = create<AskState>()(
 
       newChat: () => {
         abort?.abort()
-        set({ turns: [], streaming: false, streamingText: '', regeneratingId: null, error: '' })
+        set({ turns: [], streaming: false, streamingText: '', streamingDraft: '', regeneratingId: null, error: '' })
       },
 
       dismissError: () => set({ error: '' }),
@@ -282,7 +299,7 @@ export const useAsk = create<AskState>()(
       // Only the transcript is worth reloading; stream state is per-session.
       partialize: (s) => ({ turns: s.turns }),
       // Ids have to keep climbing past a reloaded transcript or a new turn would collide with one.
-      // Turns saved before ids existed get one here — without it every action keys off undefined.
+      // Turns saved before ids existed get one here, without it every action keys off undefined.
       onRehydrateStorage: () => (state) => {
         for (const turn of state?.turns ?? []) {
           if (turn.id === undefined) turn.id = nextId++

@@ -3,12 +3,11 @@
 // reads fine without JSX.
 import { createElement, Fragment } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import type { MarkerKind, ReplaceRule, TagRule, GrammarHammerRule } from '../../core/stores/settingsStore'
-import { stripText } from '../../core/hammer/strip.ts'
+import type { MarkerKind, ReplaceRule, TagRule } from '../../core/stores/settingsStore'
 
 // Which color a marker's text takes when several overlap. Text is the implicit baseline below
 // all three. `order` is top-first (strongest first); the highest-ranked kind present on a run
-// of text wins its color regardless of how the markers nest — see renderInline.
+// of text wins its color regardless of how the markers nest. See renderInline.
 const defaultOrder: MarkerKind[] = ['emphasis', 'bold', 'quotes']
 const inheritStyle: CSSProperties = { color: 'inherit' }
 
@@ -25,9 +24,9 @@ function rankOf(kind: MarkerKind, order: MarkerKind[]): number {
 }
 
 // Longest markers first so `**bold**` isn't eaten as nested `*italic*`, and `***` before both.
-// A className here is a styling hook only — the colour itself is a CSS var, so the parser stays
+// A className here is a styling hook only: the colour itself is a CSS var, so the parser stays
 // pure and checkRenderText keeps testing structure rather than settings.
-// `wrap` names an extra tag rendered inside `tag` — `***x***` is <strong><em>x</em></strong>.
+// `wrap` names an extra tag rendered inside `tag`. `***x***` is <strong><em>x</em></strong>.
 // `raw` markers don't recurse: the content is literal text, and they paint their own colors
 // instead of joining the precedence negotiation below. Fences come before single backticks.
 const markers = [
@@ -40,15 +39,13 @@ const markers = [
   { mark: '*', tag: 'em', className: 'emphasisText', keepMark: false },
   { mark: '_', tag: 'em', className: 'emphasisText', keepMark: false },
   // straight quotes only. Curly “…” needs distinct open/close markers, which this
-  // symmetric table can't express — add a separate pair list if models start emitting them.
+  // symmetric table can't express. Add a separate pair list if models start emitting them.
   { mark: '"', tag: 'span', className: 'spokenText', keepMark: true },
 ]
 
 export interface RenderOpts {
   tagRules?: TagRule[]
   replaceRules?: ReplaceRule[]
-  grammarHammerRules?: GrammarHammerRule[]
-  grammarHammerEnabled?: boolean
   role?: 'user' | 'assistant'
   /** Color precedence, top-first. Omitted → module default. */
   order?: MarkerKind[]
@@ -74,27 +71,21 @@ export function applyReplaceRules(
       // compiles per render; memoize if a long rule list lags.
       out = out.replace(new RegExp(pattern, rule.flags), rule.replace)
     } catch {
-      // Invalid pattern or flags — skip, leaving the text untouched.
+      // Invalid pattern or flags: skip, leaving the text untouched.
     }
   }
   return out
 }
 
 /**
- * Display-only pass over stored text. Returns React elements — never HTML — because model output
+ * Display-only pass over stored text. Returns React elements, never HTML, because model output
  * and imported cards are untrusted and this origin holds API keys. The input string is never
  * modified; newlines survive for `white-space: pre-wrap`.
  *
  * Two stages: tag rules split the text into blocks, then each block gets the inline marker scan.
  */
 export function renderText(input: string, opts?: RenderOpts): ReactNode[] {
-  let text = input
-  if (opts?.grammarHammerEnabled && opts?.grammarHammerRules?.length) {
-    // Strip runs before find/replace so the literal/regex rules see the cleaned text. Display-only —
-    // the stored message is never modified.
-    text = stripText(text, opts.grammarHammerRules, opts.role ?? 'assistant').text
-  }
-  text = applyReplaceRules(text, opts?.replaceRules, opts?.role)
+  let text = applyReplaceRules(input, opts?.replaceRules, opts?.role)
   const order = opts?.order ?? defaultOrder
   const rules = opts?.tagRules?.filter((r) => r.open && r.close)
   if (!rules?.length) return renderInline(text, order)
@@ -109,7 +100,7 @@ export function renderText(input: string, opts?: RenderOpts): ReactNode[] {
   let last = 0
   // A tag block sits on its own lines; the newlines that separated it from surrounding text pile
   // up as blank space once it collapses. Trim the newlines that directly touch a block so back-to-
-  // back blocks don't stack vertical gaps. Display-only — the stored text is untouched.
+  // back blocks don't stack vertical gaps. Display-only: the stored text is untouched.
   let trimLeadingNewline = false
   while (i < text.length) {
     const rule = rules.find((r) => text.startsWith(r.open, i))
@@ -131,7 +122,7 @@ export function renderText(input: string, opts?: RenderOpts): ReactNode[] {
           ),
         )
       }
-      // 'hide' pushes nothing — the block just doesn't render.
+      // 'hide' pushes nothing: the block just doesn't render.
       i = close + rule.close.length
       last = i
       continue

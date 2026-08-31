@@ -1,15 +1,34 @@
 import { useRef, useState } from 'react'
 import type { DragEvent } from 'react'
 
+/** What starts a drag. On the row for a plain list, on a handle for a row holding text fields. */
+export interface DragHandleProps {
+  draggable: boolean
+  onDragStart: () => void
+  onDragEnd: () => void
+}
+
+/** What accepts one. Always on the row: the whole row is the target whatever started the drag. */
+export interface DragDropProps {
+  onDragOver: (e: DragEvent) => void
+  onDrop: (e: DragEvent) => void
+}
+
 export interface DragReorder {
-  /** Spread onto each draggable row. */
-  itemProps(index: number): {
-    draggable: boolean
-    onDragStart: () => void
-    onDragOver: (e: DragEvent) => void
-    onDrop: (e: DragEvent) => void
-    onDragEnd: () => void
-  }
+  /** Spread onto each draggable row. Handle and target in one, for a row with nothing selectable
+   *  in it. A row containing an input or a textarea must use `handleProps`/`dropProps` instead. */
+  itemProps(index: number): DragHandleProps & DragDropProps
+  /**
+   * The drag half, for a dedicated handle inside the row.
+   *
+   * `draggable` on an ancestor stops Chrome placing the caret in a text field below it: a press
+   * and drag inside the field starts a row drag instead of selecting, so the caret sticks at the
+   * start and clicking between words does nothing. Any row holding an `input` or `textarea` puts
+   * this on a handle element and `dropProps` on the row.
+   */
+  handleProps(index: number): DragHandleProps
+  /** The drop half, for the row itself. Pairs with `handleProps`. */
+  dropProps(index: number): DragDropProps
   /** The index currently hovered as a drop target, for the highlight class. */
   over: number | null
 }
@@ -35,25 +54,30 @@ export function useDragReorder(
     onReorder(from, to)
   }
 
+  const handleProps = (index: number): DragHandleProps => ({
+    draggable: true,
+    onDragStart: () => (drag.current = index),
+    onDragEnd: () => {
+      drag.current = null
+      setOver(null)
+    },
+  })
+
+  const dropProps = (index: number): DragDropProps => ({
+    onDragOver: (e: DragEvent) => {
+      e.preventDefault()
+      setOver(index)
+    },
+    onDrop: (e: DragEvent) => {
+      e.preventDefault()
+      drop(index)
+    },
+  })
+
   return {
     over,
-    itemProps(index: number) {
-      return {
-        draggable: true,
-        onDragStart: () => (drag.current = index),
-        onDragOver: (e: DragEvent) => {
-          e.preventDefault()
-          setOver(index)
-        },
-        onDrop: (e: DragEvent) => {
-          e.preventDefault()
-          drop(index)
-        },
-        onDragEnd: () => {
-          drag.current = null
-          setOver(null)
-        },
-      }
-    },
+    handleProps,
+    dropProps,
+    itemProps: (index: number) => ({ ...handleProps(index), ...dropProps(index) }),
   }
 }

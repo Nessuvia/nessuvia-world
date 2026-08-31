@@ -48,7 +48,7 @@ function nextBlockLabel(stack: PromptStack) {
 
 export default function StackEditor() {
   const { stacks, load, save, create, duplicate, remove, ensureActive } = useStacks()
-  // The Chat | Story switch. Not persisted — which builder you're looking at is a glance-level
+  // The Chat | Story switch. Not persisted, which builder you're looking at is a glance-level
   // choice; the active stack of each kind lives in settings. `?kind=story` is how the Story
   // sidebar's edit link lands on the right builder.
   const [params] = useSearchParams()
@@ -66,7 +66,7 @@ export default function StackEditor() {
   const [draft, setDraft] = useState<PromptStack | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   // sessionStorage, not a stored setting: survives navigation, clears on tab close.
-  // global for the tab, not per stack — key by stack id if that matters.
+  // global for the tab, not per stack, key by stack id if that matters.
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     JSON.parse(sessionStorage.getItem('promptsCollapsed') ?? '{}'),
   )
@@ -76,7 +76,7 @@ export default function StackEditor() {
       sessionStorage.setItem('promptsCollapsed', JSON.stringify(next))
       return next
     })
-  // Phone width folds the action buttons into one Options menu and shortens the nesting indent —
+  // Phone width folds the action buttons into one Options menu and shortens the nesting indent
   // both change the shape of the row, which is more than a stylesheet can say.
   const mobile = useMediaQuery('(max-width: 700px)')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -105,7 +105,7 @@ export default function StackEditor() {
   useEffect(() => {
     ensureActive(kind).then((s) => {
       setDraft(s)
-      setSaved(true) // freshly loaded stack is already in sync — don't autosave it back
+      setSaved(true) // freshly loaded stack is already in sync, don't autosave it back
     })
   }, [kind, activeId, ensureActive])
 
@@ -145,7 +145,7 @@ export default function StackEditor() {
   const editing = blocks.find((b) => b.id === editingId)
   const parentOf = (id: string) =>
     blocks.find((b) => (b.children ?? []).some((c) => c.id === id))
-  // What the picker on each card offers. One description block, not three — a bound source already
+  // What the picker on each card offers. One description block, not three, a bound source already
   // used elsewhere in the stack is offered but disabled.
   const types = kindTypes(sources)
   const takenTypes = (block: PromptBlock, nested: boolean): BlockType[] => [
@@ -186,7 +186,7 @@ export default function StackEditor() {
     const block = findBlock(draft.active, fromId)
     if (!block || target.beforeId === fromId) return
     if (block.source === 'chatHistory' && target.parentId !== null) {
-      setNestError("Chat History can't go inside another block — its turns carry their own roles.")
+      setNestError("Chat History can't go inside another block, its turns carry their own roles.")
       return
     }
     // Dropping a container into its own subtree would detach both from the tree.
@@ -456,6 +456,25 @@ export default function StackEditor() {
           onChange={(e) => change({ ...draft, name: e.target.value })}
           aria-label="Stack name"
         />
+        {stackKind(draft) === 'chat' && (
+          <label className="stackBudget">
+            World info budget
+            <input
+              type="number"
+              min={0}
+              step={100}
+              value={draft.worldInfoBudget ?? ''}
+              placeholder="No limit"
+              onChange={(e) =>
+                change({
+                  ...draft,
+                  worldInfoBudget: e.target.value === '' ? undefined : Number(e.target.value),
+                })
+              }
+            />
+            tokens
+          </label>
+        )}
         <label className="blockDeleteToggle">
           <input
             type="checkbox"
@@ -500,4 +519,4 @@ export default function StackEditor() {
   )
 }
 
-// native HTML5 DnD — no touch support, no keyboard reorder. dnd-kit if that bites.
+// native HTML5 DnD, no touch support, no keyboard reorder. dnd-kit if that bites.

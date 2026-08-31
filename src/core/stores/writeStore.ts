@@ -5,12 +5,29 @@ import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
 import type { Block, CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
-import { buildStoryPrompt, castText, fitChapterGuide, type CastMember } from '../prompt/buildStoryPrompt'
-import { chapterProse, storyProseSplit } from '../prompt/chapterGuide'
+import { runSecondPass } from '../secondPass/runSecondPass'
+import {
+  buildStoryPrompt,
+  castText,
+  storyFit,
+  storyScanText,
+  type CastMember,
+} from '../prompt/buildStoryPrompt'
+import { enabledBookIds, storyBooks } from '../prompt/storyBooks'
+import {
+  emptyWorldInfo,
+  resolveWorldInfo,
+  type ResolvedWorldInfo,
+  type ScanText,
+} from '../prompt/worldInfo'
+import { useLorebooks } from './lorebooksStore'
+import { useWorldInfo } from './worldInfoStore'
+import { chapterProse } from '../prompt/chapterGuide'
 import { storyTokens } from '../prompt/storyTokens'
 import { rewritePrompt } from '../prompt/rewrite'
-import { deletedSwipes, regenerated, selectSwipe, swipeIndex } from './swipes'
-import { loadTokenizer } from '../prompt/budget'
+import { deletedSwipes, instructionChain, regenerated, selectSwipe, swipeIndex } from './swipes'
+import { countTokens, loadTokenizer, perMessageOverhead } from '../prompt/budget'
+import { tokenizerFor } from '../prompt/tokenizers'
 import { activeConnection } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
 import { useStacks } from './stacksStore'
@@ -18,11 +35,17 @@ import { useCharacters } from './charactersStore'
 import { usePersonas } from './personasStore'
 import { maxTokensOf, withParam } from '../params/connectionParams'
 import {
-  buildOutlineMessages,
-  parseOutlineReply,
-  splitTargets,
-  type OutlineRequest,
+  buildChapterOutlineMessages,
+  buildChapterSummaryMessages,
+  buildStoryOutlineMessages,
+  parseChapterOutlineReply,
+  parseStoryOutlineReply,
+  type ChapterOutlineRequest,
+  type ChapterSummaryRequest,
+  type StoryOutlineRequest,
 } from '../prompt/outline'
+import { defaultWeight, splitByWeight } from '../prompt/beatWeights'
+import type { BeatWeight } from '../storage/types'
 
 function newStory(title: string): Story {
   return {
@@ -33,15 +56,19 @@ function newStory(title: string): Story {
     direction: '',
     premise: '',
     ending: '',
+    themes: '',
+    genre: '',
+    tone: '',
+    setting: '',
+    targetWords: 0,
     createdAt: 0,
     updatedAt: 0,
   }
 }
 
-/** A blank Block. A free stretch by default — `beat` is what makes one a planned section, and the
- *  Author writes that. */
-export function newBlock(beat = ''): Block {
-  return { id: crypto.randomUUID(), beat, targetWords: 0, done: false, content: '', context: 'both' }
+/** A blank beat. Empty instructions are the ordinary state of one the Author has not planned yet. */
+export function newBlock(beat = '', weight: BeatWeight = defaultWeight): Block {
+  return { id: crypto.randomUUID(), beat, weight, content: '', context: 'both' }
 }
 
 function newChapter(storyId: number, order: number, title: string): Chapter {
@@ -52,8 +79,10 @@ function newChapter(storyId: number, order: number, title: string): Chapter {
     order,
     title,
     summary: '',
-    // One free Block, so a new Chapter has somewhere to type before it has a plan.
-    blocks: [newBlock()],
+    // No beats. A Chapter with none is the ordinary state of one that has not been outlined, and
+    // the editor offers to generate them.
+    blocks: [],
+    targetWords: 0,
     // Everything you have: an unwritten Chapter sends beats because it has no summary yet, a
     // written one sends both, and the guide's trim decides what survives when room runs short.
     guideSend: 'both',
@@ -63,7 +92,7 @@ function newChapter(storyId: number, order: number, title: string): Chapter {
 }
 
 /** Stamp the open Story as edited. Prose lives on the Chapter, so without this a Story's updatedAt
- *  would only move on rename/cover/cast — and the shelf sorts by it. */
+ *  would only move on rename/cover/cast, and the shelf sorts by it. */
 async function touchStory(
   get: () => WriteState,
   set: (partial: Partial<WriteState>) => void,
@@ -77,6 +106,9 @@ async function touchStory(
 
 // Not state: nothing renders from it, and `streaming` already drives the button.
 let abort: AbortController | null = null
+
+// Same reasoning: `rewriting` is what the UI draws, this only tells the loop it was stopped.
+let rewriteStopped = false
 
 /** The enabled cast, flattened to the fields buildStoryPrompt needs. Missing rows (deleted out from
  *  under the cast) are skipped. Keeps card knowledge in the store; the assembly stays pure. */
@@ -97,11 +129,12 @@ export function resolveCast(cast: CastEntry[]): CastMember[] {
   return out
 }
 
-/** The fields of a Chapter the Author edits. Every structural change to the prose — add a Block,
- *  remove one, reorder, convert free↔beat, tick done, retarget, change its context mode — is a
- *  `blocks` patch. Blocks get no structural actions of their own; only the three that stream or
- *  swipe do. */
-export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'summary' | 'blocks' | 'guideSend'>>
+/** The fields of a Chapter the Author edits. Every structural change to the prose, add a beat,
+ *  remove one, reorder, reweight, change its context mode, is a `blocks` patch. Blocks get no
+ *  structural actions of their own; only the three that stream or swipe do. */
+export type ChapterPatch = Partial<
+  Pick<Chapter, 'title' | 'summary' | 'blocks' | 'guideSend' | 'targetWords'>
+>
 
 interface WriteState {
   stories: Story[]
@@ -109,7 +142,7 @@ interface WriteState {
   /** The open Story and its Chapters in order; null/empty on the Shelf. */
   story: Story | null
   chapters: Chapter[]
-  /** The Chapter the cursor is in. Generation appends to it. Session state — never stored; opening
+  /** The Chapter the cursor is in. Generation appends to it. Session state, never stored; opening
    *  a Story with no cursor yet defaults to the last Chapter. */
   activeChapterId: number | null
   /** Per Block, bumped when that Block's content changes from outside the editor (open, generate,
@@ -121,6 +154,8 @@ interface WriteState {
    *  tail in the wrong prose. Null when idle. */
   streamingStoryId: number | null
   streamingText: string
+  /** Second Pass's provisional first take; '' once the edited prose starts. */
+  streamingDraft: string
   /** Reasoning as it streams, shown above the tail when Show reasoning is on. */
   streamingReasoning: string
   /** The Block the stream is landing in, so its region draws the tail and locks itself. */
@@ -128,6 +163,9 @@ interface WriteState {
   /** True when the stream will replace what the Block already says (a regen), so the region hides
    *  the old text instead of leaving it above the tail. */
   streamingReplaces: boolean
+  /** Progress of a chapter-wide rewrite: which beat of how many. Null when none is running. It is
+   *  separate from `streaming` because the run outlives each individual request. */
+  rewriting: { done: number; total: number } | null
   error: string
   /** The Block the cursor is in. Session state, never persisted. Find and Replace scopes to it, and
    *  the Story panel's beat checklist reads its Chapter through `activeChapterId`. */
@@ -136,7 +174,7 @@ interface WriteState {
    *  the DOM away, so a caret that should survive a commit has to be handed over deliberately. */
   pendingCaret: { blockId: string; offset: number } | null
   /** Whether the editor renders inline markers as bold/italic (markers hidden) or shows the raw
-   *  asterisks. global and in-memory — it's a way of looking at prose, not a property of
+   *  asterisks. global and in-memory, it's a way of looking at prose, not a property of
    *  one Story, and it resets on reload. Upgrade path if it should stick: a field on appearance in
    *  settingsStore, which is the persisted display-preference home. */
   styling: boolean
@@ -147,8 +185,16 @@ interface WriteState {
    *  a Block field is the upgrade path if it should survive a reload. */
   collapsedBeats: string[]
   setCollapsedBeats(ids: string[]): void
+  /** What the open Story's lorebooks matched on the last `refreshWorldInfo`. Held here rather than
+   *  resolved where it's needed because reading entries is async and the prompt preview renders
+   *  synchronously: this is the one value both the preview and `writeBlock` read, so what the
+   *  preview shows and what goes over the wire cannot disagree. */
+  worldInfo: ResolvedWorldInfo
+  /** Match the Story's enabled lorebooks against `scan` and keep the result. Returns it too, for
+   *  the caller that needs it in the same tick it asked for it. */
+  refreshWorldInfo(scan: ScanText[], budget?: number): Promise<ResolvedWorldInfo>
   /** The Story's standing instruction, sent as the final user turn on every generation. Per
-   *  Story. Debounced by the caller — this writes to the database. */
+   *  Story. Debounced by the caller, this writes to the database. */
   setDirection(text: string): Promise<void>
   load(): Promise<void>
   /** Create a Story plus its first Chapter. Returns the new Story id. */
@@ -161,9 +207,9 @@ interface WriteState {
   remove(id: number): Promise<void>
   /** Load a Story + its Chapters into the editor. Also loads characters/personas for the cast. */
   openStory(id: number): Promise<void>
-  /** Words across every Chapter of a Story, for the shelf preview. Not stored — counted on read. */
+  /** Words across every Chapter of a Story, for the shelf preview. Not stored, counted on read. */
   wordCount(id: number): Promise<number>
-  /** A Story's Chapters in order, without opening it — what the shelf's export reads. */
+  /** A Story's Chapters in order, without opening it, what the shelf's export reads. */
   chaptersOf(id: number): Promise<Chapter[]>
   closeStory(): void
   /** Sampling overrides for this Story, over the connection. Per Story. */
@@ -194,21 +240,28 @@ interface WriteState {
   setBlockText(chapterId: number, blockId: string, content: string): Promise<void>
   /** Add / toggle / remove a cast member on the open Story. */
   setCast(cast: CastEntry[]): Promise<void>
+  /** The Story fields the generation screen edits together: themes, genre, tone, setting, and the
+   *  work's word target. Per Story. */
+  setStoryFields(patch: Partial<Story>): Promise<void>
   /**
-   * Ask the model for a whole plan and write it into the open Story as Chapters and beats.
+   * Ask the model for the Story's chapters and write them in. Chapters and summaries only: beats
+   * come from `generateChapterOutline`, one chapter at a time.
    *
-   * Replaces every Chapter the Story has. The prose goes with them, which is why the dialog says so
-   * and why nothing is deleted until the reply has parsed.
+   * Replaces every Chapter the Story has. The prose goes with them, which is why the screen
+   * confirms it and why nothing is deleted until the reply has parsed.
    *
-   * Throws on failure rather than only setting `error`, so the dialog can stay open and show what
+   * Throws on failure rather than only setting `error`, so the screen can stay open and show what
    * went wrong next to the fields that produced it.
    */
-  generateOutline(req: OutlineRequest): Promise<void>
+  generateStoryOutline(req: StoryOutlineRequest): Promise<void>
+  /** Ask the model for one Chapter's beats and write them in, replacing the beats it has and the
+   *  prose in them. Same failure contract as the Story outline. */
+  generateChapterOutline(chapterId: number, req: ChapterOutlineRequest): Promise<void>
   /**
    * Stream prose for one Block. The result lands as a new swipe and becomes the selected one, so
-   * every generation is undoable by swiping back — there are no spans to splice or validate.
+   * every generation is undoable by swiping back, there are no spans to splice or validate.
    *
-   * `direction` defaults to the Direction box verbatim — the Story's standing instruction. The
+   * `direction` defaults to the Direction box verbatim, the Story's standing instruction. The
    * beat is NOT folded in; it reaches the model through {{beat}}, wherever the stack places it.
    * Pass one to override (that is what "Regen with instructions" does).
    */
@@ -217,9 +270,23 @@ interface WriteState {
     blockId: string,
     direction?: string,
     replaces?: boolean,
+    instruction?: string,
   ): Promise<void>
-  /** Write the Block again, following an instruction about the version it already holds. */
+  /**
+   * Write the Block again, following an instruction about the version it already holds, plus every
+   * instruction that led to the selected swipe. That chain is what makes a re-roll iterate rather
+   * than restart; swiping back to an earlier take shortens it.
+   */
   regenBlock(chapterId: number, blockId: string, instruction: string): Promise<void>
+  /**
+   * Rewrite every written Block in a Chapter, in order, under one standing instruction. Each Block
+   * keeps its own correction chain and the note rides on top. Nothing is destroyed: each pass
+   * appends a swipe. Runs one Block at a time so each sees the previous one's new prose.
+   */
+  rewriteChapter(chapterId: number, note: string): Promise<void>
+  /** Rewrite a Chapter's summary from the prose it actually holds, so the recap the prompt sends
+   *  matches what got written rather than what was planned. Replaces whatever is there. */
+  summarizeChapter(chapterId: number): Promise<void>
   /** Select one of a Block's alternates. */
   swipeBlock(chapterId: number, blockId: string, index: number): Promise<void>
   /** Drop the selected alternate. The last one left empties the Block rather than deleting it. */
@@ -254,6 +321,68 @@ async function persistOrder(
   return ordered
 }
 
+/** The connection an outline request goes out on, with the Story's own sampler overrides. */
+function outlineConnection(story: Story) {
+  const base = activeConnection()
+  if (!base) throw new Error('No active connection - pick one in Settings.')
+  return resolveParams(base, undefined, story)
+}
+
+/**
+ * The half both outline generators share: hold the streaming flag, send, collect the reply.
+ *
+ * Nothing renders this as it arrives, so there is no `streamingBlockId`; it lands as Chapters or
+ * beats once it is done. The flag is the one `writeBlock` holds, so Stop works and neither can
+ * start while the other runs.
+ */
+async function runOutline(
+  set: (partial: Partial<WriteState>) => void,
+  story: Story,
+  connection: ReturnType<typeof resolveParams>,
+  messagesFor: (prompts: Record<string, string> | undefined) => Parameters<typeof sendMessage>[0],
+): Promise<{ text: string; finishReason: string }> {
+  const controller = new AbortController()
+  abort = controller
+  set({ streaming: true, streamingStoryId: story.id ?? null, error: '' })
+
+  let text = ''
+  let finishReason = ''
+  try {
+    const stack = await useStacks.getState().ensureActive('story')
+    // An outline for a long Story runs well past a 512-token default, and an object cut off halfway
+    // parses as nothing at all, so this request gets its own floor, like generatePalette.
+    const wide = withParam(connection, 'max_tokens', Math.max(maxTokensOf(connection), 2000))
+    for await (const chunk of sendMessage(messagesFor(stack.miscPrompts), wide, controller.signal)) {
+      if (chunk.content) text += chunk.content
+      if (chunk.finishReason) finishReason = chunk.finishReason
+    }
+  } catch (err) {
+    set({ streaming: false, streamingStoryId: null })
+    abort = null
+    if (controller.signal.aborted) return { text: '', finishReason: 'aborted' }
+    throw err
+  }
+  abort = null
+  return { text, finishReason }
+}
+
+/** A parse failure, or the token limit that actually caused it. A truncation reads as a parse error
+ *  otherwise, which points at the reply instead of at the limit that cut it. Clears the streaming
+ *  flag on the way out: the run is over either way, and the dialog stays open on the message. */
+function outlineError(
+  set: (partial: Partial<WriteState>) => void,
+  err: unknown,
+  finishReason: string,
+  connection: ReturnType<typeof resolveParams>,
+  remedy: string,
+): Error {
+  set({ streaming: false, streamingStoryId: null })
+  if (finishReason !== 'length') return err as Error
+  return new Error(
+    `The reply was cut off at the ${maxTokensOf(connection)} token limit before the outline ended. Raise Max tokens in the connection, or ${remedy}.`,
+  )
+}
+
 export const useWrite = create<WriteState>()((set, get) => ({
   stories: [],
   loading: false,
@@ -264,18 +393,41 @@ export const useWrite = create<WriteState>()((set, get) => ({
   streaming: false,
   streamingStoryId: null,
   streamingText: '',
+  streamingDraft: '',
   streamingReasoning: '',
   streamingBlockId: null,
   streamingReplaces: false,
+  rewriting: null,
   error: '',
   activeBlockId: null,
   pendingCaret: null,
   styling: true,
   collapsedBeats: [],
+  worldInfo: emptyWorldInfo,
 
   toggleStyling: () => set((s) => ({ styling: !s.styling })),
 
   setCollapsedBeats: (ids) => set({ collapsedBeats: ids }),
+
+  refreshWorldInfo: async (scan, budget) => {
+    const story = get().story
+    if (!story) return emptyWorldInfo
+    const lore = useLorebooks.getState()
+    // The list is loaded once and kept; a generation that races the first load would otherwise see
+    // no global books at all. Same guard chatStore's worldInfoFor uses.
+    if (!lore.books.length && !lore.loading) await lore.load()
+    const books = useLorebooks.getState().books
+    const ids = enabledBookIds(storyBooks(story, useCharacters.getState().characters, books))
+    let resolved = emptyWorldInfo
+    if (ids.length) {
+      const entries = await useWorldInfo.getState().fetchForBooks(ids)
+      if (entries.length)
+        resolved = resolveWorldInfo(entries, scan, new Map(books.map((b) => [b.id!, b])), budget)
+    }
+    // The Story may have closed or changed while the reads were in flight.
+    if (get().story?.id === story.id) set({ worldInfo: resolved })
+    return resolved
+  },
 
   setDirection: async (text) => {
     const story = get().story
@@ -301,7 +453,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
 
   rename: async (id, title) => {
     // Renaming happens from the shelf and from the editor's title, where the shelf list may not
-    // have been loaded yet — fall back to the open Story.
+    // have been loaded yet, fall back to the open Story.
     const open = get().story
     const story = get().stories.find((s) => s.id === id) ?? (open?.id === id ? open : undefined)
     if (!story) return
@@ -353,12 +505,6 @@ export const useWrite = create<WriteState>()((set, get) => ({
     chapters.sort((a, b) => a.order - b.order)
     // The cast picker and generation both read these from state.
     await Promise.all([useCharacters.getState().load(), usePersonas.getState().load()])
-    // A Chapter that somehow has no Blocks gets one, so there is always somewhere to type.
-    for (const c of chapters) {
-      if (c.blocks.length) continue
-      c.blocks = [newBlock()]
-      await storage.put('chapters', c as unknown as StoredRecord)
-    }
     const revs: Record<string, number> = {}
     for (const c of chapters) for (const b of c.blocks) revs[b.id] = (get().revs[b.id] ?? 0) + 1
     set({
@@ -502,51 +648,28 @@ export const useWrite = create<WriteState>()((set, get) => ({
     set({ story: next })
   },
 
-  generateOutline: async (req) => {
+  setStoryFields: async (patch) => {
+    const story = get().story
+    if (!story) return
+    const next = { ...story, ...patch, updatedAt: Date.now() }
+    await storage.put('stories', next as unknown as StoredRecord)
+    set({ story: next })
+  },
+
+  generateStoryOutline: async (req) => {
     const { story, chapters, streaming } = get()
     if (!story || streaming) return
-    const base = activeConnection()
-    if (!base) throw new Error('No active connection - pick one in Settings.')
-    const connection = resolveParams(base, undefined, story)
-
-    const controller = new AbortController()
-    abort = controller
-    // The same flag `writeBlock` holds, so Stop works and neither can start while the other runs.
-    // No streamingBlockId: nothing renders this as it arrives, it lands as Chapters when it is done.
-    set({ streaming: true, streamingStoryId: story.id ?? null, error: '' })
-
-    let reply = ''
-    let finishReason = ''
-    try {
-      const stack = await useStacks.getState().ensureActive('story')
-      const messages = buildOutlineMessages(req, stack.miscPrompts)
-      // An outline for a long Story runs well past a 512-token default, and an object cut off
-      // halfway parses as nothing at all — so this request gets its own floor, like generatePalette.
-      const wide = withParam(connection, 'max_tokens', Math.max(maxTokensOf(connection), 2000))
-      for await (const chunk of sendMessage(messages, wide, controller.signal)) {
-        if (chunk.content) reply += chunk.content
-        if (chunk.finishReason) finishReason = chunk.finishReason
-      }
-    } catch (err) {
-      set({ streaming: false, streamingStoryId: null })
-      abort = null
-      if (controller.signal.aborted) return
-      throw err
-    }
-    abort = null
+    const connection = outlineConnection(story)
+    const reply = await runOutline(set, story, connection, (prompts) =>
+      buildStoryOutlineMessages(req, prompts),
+    )
+    if (reply.finishReason === 'aborted') return
 
     let outline
     try {
-      outline = parseOutlineReply(reply)
+      outline = parseStoryOutlineReply(reply.text)
     } catch (err) {
-      set({ streaming: false, streamingStoryId: null })
-      // A truncation reads as a parse error otherwise, which points at the reply instead of at the
-      // token limit that cut it.
-      throw finishReason === 'length'
-        ? new Error(
-            `The reply was cut off at the ${maxTokensOf(connection)} token limit before the outline ended. Raise Max tokens in the connection, or ask for fewer chapters.`,
-          )
-        : err
+      throw outlineError(set, err, reply.finishReason, connection, 'ask for fewer chapters')
     }
 
     // Past here the reply is good, so the Story's existing plan can go. Nothing before this point
@@ -555,19 +678,16 @@ export const useWrite = create<WriteState>()((set, get) => ({
       if (chapter.id !== undefined) await storage.remove('chapters', chapter.id)
     }
 
+    // The work's word target is divided across chapters by their weights, the same rule beats
+    // follow inside a chapter. An unset total leaves every chapter target at 0.
+    const targets = splitByWeight(req.targetWords, outline.map((c) => c.weight))
+
     const written: Chapter[] = []
     for (const [i, entry] of outline.entries()) {
-      const targets = splitTargets(req.wordsPerChapter, entry.beats.length)
-      const seeded = newChapter(story.id!, i, entry.title || `Chapter ${i + 1}`)
       const chapter: Chapter = {
-        ...seeded,
+        ...newChapter(story.id!, i, entry.title || `Chapter ${i + 1}`),
         summary: entry.summary,
-        // The beats first, then the free Block newChapter seeds, so there is somewhere to type
-        // after the plan runs out.
-        blocks: [
-          ...entry.beats.map((beat, k) => ({ ...newBlock(beat), targetWords: targets[k] })),
-          ...seeded.blocks,
-        ],
+        targetWords: targets[i],
       }
       const id = await storage.put('chapters', chapter as unknown as StoredRecord)
       written.push({ ...chapter, id })
@@ -584,7 +704,43 @@ export const useWrite = create<WriteState>()((set, get) => ({
     await touchStory(get, set)
   },
 
-  writeBlock: async (chapterId, blockId, direction, replaces) => {
+  generateChapterOutline: async (chapterId, req) => {
+    const { story, chapters, streaming } = get()
+    const chapter = chapters.find((c) => c.id === chapterId)
+    if (!story || !chapter || streaming) return
+    const connection = outlineConnection(story)
+    const reply = await runOutline(set, story, connection, (prompts) =>
+      buildChapterOutlineMessages(req, prompts),
+    )
+    if (reply.finishReason === 'aborted') return
+
+    let beats
+    try {
+      beats = parseChapterOutlineReply(reply.text)
+    } catch (err) {
+      throw outlineError(set, err, reply.finishReason, connection, 'ask for fewer beats')
+    }
+
+    // The beats replace the Chapter's own, and the prose in them goes: the caller confirmed that.
+    // Nothing else about the Chapter is touched, so its title, summary and target all survive.
+    const blocks = beats.map((b) => newBlock(b.beat, b.weight))
+    const next = { ...chapter, blocks, targetWords: req.targetWords, updatedAt: Date.now() }
+    await storage.put('chapters', next as unknown as StoredRecord)
+
+    const revs = { ...get().revs }
+    for (const b of blocks) revs[b.id] = (revs[b.id] ?? 0) + 1
+    set((s) => ({
+      chapters: s.chapters.map((c) => (c.id === chapterId ? next : c)),
+      revs,
+      streaming: false,
+      streamingStoryId: null,
+      activeChapterId: chapterId,
+      activeBlockId: null,
+    }))
+    await touchStory(get, set)
+  },
+
+  writeBlock: async (chapterId, blockId, direction, replaces, instruction) => {
     const { story, chapters, streaming } = get()
     if (!story || streaming) return
     const chapter = chapters.find((c) => c.id === chapterId)
@@ -611,20 +767,28 @@ export const useWrite = create<WriteState>()((set, get) => ({
       streamingStoryId: story.id ?? null,
       streamingBlockId: blockId,
       streamingText: '',
+      streamingDraft: '',
       streamingReasoning: '',
       streamingReplaces: !!replaces,
       error: '',
     })
 
     let text = ''
+    let draft = ''
     let reasoning = ''
     let finishReason = ''
     try {
       const stack = await useStacks.getState().ensureActive('story')
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       const current = get().chapters
       // The one thing the per-Block context setting does: blank one side of the prose or the other.
-      const split = storyProseSplit(current, chapterId, blockId, block.context)
+      const fit = storyFit(current, chapterId, blockId, block.context)
+      // Matched against the prose the caret sits after, plus what the passage was asked to be:
+      // a key named only in the beat should still fire.
+      const world = await get().refreshWorldInfo(
+        storyScanText(fit.storyText, [sent, block.beat]),
+        stack.worldInfoBudget,
+      )
       const budget = {
         contextLimit: connection.contextLimit,
         maxTokens: maxTokensOf(connection),
@@ -638,22 +802,31 @@ export const useWrite = create<WriteState>()((set, get) => ({
             title: story.title,
             premise: story.premise ?? '',
             ending: story.ending ?? '',
+            themes: story.themes ?? '',
             castNames: resolveCast(story.cast).map((m) => m.name),
             chapters: current,
             chapterId,
             blockId,
           }),
-          chapterGuide: fitChapterGuide(current, chapterId, budget),
-          storyText: split.text,
-          storyTrailing: split.trailing,
+          ...fit,
+          worldInfo: { before: world.before, after: world.after },
           direction: sent,
         },
         budget,
       )
-      for await (const chunk of sendMessage(prompt.messages, connection, controller.signal)) {
+      for await (const chunk of runSecondPass(prompt.messages, connection, controller.signal, undefined, {
+        role: 'assistant',
+        // Earlier prose from this chapter, so repetition is measured against the story rather than
+        // against one block in isolation.
+        history: priorProse(current, chapterId, blockId),
+      })) {
+        if (chunk.draft) {
+          draft += chunk.draft
+          set({ streamingDraft: draft })
+        }
         if (chunk.content) {
           text += chunk.content
-          set({ streamingText: text })
+          set({ streamingText: text, streamingDraft: '' })
         }
         if (chunk.reasoning) {
           reasoning += chunk.reasoning
@@ -664,12 +837,13 @@ export const useWrite = create<WriteState>()((set, get) => ({
     } catch (err) {
       // Write rule: keep whatever streamed (same as Stop) and surface a toast. Nothing rolls back.
       if (!controller.signal.aborted) {
-        await commitSwipe(get, set, chapterId, blockId, text, reasoning)
+        await commitSwipe(get, set, chapterId, blockId, text, reasoning, instruction, draft)
         set({
           streaming: false,
           streamingStoryId: null,
           streamingBlockId: null,
           streamingText: '',
+          streamingDraft: '',
           streamingReasoning: '',
           streamingReplaces: false,
           error: (err as Error).message,
@@ -681,12 +855,13 @@ export const useWrite = create<WriteState>()((set, get) => ({
       abort = null
     }
 
-    await commitSwipe(get, set, chapterId, blockId, text, reasoning)
+    await commitSwipe(get, set, chapterId, blockId, text, reasoning, instruction, draft)
     set({
       streaming: false,
       streamingStoryId: null,
       streamingBlockId: null,
       streamingText: '',
+      streamingDraft: '',
       streamingReasoning: '',
       streamingReplaces: false,
       // The text is kept either way; this only says why it ended where it did.
@@ -705,15 +880,97 @@ export const useWrite = create<WriteState>()((set, get) => ({
     // The chat's re-roll wording, unchanged: quote what it said, then the instruction. An empty
     // Block has nothing to rewrite, so the instruction steers a first draft instead. Either way the
     // beat still arrives through {{beat}}, so it is not repeated here.
-    // The Story stack's own override, if it set one — `writeBlock` resolves the same stack again to
+    // The Story stack's own override, if it set one, `writeBlock` resolves the same stack again to
     // build the prompt, so both halves of this request read the same row.
     const stack = await useStacks.getState().ensureActive('story')
     await get().writeBlock(
       chapterId,
       blockId,
-      block.content.trim() ? rewritePrompt(block.content, instruction, stack.miscPrompts) : instruction,
+      block.content.trim()
+        ? rewritePrompt(block.content, chainedInstruction(block, instruction), stack.miscPrompts)
+        : chainedInstruction(block, instruction),
       true,
+      instruction.trim(),
     )
+  },
+
+  rewriteChapter: async (chapterId, note) => {
+    const chapter = get().chapters.find((c) => c.id === chapterId)
+    if (!chapter || get().streaming || !note.trim()) return
+    // The list is taken once, before anything runs: the Blocks are replaced as each pass commits,
+    // so holding the records would rewrite stale prose. Ids survive, so they are what is held.
+    const ids = chapter.blocks.filter((b) => b.content.trim()).map((b) => b.id)
+    if (!ids.length) return
+    const stack = await useStacks.getState().ensureActive('story')
+    rewriteStopped = false
+
+    for (let i = 0; i < ids.length; i++) {
+      set({ rewriting: { done: i, total: ids.length } })
+      const block = get()
+        .chapters.find((c) => c.id === chapterId)
+        ?.blocks.find((b) => b.id === ids[i])
+      if (!block || !block.content.trim()) continue
+      await get().writeBlock(
+        chapterId,
+        ids[i],
+        rewritePrompt(block.content, chainedInstruction(block, note), stack.miscPrompts),
+        true,
+        note.trim(),
+      )
+      // Stop and a failed request both land here. Either way the run is over: carrying on would
+      // rewrite the rest of the chapter against prose the Author just tried to stop changing.
+      if (get().error || rewriteStopped) break
+    }
+    set({ rewriting: null })
+  },
+
+  summarizeChapter: async (chapterId) => {
+    const { story, chapters, streaming } = get()
+    const chapter = chapters.find((c) => c.id === chapterId)
+    if (!story || !chapter || streaming) return
+    const connection = outlineConnection(story)
+    await loadTokenizer(tokenizerFor(connection))
+
+    // Newest prose wins the room. A recap needs the whole chapter, but a chapter can run past the
+    // window, and the end is what a recap has to land on.
+    const written = chapter.blocks.filter((b) => b.content.trim())
+    const room = Math.floor(
+      (connection.contextLimit - maxTokensOf(connection)) *
+        (1 - connection.safetyMarginPct / 100),
+    )
+    const kept: string[] = []
+    let used = 0
+    for (let i = written.length - 1; i >= 0; i--) {
+      const text = written[i].content.trim()
+      used += countTokens(text) + perMessageOverhead
+      if (used > room && kept.length) break
+      kept.unshift(text)
+    }
+
+    const req: ChapterSummaryRequest = {
+      chapterNumber: chapter.order + 1,
+      title: chapter.title,
+      prose: kept.join('\n\n'),
+      unwritten: chapter.blocks.filter((b) => !b.content.trim() && b.beat.trim()).map((b) => b.beat.trim()),
+    }
+    const reply = await runOutline(set, story, connection, (prompts) =>
+      buildChapterSummaryMessages(req, prompts),
+    )
+    if (reply.finishReason === 'aborted') return
+
+    const summary = reply.text.trim()
+    if (!summary) {
+      set({ streaming: false, streamingStoryId: null, error: 'The reply held no summary.' })
+      return
+    }
+    const next = { ...chapter, summary, updatedAt: Date.now() }
+    await storage.put('chapters', next as unknown as StoredRecord)
+    set((s) => ({
+      chapters: s.chapters.map((c) => (c.id === chapterId ? next : c)),
+      streaming: false,
+      streamingStoryId: null,
+    }))
+    await touchStory(get, set)
   },
 
   swipeBlock: async (chapterId, blockId, index) => {
@@ -739,12 +996,18 @@ export const useWrite = create<WriteState>()((set, get) => ({
       swipeIndex: undefined,
       requestSnapshots: undefined,
       reasonings: undefined,
+      instructions: undefined,
       content: '',
     }
     await putBlock(get, set, chapterId, next, true)
   },
 
-  stop: () => abort?.abort(),
+  // Stop ends the chapter rewrite too, not only the request in flight. An abort leaves the partial
+  // as a swipe and clears `error`, so the loop has no other way to tell it was stopped on purpose.
+  stop: () => {
+    rewriteStopped = true
+    abort?.abort()
+  },
 
   dismissError: () => set({ error: '' }),
 }))
@@ -809,6 +1072,38 @@ async function writeBlockContent(
  * spliced and no offsets are recorded - swiping back is what Undo used to be, and it survives a
  * reload for free because the alternates are stored.
  */
+/**
+ * Every correction that led to the selected swipe, plus the one just typed, as one instruction.
+ * Numbered when there is more than one so the model can see them as a list rather than a paragraph
+ * of contradictions. This is what makes a re-roll iterate: round three does not have to re-explain
+ * what rounds one and two already asked for.
+ */
+function chainedInstruction(block: Block, instruction: string): string {
+  const chain = [...instructionChain(block), instruction.trim()]
+  if (chain.length === 1) return chain[0]
+  return chain.map((c, i) => `${i + 1}. ${c}`).join('\n')
+}
+
+/**
+ * Prose already written in this chapter, oldest first, up to the block being generated. Second
+ * Pass's repetition check reads it, so a phrase is measured against the story rather than against
+ * the one block in isolation. Blocks after the target are left out: they are not context the model
+ * was given, and flagging the new prose for matching them would be backwards.
+ *
+ * Trimmed generously: the check applies its own `lookback` setting on top of this.
+ */
+const HISTORY_FOR_NOTES = 40
+function priorProse(chapters: Chapter[], chapterId: number, blockId: string): string[] {
+  const chapter = chapters.find((c) => c.id === chapterId)
+  if (!chapter) return []
+  const at = chapter.blocks.findIndex((b) => b.id === blockId)
+  const before = at === -1 ? chapter.blocks : chapter.blocks.slice(0, at)
+  return before
+    .map((b) => b.content)
+    .filter((t) => t.trim())
+    .slice(-HISTORY_FOR_NOTES)
+}
+
 async function commitSwipe(
   get: () => WriteState,
   set: (partial: Partial<WriteState> | ((s: WriteState) => Partial<WriteState>)) => void,
@@ -816,6 +1111,8 @@ async function commitSwipe(
   blockId: string,
   added: string,
   reasoning?: string,
+  instruction?: string,
+  draft?: string,
 ) {
   if (!added.trim()) return
   const chapter =
@@ -823,6 +1120,6 @@ async function commitSwipe(
     ((await storage.get('chapters', chapterId)) as unknown as Chapter | undefined)
   const block = chapter?.blocks.find((b) => b.id === blockId)
   if (!block) return
-  const next = regenerated(block, added.trim(), undefined, reasoning)
+  const next = regenerated(block, added.trim(), undefined, reasoning, instruction, draft)
   if (next) await putBlock(get, set, chapterId, next, true)
 }

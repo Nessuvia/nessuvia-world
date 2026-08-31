@@ -55,7 +55,7 @@ export interface Palette {
   id?: number
   ownerId: string
   name: string
-  /** Where the row sits in the palette list. Not indexed — the list is small and gets sorted
+  /** Where the row sits in the palette list. Not indexed: the list is small and gets sorted
    *  after the read. Missing on rows written before the field existed; those sort last, by id. */
   orderId?: number
 
@@ -110,7 +110,7 @@ export interface Palette {
   webfont: string
   webfontId: string
   useWebfont: boolean
-  // The app chrome's font — sidebar, panels, settings — separate from the chat/story font above.
+  // The app chrome's font (sidebar, panels, settings), separate from the chat/story font above.
   // Same three-field webfont shape; '' = the stylesheet's system-ui stack.
   appFontFamily: string
   appWebfont: string
@@ -118,7 +118,7 @@ export interface Palette {
   useAppWebfont: boolean
   fontSize: number // px
   // Base font weight for body text, set at :root. Elements with a weight of their own (headings,
-  // buttons) keep it — this is the knob for text that would otherwise inherit 400.
+  // buttons) keep it: this is the knob for text that would otherwise inherit 400.
   textWeight: number
   // Unitless, so it scales with the font size. Text is pre-wrap, which makes a paragraph break a
   // literal blank line â€” this knob sets the space between paragraphs as well as between lines.
@@ -405,7 +405,7 @@ export function appFontMatched(p: Palette): boolean {
   )
 }
 
-/** The patch that turns the match on or off. Off drops the app font back to the default stack — but
+/** The patch that turns the match on or off. Off drops the app font back to the default stack, but
  *  when the chat font *is* the default, that would still read as matched and the toggle could never
  *  come off, so it takes the equivalent named stack instead: same typeface, different value. */
 export function matchAppFontPatch(p: Palette, on: boolean): Partial<Palette> {

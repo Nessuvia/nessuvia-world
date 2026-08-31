@@ -98,7 +98,7 @@ function capitalizeFirstWord(s: string, from: number): string {
     if (/[a-z]/.test(ch)) {
       return s.slice(0, i) + ch.toUpperCase() + s.slice(i + 1)
     }
-    if (/\w/.test(ch)) return s // a digit or uppercase already — leave it.
+    if (/\w/.test(ch)) return s // a digit or uppercase already, leave it.
   }
   return s
 }

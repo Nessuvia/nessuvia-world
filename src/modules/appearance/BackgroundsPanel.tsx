@@ -63,14 +63,14 @@ export default function BackgroundsPanel() {
   const [slot, setSlot] = useState<BackgroundSlot>('all')
   // The CSS and HTML boxes are the controls here that don't autosave, so they keep their own drafts.
   // The layer previews them live; Apply is what writes them to the palette.
-  // Kept per slot so flipping sub-tabs doesn't throw away unapplied text — leaving the Backgrounds
+  // Kept per slot so flipping sub-tabs doesn't throw away unapplied text, leaving the Backgrounds
   // tab unmounts this panel, which is what clears them.
   const [drafts, setDrafts] = useState(() => draftsFor(palette.backgrounds))
   // Which slots keep HTML and CSS of their own. The rest edit the "All pages" set, so one stylesheet
   // covers every page and each page only supplies its own image. Stored state is the empty string:
   // resolveBackground falls a slot back to the baseline's css/html when its own are empty. This is
   // the panel's read of that, held separately so turning it on can seed the boxes before anything is
-  // written — a draft the user may still discard.
+  // written, a draft the user may still discard.
   const [separate, setSeparate] = useState(() => separateFor(palette.backgrounds))
 
   // The slot the boxes below actually edit: this one when it keeps its own, the baseline otherwise.
@@ -105,10 +105,10 @@ export default function BackgroundsPanel() {
     setSeparate(separateFor(palette.backgrounds))
   }, [palette.id]) // eslint-disable-line
 
-  // Live preview. Debounced so a keystroke doesn't restyle mid-word, and in memory only — a reload
+  // Live preview. Debounced so a keystroke doesn't restyle mid-word, and in memory only, a reload
   // drops it, which is still the way out of css that made the page unreadable.
   // The preview replaces the slot's stored pair outright, so the baseline fallback has to be applied
-  // here too — the same field-by-field `own || base` resolveBackground uses. Without it a slot with
+  // here too, the same field-by-field `own || base` resolveBackground uses. Without it a slot with
   // its own pair emptied out would preview a bare layer and then paint the baseline's once saved.
   const previewCss = editSlot === 'all' ? cssDraft : cssDraft || drafts.all.css
   const previewHtml = editSlot === 'all' ? htmlDraft : htmlDraft || drafts.all.html

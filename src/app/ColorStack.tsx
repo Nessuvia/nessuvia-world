@@ -6,7 +6,7 @@ import './ColorStack.css'
 
 // The draggable marker-color list: one row per marker kind, top-first precedence, with the Text
 // baseline pinned at the bottom. Chat and Write each keep their own colors and their own order, so
-// this holds no settings of its own — the panel that renders it says which fields it writes.
+// this holds no settings of its own, the panel that renders it says which fields it writes.
 
 const kindLabel: Record<MarkerKind, string> = {
   emphasis: 'Emphasis',
@@ -31,7 +31,7 @@ export default function ColorStack({
   onOrder?: (order: MarkerKind[]) => void
   onColor: (kind: MarkerKind, color: string) => void
   onTextColor: (color: string) => void
-  /** Shown but not editable — the swatches still say what the colors are. The fieldset takes care
+  /** Shown but not editable, the swatches still say what the colors are. The fieldset takes care
    *  of the inputs; dragging has to be turned off by hand. */
   disabled?: boolean
 }) {

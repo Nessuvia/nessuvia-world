@@ -1,4 +1,4 @@
-// Card-URL parsing only — no network. Run with:
+// Card-URL parsing only, no network. Run with:
 //   node --experimental-strip-types src/core/connectors/checkFetchCard.ts
 import assert from 'node:assert'
 import { aiccId, chubFullPath } from './fetchCard.ts'

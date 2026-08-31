@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiPaletteLine } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 import { tabs } from './tabs'
 
 registerModule({
@@ -8,6 +7,6 @@ registerModule({
   label: 'Palette',
   icon: RiPaletteLine,
   route: '/appearance',
-  component: lazy(() => import('./AppearanceView')),
+  component: lazyView(() => import('./AppearanceView')),
   tabs,
 })

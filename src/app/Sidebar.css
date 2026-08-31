@@ -3,8 +3,8 @@
   position: relative;
   /* Above .pageBackgroundLayer, which now runs the full width of the shell. */
   z-index: var(--zContent);
-  width: var(--sidebarWidth, 280px);
-  flex: 0 0 var(--sidebarWidth, 280px);
+  width: var(--sidebarWidth, 300px);
+  flex: 0 0 var(--sidebarWidth, 300px);
   overflow: hidden;
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -94,7 +94,7 @@
 }
 
 /* Tabs of a page, in a panel beside the rail while the nav item or the panel is hovered.
-   Fixed-positioned from JS off the nav item's rect (see Sidebar.tsx) — the rail is overflow:hidden,
+   Fixed-positioned from JS off the nav item's rect (see Sidebar.tsx), since the rail is overflow:hidden,
    so a panel laid out inside it would be clipped. Opening is immediate; .closing fades it over
    500ms while it stays mounted and hoverable, so a mouse that comes back inside the grace window
    picks it up again rather than starting over from the nav item. */
@@ -222,6 +222,24 @@
   cursor: pointer;
 }
 
+/* Leaves a chat or a Story. Sits beside .sidebarOpenButton (8 + its 36 + 8) in the same strip,
+   rendered only on a phone while the drawer is closed. */
+.sidebarBackButton {
+  position: fixed;
+  top: 8px;
+  left: 52px;
+  z-index: 29;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
 /* Collapse toggle */
 .sidebarCollapseToggle {
   display: grid;
@@ -307,11 +325,13 @@
     overflow-x: hidden;
   }
 
-  /* The drawer scrolls, so pushing the backup block to the bottom of the viewport only takes
-     vertical room away from the nav items above it. It follows the content instead. */
-  .sidebar .sidebarBackup,
-  .sidebar.collapsed .sidebarBackup {
-    margin-top: 0;
+  /* margin-top: auto (the desktop rule) is what's wanted here too: it only absorbs free space, so
+     the block sits at the bottom of the viewport on a short rail and follows the content on a rail
+     taller than the screen (Chat, Write). */
+
+  /* The fixed .sidebarBackButton replaces it on a phone. */
+  .sidebarBackLink {
+    display: none;
   }
 
   /* Above the other drawers: the navbar is the way out of any screen. */

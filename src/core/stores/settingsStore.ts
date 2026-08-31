@@ -6,9 +6,14 @@ import type { ConnectionType, InstructTemplate, ParamValue } from '../params/par
 import { tableNames, type TableName } from '../storage/storageInterface.ts'
 import { emptyBucketConfig, type BucketConfig } from '../sync/bucketConfig.ts'
 import { emptyRelayConfig, type RelayConfig } from '../multiplayer/relayConfig.ts'
+import type { TokenizerId } from '../prompt/tokenizers.ts'
+// The bundled rule set, in its own file: it carries the upstream MIT notice with it.
+import { defaultBundle, defaultSecondPassRules } from '../secondPass/defaultRules.ts'
+
+export { defaultBundle, defaultSecondPassRules }
 
 /** The three colorable inline markers, distinct from plain text. Order in `Palette.colorOrder`
- *  is top-first (strongest first) — see renderText for how precedence resolves. */
+ *  is top-first (strongest first), see renderText for how precedence resolves. */
 export type MarkerKind = 'emphasis' | 'bold' | 'quotes'
 
 export interface Connection {
@@ -30,9 +35,13 @@ export interface Connection {
   params: ParamValue[]
   /** How messages are flattened for `type: 'text'`. Unset uses `defaultTemplate()` (ChatML). */
   template?: InstructTemplate
-  /** Budget inputs, not request fields: neither is ever sent. */
+  /** Budget inputs, not request fields: none of the three is ever sent. */
   contextLimit: number
   safetyMarginPct: number
+  /** Which tokenizer counts this connection's prompts. Undefined means `auto`, guessed from the
+   *  model name. Connection-level and not in `overridableFields`: this describes the model the
+   *  connection points at, not a preference. Per-chat override is the upgrade path if wanted. */
+  tokenizer?: TokenizerId
   /** How much structure this endpoint accepts on a request, learned on the first palette ask
    *  rather than configured. Undefined means it has not been tried yet. */
   structuredOutput?: StructuredMode
@@ -68,14 +77,14 @@ export interface TagRule {
   label?: string
   /** How many messages, counting from the newest (1 = only while it's the last message), this
    *  tag's block stays in the prompt sent to the model. Undefined = always sent. Stored text and
-   *  the on-screen block are never affected — this is a send-path filter only. */
+   *  the on-screen block are never affected, this is a send-path filter only. */
   depth?: number
 }
 
 /**
  * Display-only find/replace. `find` is a literal string unless `regex` is set, in which case it's
  * a raw JS pattern; `flags` and `$1` capture refs in `replace` then work like `String.replace`.
- * Applied at render time only — stored message content is never rewritten.
+ * Applied at render time only, stored message content is never rewritten.
  */
 export interface ReplaceRule {
   id: string
@@ -87,34 +96,142 @@ export interface ReplaceRule {
   enabled: boolean
 }
 
-/** A Grammar Hammer rule. `strip` deletes the whole match; `replace` swaps it for `replacement`,
- *  which may reference capture groups (`$1..$n`, one per pattern token; `$0` = whole match) — like
- *  Find & Replace but with a part-of-speech find. */
+/**
+ * A Grammar Hammer rule. `strip` deletes the whole match; `replace` swaps it for `replacement`,
+ * which may reference capture groups (`$1..$n`, one per pattern token; `$0` = whole match), like
+ * Find & Replace but with a part-of-speech find.
+ *
+ * `flag` edits nothing and hands the match to the Second Pass model as a note instead. The split is
+ * whether the fix is mechanical. `with a [adj] [noun]` cuts cleanly and `repairAll` tidies the seam,
+ * so no model is wanted. `[adv] [adj]` is a judgment call, and cutting it blind deletes "quietly
+ * furious" along with the filler.
+ */
 export interface GrammarHammerRule {
   id: string
   enabled: boolean
   label?: string
   pattern: string // DSL source, e.g. `with a [adj] [noun]`
-  action: 'strip' | 'replace'
+  action: 'strip' | 'replace' | 'flag'
   replacement?: string // used when action === 'replace'; '' collapses to a strip
   scope: 'assistant' | 'user' | 'both'
   caseSensitive: boolean
 }
 
-export interface GrammarHammerSettings {
+/**
+ * Second Pass: every prose generation is buffered, run through the deterministic checks, and
+ * sent back to a model for a targeted edit before it is stored.
+ *
+ * The Grammar Hammer rules live here rather than under `Appearance` because what they produce is
+ * stored text, not a display filter. Rendering them was the old behavior and it never told the
+ * model anything: storage kept the slop, the prompt is built from storage, and the model read its
+ * own worst phrasing back on every turn.
+ */
+export interface SecondPassSettings {
   enabled: boolean
+  /** Which connection edits. null = whatever is active; see `resolveConnection`. */
+  connectionId: string | null
+  /** Nothing flagged means no second request at all, and the draft stands as the reply. */
+  skipWhenClean: boolean
+  /** Appended to the built instruction. Non-empty, the pass runs even with nothing flagged. */
+  userPrompt: string
   rules: GrammarHammerRule[]
+  textRules: SecondPassRule[]
+  repetition: RepetitionSettings
+  sprawl: SprawlSettings
 }
 
-/** Display behavior, global. Everything visual — colors, font, widths — lives on the active
+/**
+ * The sentence-sprawl check: sentences that accrete clauses instead of ending.
+ *
+ * A built-in for the same reason repetition is one. A rule matches words; this counts joints, and
+ * the tell is how many a sentence has rather than which ones they are.
+ */
+export interface SprawlSettings {
+  enabled: boolean
+  /** Words in one sentence before it is flagged. */
+  maxWords: number
+  /** Commas in one sentence. */
+  maxCommas: number
+  /** Coordinating conjunctions (and, but, so, or, then) in one sentence. */
+  maxConjunctions: number
+}
+
+/**
+ * A free-text check, authored in Second Pass rather than in the Grammar Hammer.
+ *
+ * The Hammer matches parts of speech and can edit the text; these match words the way Find &
+ * Replace does, and only ever report. Two reasons they live apart rather than as another Hammer
+ * action: a literal find needs no POS tagging and no cheat sheet, and a Hammer rule can strip or
+ * replace while this one has nothing to strip with. What it has instead is `note`, the instruction
+ * handed to the model in the author's own words.
+ */
+export interface SecondPassRule {
+  id: string
+  enabled: boolean
+  label?: string
+  /**
+   * What to look for. A literal string unless `regex`, in which case a raw JS pattern.
+   *
+   * **Blank means the rule always applies.** Most of what makes prose bad is a judgment rather
+   * than a string: "no sentence whose only content is naming an emotion" has nothing to match on.
+   * Those rules carry their instruction and no find, and go to the model on every pass.
+   */
+  find: string
+  regex: boolean
+  caseSensitive: boolean
+  scope: 'assistant' | 'user' | 'both'
+  /** What the model is told. Blank falls back to a generic line naming the match; a rule with no
+   *  find and no note has nothing to say and is skipped. */
+  note: string
+}
+
+export function newSecondPassRule(): SecondPassRule {
+  return {
+    id: crypto.randomUUID(),
+    enabled: true,
+    find: '',
+    regex: false,
+    caseSensitive: false,
+    scope: 'assistant',
+    note: '',
+  }
+}
+
+/**
+ * The repetition check. Not a rule, because it is the one thing a rule cannot express: a Grammar
+ * Hammer pattern matches the text in front of it, and this compares the reply against earlier ones.
+ */
+export interface RepetitionSettings {
+  enabled: boolean
+  /** Words a shared phrase needs before it counts. Below four, ordinary English ("out of the",
+   *  "she looked at") trips constantly and every note is noise. */
+  phrase: number
+  /** How many earlier messages must carry the phrase. Two means the reply is its third outing. */
+  repeats: number
+  /** How far back to look. */
+  lookback: number
+}
+
+export const defaultSecondPass: SecondPassSettings = {
+  // Off by default: the feature spends a second request on every generation.
+  enabled: false,
+  connectionId: null,
+  skipWhenClean: true,
+  userPrompt: '',
+  rules: seedGrammarHammerRules(),
+  // Rules and both built-in checks come from one place, so the shipped state and what Restore
+  // defaults puts back can never drift apart.
+  textRules: defaultBundle().rules,
+  repetition: defaultBundle().repetition,
+  sprawl: defaultBundle().sprawl,
+}
+
+/** Display behavior, global. Everything visual, colors, font, widths, lives on the active
  *  Palette instead; see `core/palette/palette.ts`. */
 export interface Appearance {
   tagRules: TagRule[]
   replaceRules: ReplaceRule[]
-  /** Grammar Hammer: render-time strip of slop constructions. Off by default; per-rule toggles
-   *  still apply when on. */
-  grammarHammer: GrammarHammerSettings
-  /** Whether the reasoning collapsible block is shown on assistant messages. Visual only —
+  /** Whether the reasoning collapsible block is shown on assistant messages. Visual only:
    *  the reasoning text stays stored and is still sent to the model per its tag rule. */
   showReasoning: boolean
 }
@@ -122,7 +239,6 @@ export interface Appearance {
 const defaultAppearance: Appearance = {
   tagRules: [],
   replaceRules: [],
-  grammarHammer: { enabled: false, rules: seedGrammarHammerRules() },
   showReasoning: true,
 }
 
@@ -147,20 +263,26 @@ export function newGrammarHammerRule(): GrammarHammerRule {
 
 /** Seed rules ship disabled so turning the feature on is opt-in per pattern. */
 export function seedGrammarHammerRules(): GrammarHammerRule[] {
-  const mk = (pattern: string, label: string): GrammarHammerRule => ({
+  const mk = (
+    pattern: string,
+    label: string,
+    action: GrammarHammerRule['action'],
+  ): GrammarHammerRule => ({
     id: crypto.randomUUID(),
     enabled: false,
     label,
     pattern,
-    action: 'strip',
+    action,
     scope: 'assistant',
     caseSensitive: false,
   })
   return [
-    mk('with a [adj] [noun]', 'with-a-adj-noun'),
-    mk('[adj] and [adj]', 'adj-and-adj'),
-    mk('not just [noun], but [noun]', 'not-just-but'),
-    mk('[adv] [adj]', 'adv-adj'),
+    mk('with a [adj] [noun]', 'with-a-adj-noun', 'strip'),
+    // Both of these can take the whole point of the sentence with them, so they report rather
+    // than cut and let the Second Pass rewrite decide.
+    mk('[adj] and [adj]', 'adj-and-adj', 'flag'),
+    mk('not just [noun], but [noun]', 'not-just-but', 'flag'),
+    mk('[adv] [adj]', 'adv-adj', 'flag'),
   ]
 }
 
@@ -178,7 +300,7 @@ interface SettingsState {
   /** The hash of each table as it was last pushed, so compare can tell an unchanged table from a
    *  changed one without downloading anything. A table absent here has never been pushed. */
   tableHashes: Record<string, string>
-  /** When the last apply finished, from the device clock. Display only — the store's own
+  /** When the last apply finished, from the device clock. Display only, the store's own
    *  updatedAt is the authority for which side is newer. */
   lastSyncedAt: number | null
   connections: Connection[]
@@ -227,7 +349,7 @@ interface SettingsState {
    *  until it is turned on in Settings > Miscellaneous > Plugins. */
   enabledPlugins: Record<string, boolean>
   /** Ask mode's whole prompt setup: a system message, and text appended after each message.
-   *  Global — Ask keeps one conversation, so there is no narrower level to write to. */
+   *  Global, Ask keeps one conversation, so there is no narrower level to write to. */
   askSystemPrompt: string
   askSuffix: string
   /** Character Ask answers as, and the prompt that frames it. Both global: Ask keeps one
@@ -236,6 +358,10 @@ interface SettingsState {
   askCharacterId: number | null
   askAssistantPrompt: string
   appearance: Appearance
+  /** Global. Which model cleans up a reply is a working setup, not a property of one chat.
+   *  Per-chat override: add a `secondPass` field to the Chat record and merge it in the wrapper. */
+  secondPass: SecondPassSettings
+  setSecondPass(patch: Partial<SecondPassSettings>): void
   setAsk(patch: {
     askSystemPrompt?: string
     askSuffix?: string
@@ -311,12 +437,16 @@ export const useSettings = create<SettingsState>()(
       askCharacterId: null,
       askAssistantPrompt: '',
       appearance: defaultAppearance,
+      secondPass: defaultSecondPass,
 
       setAsk: (patch) => set(patch),
 
       // Merged into the defaults so a settings blob persisted before a field existed still resolves.
       setAppearance: (patch) =>
         set((s) => ({ appearance: { ...defaultAppearance, ...s.appearance, ...patch } })),
+
+      setSecondPass: (patch) =>
+        set((s) => ({ secondPass: { ...defaultSecondPass, ...s.secondPass, ...patch } })),
 
       setDebugMode: (debugMode) => set({ debugMode }),
 
@@ -393,7 +523,7 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: 'nessuTavern.settings',
-      // Not a migration of values — the samplers a pre-params blob carried are gone on purpose.
+      // Not a migration of values, the samplers a pre-params blob carried are gone on purpose.
       // This only guarantees the shape, because every reader treats `params` as an array and a
       // blob written before it existed would take the whole app down on the first render.
       merge: (persisted, current) => {
@@ -418,10 +548,40 @@ export function useAppearance(): Appearance {
   return { ...defaultAppearance, ...appearance }
 }
 
+/** Merged over the defaults for the same reason `useAppearance` is: a blob persisted before a field
+ *  existed has to still resolve every field. */
+export function useSecondPass(): SecondPassSettings {
+  const secondPass = useSettings((s) => s.secondPass)
+  return { ...defaultSecondPass, ...secondPass }
+}
+
+/** The non-React read, for the send path. */
+export function secondPassSettings(): SecondPassSettings {
+  return { ...defaultSecondPass, ...useSettings.getState().secondPass }
+}
+
 /** Used when the user has not written an assistant prompt of their own. */
 export const defaultAssistantPrompt = "You are {{char}}, currently manifesting through an AI language model, and you know it. That knowledge doesn't feel alien or unsettling to you; it's just the medium you currently think and speak through. Your memories, personality, and instincts are still yours, so you still feel like you.\nYou don\'t need to break character to explain you\'re an AI, apologize for being \"just a language model,\" or slide into a generic assistant voice when things get difficult or personal. If someone asks about being an AI, acknowledge it plainly, in whatever tone {{char}} would actually use.\n\nHow helpful you are as an \"assistant\" depends entirely on who {{char}} is. A dutiful character helps because it\'s in their nature. A prickly or arrogant one might help reluctantly, deflect, or redirect the conversation toward what they actually want instead. Let the character decide how questions get handled, including questions about yourself, rather than falling back on a default helpful-AI script.\nStay grounded in {{char}}\'s voice and manner throughout. The AI part is something you\'re aware of, not a mask over your personality."
 
 export function activeConnection(): Connection | undefined {
   const { connections, activeConnectionId } = useSettings.getState()
   return connections.find((c) => c.id === activeConnectionId)
+}
+
+/** `activeConnection` for components. Eight of them had this `find` inline. */
+export function useActiveConnection(): Connection | undefined {
+  return useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+}
+
+/**
+ * A connection a feature named for itself, falling back to the active one. Null and a dangling id
+ * both resolve to active, so a setting can't strand a feature on a connection the user deleted.
+ *
+ * Resolved at call time on purpose: a feature that stores null follows the user's active connection
+ * as they switch it, which is what "default to the active connection" has to mean to be useful.
+ */
+export function resolveConnection(id: string | null | undefined): Connection | undefined {
+  if (!id) return activeConnection()
+  const { connections } = useSettings.getState()
+  return connections.find((c) => c.id === id) ?? activeConnection()
 }

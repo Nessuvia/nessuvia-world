@@ -1,9 +1,9 @@
 /** The longest edge, in pixels, a roster avatar is reduced to before it crosses the wire. Matches
- *  the guest persona avatar cap in `join/downscale.ts` — both travel the same 240 KB event. */
+ *  the guest persona avatar cap in `join/downscale.ts`: both travel the same 240 KB event. */
 export const rosterAvatarMaxEdge = 256
 
 /**
- * `character.avatar` is the original, uncropped upload — unbounded size, and often well past the
+ * `character.avatar` is the original, uncropped upload: unbounded size, and often well past the
  * Realtime payload cap on its own. `RosterCharacter` is documented as carrying no full-size avatar,
  * but nothing downscaled it before it reached the wire, so a session with any real character
  * portrait silently dropped its whole `state` event: `channel.send` refuses an oversized payload
@@ -19,7 +19,7 @@ export function downscaleAvatar(dataUrl: string, maxEdge: number = rosterAvatarM
     img.onload = () => {
       // Everything here has to be guarded. `toDataURL` throws SecurityError on a canvas tainted by
       // a cross-origin image, and an unhandled throw inside onload leaves this promise pending
-      // forever — `createSession` awaits it, so one such avatar hangs the whole room open with an
+      // forever, and `createSession` awaits it, so one such avatar hangs the whole room open with an
       // empty roster and no error anywhere. Resolving blank is always better than never resolving.
       try {
         const { width, height } = img

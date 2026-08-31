@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiBookLine } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 import './write.css'
 
 registerModule({
@@ -8,5 +7,5 @@ registerModule({
   label: 'Write',
   icon: RiBookLine,
   route: '/write',
-  component: lazy(() => import('./WriteView')),
+  component: lazyView(() => import('./WriteView')),
 })

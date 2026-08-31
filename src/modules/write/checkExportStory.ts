@@ -1,4 +1,4 @@
-// Run: node --experimental-strip-types src/modules/write/checkExportStory.ts
+﻿// Run: node --experimental-strip-types src/modules/write/checkExportStory.ts
 import assert from 'node:assert'
 import type { Block, Chapter, Story } from '../../core/storage/types.ts'
 import { resolvePalette } from '../../core/palette/palette.ts'
@@ -7,8 +7,7 @@ import { buildHtml, buildTxt, escapeHtml, proseHtml } from './exportStory.ts'
 const block = (content: string): Block => ({
   id: content || 'empty',
   beat: '',
-  targetWords: 0,
-  done: false,
+  weight: 'normal',
   content,
   context: 'both',
 })
@@ -45,7 +44,7 @@ assert.equal(txt, 'My <b>Story</b>\n\n1 - First\n\nabc\n\ndef\n\n2 - Second\n\ng
 // A chapter with no title still gets its number and its blank lines.
 assert.ok(buildTxt(story, [chapter(0, '  ', ['x'])]).includes('\n\n1\n\nx'))
 
-// Escaping — prose and title alike are model output opened in a browser.
+// Escaping: prose and title alike are model output opened in a browser.
 assert.equal(escapeHtml('<script>"&"</script>'), '&lt;script&gt;&quot;&amp;&quot;&lt;/script&gt;')
 assert.equal(proseHtml('a <b> c'), 'a &lt;b&gt; c')
 

@@ -20,7 +20,7 @@ export type Direction = 'push' | 'pull'
 
 export interface TableComparison {
   verdict: Verdict
-  /** The obvious direction, pre-filled. Null for `both`, which the user has to decide — an
+  /** The obvious direction, pre-filled. Null for `both`, which the user has to decide: an
    *  unresolved collision is refused by apply rather than settled by a default. */
   suggested: Direction | null
   /** Stamped by the store, not this device. Absent when the table has never been pushed. */
@@ -29,13 +29,23 @@ export interface TableComparison {
 
 export type Comparison = Partial<Record<TableName, TableComparison>>
 
+export interface Progress {
+  /** What is happening right now. Replaced by the next step, so there is no log to read. */
+  label: string
+  /** Steps finished, out of `total`. The bar is done/total, so it only moves on a success. */
+  done: number
+  total: number
+  /** Set when a step threw. The label is left holding the failure instead of being replaced. */
+  failed: boolean
+}
+
 interface SyncState {
   status: 'idle' | 'comparing' | 'applying'
   error: string
   comparison: Comparison | null
-  /** Lines from the run in progress, oldest first. Kept for the session; a pull ends in a reload,
-   *  which clears it. */
-  log: string[]
+  /** The run in progress, as one line and a count. Null until a run starts. A pull ends in a
+   *  reload, which clears it. */
+  progress: Progress | null
   compare(): Promise<void>
   apply(decisions: Partial<Record<TableName, Direction>>): Promise<void>
   pushSettings(): Promise<void>
@@ -48,9 +58,16 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : 'Sync failed.'
 }
 
-/** Appends one line to the run log. Hoisted, so it can reach the store it is defined above. */
-function note(line: string) {
-  useSync.setState((s) => ({ log: [...s.log, line] }))
+/** Replaces the current line. Hoisted, so it can reach the store it is defined above. */
+function step(label: string, done: number, total: number) {
+  useSync.setState({ progress: { label, done, total, failed: false } })
+}
+
+/** Leaves the failing step on screen. `done` stays where it was, so the bar shows how far it got. */
+function fail(label: string) {
+  useSync.setState((s) => ({
+    progress: { label, done: s.progress?.done ?? 0, total: s.progress?.total ?? 1, failed: true },
+  }))
 }
 
 function size(bytes: number): string {
@@ -61,7 +78,7 @@ export const useSync = create<SyncState>()((set, get) => ({
   status: 'idle',
   error: '',
   comparison: null,
-  log: [],
+  progress: null,
 
   compare: async () => {
     set({ status: 'comparing', error: '', comparison: null })
@@ -117,16 +134,15 @@ export const useSync = create<SyncState>()((set, get) => ({
       return
     }
 
-    set({ status: 'applying', error: '', log: [] })
+    const queue = Object.entries(decisions) as [TableName, Direction][]
+    set({ status: 'applying', error: '', progress: { label: 'Starting…', done: 0, total: queue.length, failed: false } })
     const settings = useSettings.getState()
     const pulled: TableName[] = []
-    const queue = Object.entries(decisions) as [TableName, Direction][]
-    note(`${queue.length} table${queue.length === 1 ? '' : 's'} to do: ${queue.map(([t]) => t).join(', ')}.`)
     try {
-      for (const [name, direction] of queue) {
+      for (const [index, [name, direction]] of queue.entries()) {
         const table = name as TableName
         if (direction === 'push') {
-          note(`Uploading ${table}…`)
+          step(`Uploading ${table}…`, index, queue.length)
           const { json, hash } = await buildTablePayload(table)
           const bytes = new Blob([json]).size
           if (bytes > maxPayloadBytes) {
@@ -136,12 +152,12 @@ export const useSync = create<SyncState>()((set, get) => ({
           }
           await client.pushTable(table, json, hash)
           settings.setTableSynced(table, hash)
-          note(`Uploaded ${table}, ${size(bytes)}.`)
+          step(`Uploaded ${table}, ${size(bytes)}.`, index + 1, queue.length)
         } else {
-          note(`Downloading ${table}…`)
+          step(`Downloading ${table}…`, index, queue.length)
           const object = await client.pullTable(table)
           if (!object) {
-            note(`${table} is not in the bucket. Skipped.`)
+            step(`${table} is not in the bucket. Skipped.`, index + 1, queue.length)
             continue
           }
           const payload = JSON.parse(object.json) as TablePayload
@@ -157,13 +173,17 @@ export const useSync = create<SyncState>()((set, get) => ({
           })
           settings.setTableSynced(table, object.hash)
           pulled.push(table)
-          note(`Downloaded ${table}, ${rows.length} record${rows.length === 1 ? '' : 's'}.`)
+          step(
+            `Downloaded ${table}, ${rows.length} record${rows.length === 1 ? '' : 's'}.`,
+            index + 1,
+            queue.length,
+          )
         }
       }
       settings.setLastSyncedAt(Date.now())
-      note(pulled.length ? 'Done. Reloading to pick up the downloaded records.' : 'Done.')
+      step(pulled.length ? 'Done. Reloading.' : 'Done.', queue.length, queue.length)
     } catch (err) {
-      note(`Stopped: ${message(err)}`)
+      fail(`Stopped: ${message(err)}`)
       set({ error: message(err), status: 'idle' })
       return
     }
@@ -188,28 +208,29 @@ export const useSync = create<SyncState>()((set, get) => ({
    * the device that has the keys" rather than a merge.
    */
   pushSettings: async () => {
-    set({ status: 'applying', error: '', log: [] })
+    set({ status: 'applying', error: '', progress: { label: 'Starting…', done: 0, total: 2, failed: false } })
     try {
       const plain = localStorage.getItem(settingsKey) ?? '{}'
       const { passphrase } = useSettings.getState().bucket
-      note(passphrase ? 'Encrypting settings…' : 'Uploading settings as plain text…')
+      step(passphrase ? 'Encrypting settings…' : 'Uploading settings as plain text…', 0, 2)
       const json = passphrase ? await encryptText(plain, passphrase) : plain
+      step('Uploading settings…', 1, 2)
       await client.pushTable('settings', json, await hashPayload(json))
-      note(`Uploaded settings, ${size(new Blob([json]).size)}. Done.`)
+      step(`Uploaded settings, ${size(new Blob([json]).size)}.`, 2, 2)
       set({ status: 'idle' })
     } catch (err) {
-      note(`Stopped: ${message(err)}`)
+      fail(`Stopped: ${message(err)}`)
       set({ error: message(err), status: 'idle' })
     }
   },
 
   pullSettings: async () => {
-    set({ status: 'applying', error: '', log: [] })
+    set({ status: 'applying', error: '', progress: { label: 'Starting…', done: 0, total: 2, failed: false } })
     try {
-      note('Downloading settings…')
+      step('Downloading settings…', 0, 2)
       const object = await client.pullTable('settings')
       if (!object) {
-        note('The bucket has no settings to download.')
+        fail('The bucket has no settings to download.')
         set({ error: 'The bucket has no settings to download.', status: 'idle' })
         return
       }
@@ -220,14 +241,14 @@ export const useSync = create<SyncState>()((set, get) => ({
       let json = object.json
       if (isEncrypted(json)) {
         if (!passphrase) throw new Error('The settings in this bucket are encrypted. Enter the passphrase.')
-        note('Decrypting settings…')
+        step('Decrypting settings…', 1, 2)
         json = await decryptText(json, passphrase)
       }
       localStorage.setItem(settingsKey, keepDeviceFields(json, localStorage.getItem(settingsKey)))
-      note('Downloaded settings. Reloading.')
+      step('Downloaded settings. Reloading.', 2, 2)
       location.reload()
     } catch (err) {
-      note(`Stopped: ${message(err)}`)
+      fail(`Stopped: ${message(err)}`)
       set({ error: message(err), status: 'idle' })
     }
   },

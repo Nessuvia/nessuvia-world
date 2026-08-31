@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
-import type { Message, WorldInfoEntry } from '../../core/storage/types'
+import type { Message } from '../../core/storage/types'
 import { buildRequestBody, redact } from '../../core/connectors/buildRequestBody'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
-import { worldInfoText } from '../../core/prompt/worldInfo'
-import { useWorldInfo } from '../../core/stores/worldInfoStore'
+import { emptyWorldInfo, type ResolvedWorldInfo } from '../../core/prompt/worldInfo'
 import { loadTokenizer } from '../../core/prompt/budget'
+import { tokenizerFor, defaultTokenizer } from '../../core/prompt/tokenizers'
 import { useCharacters } from '../../core/stores/charactersStore'
-import { useChats, resolvedConnection } from '../../core/stores/chatStore'
+import { useChats, resolvedConnection, worldInfoFor } from '../../core/stores/chatStore'
 import { nextSpeakerId } from '../../core/stores/roster'
 import { useDraft } from '../../core/stores/draftStore'
 import { usePersonas } from '../../core/stores/personasStore'
-import { useSettings } from '../../core/stores/settingsStore'
+import { useSettings, useActiveConnection } from '../../core/stores/settingsStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import PromptPreviewPanel from '../../app/PromptPreviewPanel'
 import { paramDefList } from '../../core/stores/paramDefsStore'
@@ -18,10 +18,10 @@ import { budgetOf, maxTokensOf } from '../../core/params/connectionParams'
 
 /**
  * What the next send would contain, rendered in the sidebar next to the chat's other settings.
- * It calls `buildPrompt` and `buildRequestBody` — the same two functions the send path calls — so
+ * It calls `buildPrompt` and `buildRequestBody`, the same two functions the send path calls, so
  * what it shows and what goes over the wire can't diverge.
  *
- * debounced full rebuild, no incremental diffing — profile before optimising.
+ * debounced full rebuild, no incremental diffing, profile before optimising.
  */
 export default function PromptPanel() {
   const chat = useChats((s) => s.chat)
@@ -34,27 +34,44 @@ export default function PromptPanel() {
   const tagRules = useSettings((s) => s.appearance.tagRules)
   // Subscribed to only so edits in Settings re-render this; the value comes from the store helper
   // below, which is the one place override precedence is applied.
-  const activeConnection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
-  // The chat's own stack wins, as it does on the send path — otherwise the preview would show a
+  const activeConnection = useActiveConnection()
+  // The chat's own stack wins, as it does on the send path, otherwise the preview would show a
   // prompt built from a stack the send never uses.
   const stack = useStacks((s) => s.stacks.find((x) => x.id === (chat?.stackId ?? activeStackId)))
   const draftText = useDraft((s) => s.text)
 
   const [typed, setTyped] = useState(draftText)
   const [ready, setReady] = useState(false)
-  // Fetched rather than read off the store's `entries`: those belong to whichever character the
-  // editor has open, which has nothing to do with who is up next in this chat.
-  const [entries, setEntries] = useState<WorldInfoEntry[]>([])
+  // Resolved in an effect rather than inline: matching reads entries out of storage, and it has to
+  // run against the same pending history the preview is built from.
+  const [worldInfo, setWorldInfo] = useState<ResolvedWorldInfo>(emptyWorldInfo)
   const speakerId = chat ? (nextSpeakerId(chat) ?? chat.characterId) : null
 
-  useEffect(() => {
-    loadTokenizer().then(() => setReady(true))
-  }, [])
+  // activeConnection, not the resolved one: `tokenizer` isn't overridable, and the resolved
+  // connection isn't built until further down.
+  const tokenizerId = activeConnection ? tokenizerFor(activeConnection) : defaultTokenizer
 
   useEffect(() => {
-    if (!speakerId) return setEntries([])
-    useWorldInfo.getState().fetchFor(speakerId).then(setEntries)
-  }, [speakerId])
+    setReady(false)
+    loadTokenizer(tokenizerId).then(() => setReady(true))
+  }, [tokenizerId])
+
+  useEffect(() => {
+    const speaker = characters.find((c) => c.id === speakerId)
+    if (!chat || !speaker) return setWorldInfo(emptyWorldInfo)
+    // The unsent draft counts as the next user turn here too, so a key typed into the composer
+    // shows its entry appearing in the preview.
+    const pending: Message[] = typed.trim()
+      ? [...messages, { ownerId: 'local', chatId: chat.id!, role: 'user' as const, content: typed, createdAt: Date.now() }]
+      : messages
+    let live = true
+    worldInfoFor(speaker, chat, pending, stack?.worldInfoBudget).then((resolved) => {
+      if (live) setWorldInfo(resolved)
+    })
+    return () => {
+      live = false
+    }
+  }, [chat, characters, speakerId, messages, typed, stack?.worldInfoBudget])
 
   // Token counting on every keystroke is the one thing here that could feel slow.
   useEffect(() => {
@@ -65,7 +82,7 @@ export default function PromptPanel() {
   const persona = personas.find((p) => p.id === activePersonaId) ?? personas[0]
   if (!chat || !character || !persona || !stack) return null
 
-  // The preview is of the *next* turn, so it resolves against whoever is up — card, labels, params.
+  // The preview is of the *next* turn, so it resolves against whoever is up, card, labels, params.
   const speaker = characters.find((c) => c.id === nextSpeakerId(chat)) ?? character
   const connection = activeConnection && resolvedConnection(speaker, chat)
 
@@ -82,7 +99,7 @@ export default function PromptPanel() {
       chat,
       speaker,
       messages: pending,
-      worldInfo: worldInfoText(entries, pending, speaker.worldBook),
+      worldInfo,
       tagRules,
     },
     budgetOf(connection),
@@ -125,6 +142,13 @@ export default function PromptPanel() {
             <p className="hint">
               The context limit can't fit the fixed blocks plus the reply reserve. No history is
               being sent.
+            </p>
+          )}
+
+          {worldInfo.dropped.length > 0 && (
+            <p className="hint">
+              Over the world info budget, not sent:{' '}
+              {worldInfo.dropped.map((d) => d.name || 'Unnamed').join(', ')}.
             </p>
           )}
         </>

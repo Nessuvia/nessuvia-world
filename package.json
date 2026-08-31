@@ -1,7 +1,7 @@
 {
   "name": "nessu-tavern",
   "private": true,
-  "version": "0.0.13",
+  "version": "0.0.23",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "packageManager": "pnpm@11.22.0",
@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lenml/tokenizers": "^3.7.2",
     "@remixicon/react": "^4.9.0",
     "aws4fetch": "^1.0.20",
     "centrifuge": "^5.7.1",

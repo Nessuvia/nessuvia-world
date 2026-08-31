@@ -13,7 +13,7 @@ const fields: Record<OverridableField, { label: string }> = {
 /**
  * The override editor, used by the character editor and the chat panel. Pass `character` when
  * editing a chat: the chat inherits through its character, so that's where the inherited value
- * and its source come from. Omit it when editing the character itself — it can't inherit from
+ * and its source come from. Omit it when editing the character itself, it can't inherit from
  * itself, so everything falls through to the connection.
  *
  * The sampler rows come from the connection, not from a list here: whichever params it sends are
@@ -43,7 +43,7 @@ export default function ParamEditor({
   // ParamSource names the innermost layer 'chat'; say what it actually is here.
   const sourceLabel = (source: string) => (source === 'chat' ? scopeLabel : source)
 
-  // empty string means inherit — one input, no checkbox, no tri-state.
+  // empty string means inherit, one input, no checkbox, no tri-state.
   function setField(field: OverridableField, text: string) {
     const next = { ...overrides }
     // Assignment through a union of field types needs the cast; the key set is the same.

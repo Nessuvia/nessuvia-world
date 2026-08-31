@@ -1,4 +1,4 @@
-// Body Map widget — data model. Phase 1: one generic-male figure, front + back.
+// Body Map widget: data model. Phase 1: one generic-male figure, front + back.
 // See src/resources/body-map-widget-plan.md for the locked design decisions.
 
 export type BodyView = 'front' | 'back'

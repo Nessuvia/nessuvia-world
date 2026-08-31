@@ -98,6 +98,20 @@
   flex: 1;
 }
 
+.stackBudget {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* A token count, not a name: it doesn't need the width the row's flex: 1 would give it. */
+.stackBudget input {
+  flex: none;
+  width: 88px;
+}
+
 .blockDeleteToggle {
   display: flex;
   align-items: center;
@@ -111,8 +125,8 @@
   flex: none;
 }
 
-/* .zones carries .screenBody, but the scrolling happens one level down, inside each zone's list —
-   the row itself is fixed to the height the frame gave it. */
+/* .zones carries .screenBody, but the scrolling happens one level down, inside each zone's list.
+   The row itself is fixed to the height the frame gave it. */
 .prompts .zones {
   display: flex;
   gap: 16px;
@@ -182,7 +196,7 @@
   opacity: 0.45;
 }
 
-/* A depth block lands relative to the history, not where it sits — the dashed edge says so. */
+/* A depth block lands relative to the history, not where it sits. The dashed edge says so. */
 .blockCard.pinned {
   border-style: dashed;
 }
@@ -401,7 +415,7 @@
   border-color: var(--accent);
 }
 
-/* The type picker on a block card — quiet until you go for it; the card is the primary target. */
+/* The type picker on a block card: quiet until you go for it; the card is the primary target. */
 .prompts .blockType {
   flex: 0 0 auto;
   max-width: 170px;
@@ -476,7 +490,7 @@
   color: var(--textMuted);
 }
 
-/* The Options menu. Only rendered at phone width, so no media query — the trigger is what's
+/* The Options menu. Only rendered at phone width, so no media query: the trigger is what's
    conditional. Same shape as .personaSwitchMenu: absolute under the button, its own stacking. */
 .presetMenuWrap {
   position: relative;
@@ -549,7 +563,7 @@
 }
 
 @media (max-width: 700px) {
-  /* Active over Preview, and .zones — which carries .screenBody — becomes the only scroller.
+  /* Active over Preview, and .zones (which carries .screenBody) becomes the only scroller.
      The panels' inner lists stand down so the page isn't three nested scroll boxes. */
   .prompts .zones {
     flex-direction: column;
@@ -580,7 +594,7 @@
     flex-wrap: wrap;
   }
 
-  /* Its own line under Name — the nowrap is what ran it off the screen. */
+  /* Its own line under Name: the nowrap is what ran it off the screen. */
   .blockDeleteToggle {
     flex-basis: 100%;
     white-space: normal;

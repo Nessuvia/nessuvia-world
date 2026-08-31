@@ -24,8 +24,8 @@
   color: var(--textDim);
 }
 
-/* Two classes so this beats `.chatSettings label`, which stacks labels vertically —
-   the same panel renders inside the chat rail's Visual Options. */
+/* Two classes so this beats `.chatSettings label`, which stacks labels vertically.
+   The same panel renders inside the chat rail's Visual Options. */
 .appearance .appearanceRow {
   display: flex;
   flex-direction: row;
@@ -90,7 +90,7 @@
 /* --- Structure (skin) row ------------------------------------------------- */
 
 /* The dropdown holds two words, so it does not get the fluid `flex: 1 1 110px` the other selects
-   do — the space it gives up is where the knobs sit. */
+   do. The space it gives up is where the knobs sit. */
 .appearance .appearanceRow .skinSelect {
   flex: 0 1 auto;
   width: auto;
@@ -98,8 +98,9 @@
 }
 
 /* Four knobs to a row, each cell one horizontal line: label, slider, typed value. The knobs take a
-   line of their own under the dropdown — sharing the Structure line left each cell too narrow to
-   lay out sideways. The fixed column count keeps cells the same width when a skin has fewer. */
+   line of their own under the dropdown, because sharing the Structure line left each cell too
+   narrow to lay out sideways. The fixed column count keeps cells the same width when a skin has
+   fewer. */
 .skinKnobs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -230,7 +231,7 @@
 }
 
 /* An editable scratch box between the toggle column and the font list, rendered in the applied
-   family — type here to try the font. */
+   family: type here to try the font. */
 .webfontPreview {
   flex: 1 1 140px;
   min-width: 0;
@@ -374,7 +375,7 @@
   gap: 6px;
 }
 
-/* Icons only — the title/aria-label names each one. */
+/* Icons only: the title/aria-label names each one. */
 .paletteActions button {
   display: inline-flex;
   align-items: center;
@@ -418,7 +419,7 @@
   gap: 10px;
   margin: 0;
   /* A fieldset's default min-inline-size is min-content, so it refuses to shrink below its widest
-     row — that width propagates up and pushes the color swatches past the clipped page edge. */
+     row. That width propagates up and pushes the color swatches past the clipped page edge. */
   min-inline-size: 0;
   max-width: 100%;
   padding: 12px;
@@ -594,7 +595,7 @@
   word-break: break-word;
 }
 
-/* Sits at the end of an editor row, and inside a <label> in several of them — hence the
+/* Sits at the end of an editor row, and inside a <label> in several of them, hence the
    preventDefault at the call site. Only rendered for a field the model overwrote. */
 #root .palettes .paletteRewind {
   display: inline-flex;

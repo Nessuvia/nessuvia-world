@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import './twoColumn.css'
 
 /** List on the left, details for the selected row on the right. Each column scrolls on its own, so
- *  the page itself never does — this is the .screenBody of the screen that uses it. Pass no detail
+ *  the page itself never does, this is the .screenBody of the screen that uses it. Pass no detail
  *  and the list takes the full width. */
 export default function TwoColumn({ list, detail }: { list: ReactNode; detail?: ReactNode }) {
   return (

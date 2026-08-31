@@ -3,7 +3,7 @@ import { flatten, replaceBlock } from './blockTree'
 import RangeSlider from './RangeSlider'
 
 /**
- * The block on/off toggles, option pickers and range sliders exposed by a stack — the controls a
+ * The block on/off toggles, option pickers and range sliders exposed by a stack, the controls a
  * chat or Story surfaces without opening the full stack editor. Shared by the chat settings panel
  * and the Story settings panel; works for either kind.
  *

@@ -14,7 +14,7 @@ export interface TablePayload {
 
 /**
  * Rows are sorted by id so the hash describes the data and not Dexie's iteration order. Rows
- * without an id sort last, in the order given — a stored row always has one, so this only covers
+ * without an id sort last, in the order given, a stored row always has one, so this only covers
  * a caller passing unsaved records.
  */
 export function tablePayload(table: TableName, rows: StoredRecord[]): TablePayload {
@@ -22,7 +22,7 @@ export function tablePayload(table: TableName, rows: StoredRecord[]): TablePaylo
   return { format: 'nessuTavern.table', version: 1, table, rows: sorted }
 }
 
-/** Lowercase hex SHA-256 of the serialized payload — the hash of the bytes that get uploaded, so
+/** Lowercase hex SHA-256 of the serialized payload, the hash of the bytes that get uploaded, so
  *  a manifest hash and a local hash are comparable without downloading anything. */
 export async function hashPayload(json: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json))

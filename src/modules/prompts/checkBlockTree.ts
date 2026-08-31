@@ -54,7 +54,7 @@ assert.strictEqual(contains(tree[1], 'z'), false)
     flatten(out).map((r) => r.block.id),
     ['a', 'wrap', 'x', 'z'],
   )
-  // The original is untouched — nothing here mutates.
+  // The original is untouched: nothing here mutates.
   assert.strictEqual(flatten(tree).length, 6)
 }
 
@@ -141,7 +141,7 @@ assert.strictEqual(siblingsOf(tree, 'nope'), null)
     flatten(out).map((r) => [r.block.id, r.depth]),
     [['a', 0], ['wrap', 0], ['x', 1], ['inner', 1], ['deep', 2], ['z', 1]],
   )
-  // a is first at its level — nothing above to nest into.
+  // a is first at its level: nothing above to nest into.
   assert.strictEqual(moveByKey(tree, 'a', 'right'), null)
 }
 

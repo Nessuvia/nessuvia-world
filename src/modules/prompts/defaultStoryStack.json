@@ -67,7 +67,7 @@
       "label": "Shape of the work",
       "source": "text",
       "role": "system",
-      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nThe people in it: {{castNames}}",
+      "content": "<the_work>\nWhere this book starts: {{premise}}\nWhere it ends: {{ending}}\nWhat it is about underneath: {{themes}}\nThe people in it: {{castNames}}",
       "closeContent": "</the_work>",
       "toggleable": true,
       "info": "Story-level facts. Each line drops out on its own when the field behind it is empty."
@@ -91,30 +91,20 @@
       "info": "Wrapper around the Story's enabled cast. Children inherit this block's role."
     },
     {
-      "id": "ks-guide-wrap",
-      "label": "Chapter guide",
-      "source": "text",
+      "id": "ks-world",
+      "label": "World info",
+      "source": "worldInfo",
       "role": "system",
-      "content": "<outline>\nThe arc of the work so far. Chapters marked as summaries are compressed; their prose is not in front of you.",
-      "closeContent": "</outline>",
-      "children": [
-        {
-          "id": "ks-guide",
-          "label": "Guide body",
-          "source": "chapterGuide",
-          "role": "system",
-          "content": ""
-        }
-      ],
-      "toggleable": true,
-      "info": "The Chapter list with state stamps. Capped at a share of the context window."
+      "content": "<world>\nFacts about this world that apply to the passage you are writing.",
+      "closeContent": "</world>",
+      "info": "Entries from the Story's lorebooks that matched. Renders nothing when none did."
     },
     {
       "id": "ks-where",
       "label": "Where we are",
       "source": "text",
       "role": "system",
-      "content": "<position>\nYou are writing inside Chapter {{chapterNumber}} of {{chapterCount}}, \"{{chapterTitle}}\".\nWhat the previous Chapter came to: {{previousChapterSummary}}\nWhat this Chapter has covered so far: {{beatsDone}}\nStill to come in this Chapter: {{beatsRemaining}}\nThe Chapter after this one is \"{{nextChapterTitle}}\", planned as:\n{{nextChapterBeats}}\n</position>",
+      "content": "<position>\nYou are writing inside Chapter {{chapterNumber}} of {{chapterCount}}, \"{{chapterTitle}}\".\nWhat the previous Chapter came to: {{previousChapterSummary}}\nThe rest of this Chapter's plan:\n{{otherBeats}}\nThe Chapter after this one is \"{{nextChapterTitle}}\", planned as:\n{{nextChapterBeats}}\n</position>",
       "toggleable": true,
       "info": "The Story's shape around the caret. Every line here blanks out on its own when there is nothing behind it, so an unplanned Story sends none of them."
     },
@@ -123,7 +113,7 @@
       "label": "Story lead-in",
       "source": "text",
       "role": "system",
-      "content": "The text so far. Continue from its final line.",
+      "content": "The work so far. Chapters too far back to fit are given as their plan, one line per beat, instead of their prose. Continue from the final line.",
       "toggleable": true
     },
     {
@@ -159,7 +149,7 @@
       "source": "text",
       "role": "user",
       "content": "Write this next: {{beat}}\nAim for about {{beatTargetWords}} words.",
-      "info": "The plan line for the Block being written. Both lines drop on a free stretch, and the whole block with them."
+      "info": "The plan for the beat being written. Each line drops on its own when the field behind it is empty, and the whole block with them."
     },
     {
       "id": "ks-length",

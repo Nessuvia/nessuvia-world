@@ -37,7 +37,7 @@ assert.equal(m2[0].end, 8)
 
 // Sentence boundary: a pattern spanning sentence 0 and 1 must not match.
 const cross = compilePattern('[noun] [verb] [pron]')
-// tokens[5]=elegance(noun,s0), tokens[6]=He(pron,s1) — would need a verb between, none exists,
+// tokens[5]=elegance(noun,s0), tokens[6]=He(pron,s1): would need a verb between, none exists,
 // and even "[noun] [pron]" across the boundary must fail.
 const crossPat = compilePattern('[noun] [pron]')
 const m3 = findMatches(tokens, crossPat)

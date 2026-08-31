@@ -1,10 +1,10 @@
 /* Every color in the app lives here. Module .css files reference these vars and never
-   hardcode a hex — swapping a theme means editing this block (or overriding it at runtime). */
+   hardcode a hex: swapping a theme means editing this block (or overriding it at runtime). */
 :root {
   /* Set by the active palette, derived from its background. Dark until a palette applies. */
   color-scheme: var(--colorScheme, dark);
   /* The palette's app font. Cleared to empty when the palette doesn't set one, which drops the
-     property and leaves this fallback — the same trick --chatFont uses. */
+     property and leaves this fallback, the same trick --chatFont uses. */
   font-family: var(--appFont, system-ui, sans-serif);
   /* Palette knob for legibility, mostly on light themes. Anything with a weight of its own
      (headings, buttons) is unaffected. */
@@ -14,7 +14,7 @@
   /* The general panel/button corner. Larger surfaces use calc(var(--radius) + 2px|4px). */
   --radius: 6px;
 
-  /* The layering ladder. Every z-index in the app comes from here — a literal number in a module
+  /* The layering ladder. Every z-index in the app comes from here: a literal number in a module
      stylesheet is a mistake unless it's ordering siblings inside one container. The gaps are room
      for a tier to land between two of these rather than on top of the stack.
      27-30 is reserved for the phone drawer stack (sideDrawer.css, Sidebar.css): open buttons 27,
@@ -75,7 +75,7 @@
 
 /* Nothing in the app scrolls sideways: wide content wraps or clips instead. The phone drawer opens
    on a left-to-right swipe from anywhere on the screen (useDrawerSwipe.ts), and any horizontal
-   scroller would eat that swipe wherever it sat. This is the backstop — a new offender degrades to
+   scroller would eat that swipe wherever it sat. This is the backstop: a new offender degrades to
    clipped rather than to a drawer that won't open over it. */
 html,
 body {
@@ -93,7 +93,7 @@ body {
 
 /* The four skin-contract surfaces, painted for the default skin. Without this a surface that never
    set its own background sat transparent over the page background and its text had nothing to read
-   against. Background only — radius, padding and borders stay wherever they already are, and any
+   against. Background only: radius, padding and borders stay wherever they already are, and any
    module rule outranks this one class. */
 .panel,
 .navbar,
@@ -128,7 +128,7 @@ body {
 /* The background layer. Sized to the window: the sidebar sits over it rather than beside it, so a
    translucent rail shows and blurs the same background the content area does.
 
-   Also the scope root for user CSS (see scopeCss.ts) — which is why it's a separate element from
+   Also the scope root for user CSS (see scopeCss.ts), which is why it's a separate element from
    `.pageBackground` below: a user writing `.pageBackground { … }` needs that class to be a
    descendant of the scope root, not the root itself.
 
@@ -156,7 +156,7 @@ body {
 }
 
 /* Still painted for the length of the fade, then unmounted. It stays first in the DOM, so the
-   incoming layer draws over it — no z-index, which would put it above .appContent. */
+   incoming layer draws over it, with no z-index, which would put it above .appContent. */
 .pageBackgroundLayer.leaving {
   animation: fadeBackgroundOut 0.5s ease both;
 }
@@ -208,6 +208,20 @@ body {
   overflow-y: auto;
 }
 
+/* Second Pass's first take, while the editing pass has not produced anything yet. Dimmed because
+   it is provisional: it is either replaced by the edited reply or brightens in place when nothing
+   was flagged. No transition on the swap, per the styling rules.
+
+   Global rather than in chat.css: Chat, Ask and Write all render a draft, and Write never loads
+   chat.css.
+
+   Opacity rather than a muted color: the spoken/emphasis/bold spans inside set their own palette
+   colors, and a color here would leave them at full strength and dim only the narration. */
+.secondPassDraft {
+  opacity: 0.55;
+}
+
+
 /* Baseline dropdown style. Mirrors the per-module select styling (e.g. .prompts select) so an
    unstyled select anywhere reads as part of the app; module rules still override where needed. */
 select {
@@ -255,24 +269,37 @@ input[type='checkbox'] {
   accent-color: var(--accent);
 }
 
-/* Checkbox-and-label baseline: box on the left, text beside it, both left-aligned. Panels stack
+/* Checkbox-and-label baseline: a card the whole label toggles. The box sits top-left so it lines
+   up the same way on a one-line row or a multi-line card, text beside and below it. Panels stack
    their labels in a column (`.chatSettings label`, `.formPage label`, `.storyRail label`) because
-   a text field belongs under its name — a checkbox doesn't, and without this it lands above the
+   a text field belongs under its name, a checkbox doesn't, and without this it lands above the
    text and centered. #root because those module rules are single-class selectors this has to beat
    whatever the stylesheet order happens to be. */
 #root label.checkboxRow {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
   gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  cursor: pointer;
 }
 
-/* The box keeps its size when the text wraps. */
+/* Lit border when checked: the whole card reads as "on" without a second color for the box. */
+#root label.checkboxRow:has(input[type='checkbox']:checked) {
+  border-color: var(--borderAccent);
+}
+
+/* The box keeps its size when the text wraps, and reads larger than a bare browser checkbox. */
 #root label.checkboxRow > input[type='checkbox'] {
   flex: none;
-  margin: 0;
+  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
 }
 
 /* Button baseline. Mirrors .formPage button. Buttons carrying their own module styling override. */
@@ -305,7 +332,7 @@ button:disabled {
 }
 
 /* Phone-width adjustments. 700px is the breakpoint the whole app uses, including the sidebar's
-   collapsed-by-default in Sidebar.tsx. Not a mobile layout — only the fixes that pay for a line. */
+   collapsed-by-default in Sidebar.tsx. Not a mobile layout, only the fixes that pay for a line. */
 @media (max-width: 700px) {
   .appContent {
     padding: 10px;

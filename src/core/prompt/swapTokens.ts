@@ -9,13 +9,13 @@ import { activeDescription } from '../storage/types.ts'
 export interface TokenValues {
   char: string
   user: string
-  /** Card fields, already token-swapped once — see `characterTokens`. */
+  /** Card fields, already token-swapped once, see `characterTokens`. */
   chardescription?: string
   charpersonality?: string
   charscenario?: string
   charexampledialogue?: string
   personadescription?: string
-  /** Multiplayer cast slots — see `castTokens`. Absent outside a session. */
+  /** Multiplayer cast slots, see `castTokens`. Absent outside a session. */
   char1?: string
   char2?: string
   char3?: string
@@ -69,7 +69,7 @@ export function characterTokens(
 
 /**
  * Positional cast values: `{{char2}}` is the second character of the session roster and
- * `{{char2Desc}}` its description. A slot with no character resolves to '' — the prompt keeps its
+ * `{{char2Desc}}` its description. A slot with no character resolves to '', the prompt keeps its
  * shape and the sentence about a character who isn't there comes out blank.
  *
  * Each description is swapped once against its own character, same single pass as
@@ -88,12 +88,12 @@ export function castTokens(cast: Character[], userName: string): Partial<TokenVa
 }
 
 /**
- * The same values from a Persona row — the shape every chat-side caller already has.
+ * The same values from a Persona row: the shape every chat-side caller already has.
  * `cast` is the multiplayer roster in host-chosen order. Without it the slot tokens are left out
  * entirely, so a stray {{char2}} in a solo chat stays visible rather than silently vanishing.
  *
- * `personas` is the session's people as `Name: description` lines, already assembled by the caller
- * — the same arrangement `worldInfo` has in `buildPrompt`, and for the same reason: the roster
+ * `personas` is the session's people as `Name: description` lines, already assembled by the caller,
+ * the same arrangement `worldInfo` has in `buildPrompt`, and for the same reason: the roster
  * lives in the multiplayer store and this function stays pure. Absent outside a session, so
  * {{personas}} stays visible in an ordinary chat rather than blanking.
  */

@@ -1,11 +1,11 @@
 /**
- * Compute exclusion zones — sorted `[start, end]` char ranges that must not be tagged or matched.
+ * Compute exclusion zones: sorted `[start, end]` char ranges that must not be tagged or matched.
  * Covers fenced code blocks, inline code spans, URLs, and markdown link targets. LaTeX delimiters
  * ride along when present. Link *text* is fair game (only the target in `(...)` is excluded).
  *
  * regex-scan, not a full markdown parser. Good enough for the render-time strip; a
  * pathological nest (code fence inside a link inside a quote) can mis-bound, but model chat rarely
- * produces that and the worst case is a missed strip, never a wrong rewrite — storage is untouched.
+ * produces that and the worst case is a missed strip, never a wrong rewrite: storage is untouched.
  */
 export type Range = readonly [number, number]
 
@@ -59,7 +59,7 @@ function scanUrls(text: string, ranges: Range[]) {
 }
 
 function scanLinkTargets(text: string, ranges: Range[]) {
-  // [text](target) — exclude only the `(target)`.
+  // [text](target): exclude only the `(target)`.
   const re = /\[[^\]]*\]\(([^)\s]*)\)/g
   let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) {

@@ -12,8 +12,10 @@ import { Avatar } from '../../app/Avatar'
 import ColorStack from '../../app/ColorStack'
 import EntityPicker, { type PickerItem } from '../../app/EntityPicker'
 import type { CastEntry } from '../../core/storage/types'
-import { beatBlocks, chapterState } from '../../core/prompt/chapterGuide'
+import { chapterState } from '../../core/prompt/chapterGuide'
+import { attachBook, removeBook, storyBooks, toggleBook } from '../../core/prompt/storyBooks'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
+import { useLorebooks } from '../../core/stores/lorebooksStore'
 import { usePersonas } from '../../core/stores/personasStore'
 import { lockedHint, usePaletteEditor } from '../../core/stores/palettesStore'
 import { useSettings, type MarkerKind } from '../../core/stores/settingsStore'
@@ -121,10 +123,92 @@ function CastSection() {
 }
 
 /**
+ * The Story's lorebooks: every global book, the books the enabled cast carries, and any standalone
+ * book attached here. A row toggles off (greyed, entries stop being sent) or comes off the list
+ * entirely. Removing a cast character's book leaves the character in the Story; it only stops that
+ * book reaching the prompt, and it stays gone while the character is in the cast.
+ *
+ * Per Story, all three fields: which books a work draws on is a property of the work.
+ */
+function BooksSection() {
+  const story = useWrite((s) => s.story)
+  const setStoryFields = useWrite((s) => s.setStoryFields)
+  const characters = useCharacters((s) => s.characters)
+  const { books, counts, load } = useLorebooks()
+  const [picking, setPicking] = useState(false)
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (!story) return null
+
+  const rows = storyBooks(story, characters, books)
+  const listed = new Set(rows.map((r) => r.book.id))
+  const unlisted = books.filter((b) => !listed.has(b.id))
+
+  return (
+    <div className="storyBooks">
+      {rows.length === 0 && <p className="placeholder">No lorebooks.</p>}
+      <ul className="castList">
+        {rows.map((row) => (
+          <li key={row.book.id}>
+            <button
+              type="button"
+              className="castRow storyBookRow"
+              aria-pressed={row.enabled}
+              title={row.enabled ? 'Switch off for this Story' : 'Switch on'}
+              onClick={() => setStoryFields(toggleBook(story, row.book.id!))}
+            >
+              <span className="entityPickerName">{row.book.name || 'Unnamed'}</span>
+              <span className="lorebooksCount">{counts[row.book.id!] ?? 0}</span>
+              {row.origin === 'cast' && <span className="lorebooksBadge">{row.from}</span>}
+              {row.origin === 'global' && <span className="lorebooksBadge">All chats</span>}
+            </button>
+            <Link
+              to={`/lorebooks#book-${row.book.id}`}
+              className="castRowAction"
+              title="Open in Lorebooks"
+            >
+              <RiSettings3Line size={21} />
+            </Link>
+            <button
+              type="button"
+              className="castRowAction"
+              title="Remove from this Story"
+              onClick={() => setStoryFields(removeBook(story, row))}
+            >
+              <RiCloseLine size={21} />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {unlisted.length > 0 &&
+        (picking ? (
+          <EntityPicker
+            items={unlisted.map((b) => ({ key: String(b.id), label: b.name || 'Unnamed' }))}
+            placeholder="Search lorebooks..."
+            emptyText="No lorebooks."
+            onCancel={() => setPicking(false)}
+            onPick={(item) => {
+              setStoryFields(attachBook(story, Number(item.key)))
+              setPicking(false)
+            }}
+          />
+        ) : (
+          <button type="button" className="castAddSlot" onClick={() => setPicking(true)}>
+            Add Lorebook +
+          </button>
+        ))}
+    </div>
+  )
+}
+
+/**
  * The whole Story's beats, one `<details>` per Chapter. The active Chapter opens; the rest stay
  * closed and the open/closed state is view-only, so nothing is persisted for it.
  *
- * Every row can be written, not just the active Chapter's — a beat two Chapters out is reachable
+ * Every row can be written, not just the active Chapter's, a beat two Chapters out is reachable
  * without moving the cursor there first. Ticking a beat here is the same write the box in the
  * document makes: one `blocks` patch, one meaning.
  *
@@ -133,7 +217,6 @@ function CastSection() {
 export function StoryBeats() {
   const chapters = useWrite((s) => s.chapters)
   const activeChapterId = useWrite((s) => s.activeChapterId)
-  const updateChapter = useWrite((s) => s.updateChapter)
   const story = useWrite((s) => s.story)
   const streaming = useWrite((s) => s.streaming)
   const streamingStoryId = useWrite((s) => s.streamingStoryId)
@@ -141,11 +224,11 @@ export function StoryBeats() {
   const writeBlock = useWrite((s) => s.writeBlock)
   const stop = useWrite((s) => s.stop)
 
-  // The rail shows what the document shows: a Chapter reads as open while any of its beats is
-  // unfolded, and folding it here folds those beats in the document too.
-  const collapsedBeats = useWrite((s) => s.collapsedBeats)
+  // Folding a Chapter row here is navigation, not a document edit: the rail keeps its own open set
+  // and the beats in the document keep theirs. Only the Collapse/Open all button crosses over.
   const setCollapsedBeats = useWrite((s) => s.setCollapsedBeats)
   const [mode, setMode] = useState(0)
+  const [shutChapters, setShutChapters] = useState<string[]>([])
 
   // Streaming only gates rows while it is THIS Story being written.
   const busy = streaming && streamingStoryId === (story?.id ?? null)
@@ -161,22 +244,17 @@ export function StoryBeats() {
 
   if (chapters.length === 0) return <p className="placeholder">No chapters yet.</p>
 
-  const modes = ['Collapse done', 'Collapse all', 'Open all']
-  const allBeats = chapters.flatMap((c) => beatBlocks(c))
+  const modes = ['Collapse all', 'Open all']
+  const allBeats = chapters.flatMap((c) => c.blocks)
   function cycle() {
-    if (mode === 0) setCollapsedBeats(allBeats.filter((b) => b.done).map((b) => b.id))
-    else if (mode === 1) setCollapsedBeats(allBeats.map((b) => b.id))
+    if (mode === 0) setCollapsedBeats(allBeats.map((b) => b.id))
     else setCollapsedBeats([])
-    setMode((mode + 1) % 3)
+    setMode((mode + 1) % modes.length)
   }
 
-  // Folding a Chapter row folds every beat under it; unfolding puts them all back.
-  function setChapterOpen(chapter: (typeof chapters)[number], open: boolean) {
-    const ids = beatBlocks(chapter).map((b) => b.id)
-    setCollapsedBeats(
-      open
-        ? collapsedBeats.filter((b) => !ids.includes(b))
-        : [...new Set([...collapsedBeats, ...ids])],
+  function setChapterOpen(chapterId: string, open: boolean) {
+    setShutChapters((shut) =>
+      open ? shut.filter((c) => c !== chapterId) : [...new Set([...shut, chapterId])],
     )
   }
 
@@ -186,18 +264,20 @@ export function StoryBeats() {
         {modes[mode]}
       </button>
       {chapters.map((chapter, ci) => {
-        const beats = beatBlocks(chapter)
+        const beats = chapter.blocks
         const state = chapterState(chapter, activeChapterId)
         return (
           <details
             key={chapter.id}
             open={
-              beats.length === 0
-                ? chapter.id === activeChapterId
-                : beats.some((b) => !collapsedBeats.includes(b.id))
+              shutChapters.includes(String(chapter.id))
+                ? false
+                : beats.length > 0 || chapter.id === activeChapterId
             }
             // currentTarget is already detached by the time this fires; read the element itself.
-            onToggle={(e) => setChapterOpen(chapter, (e.target as HTMLDetailsElement).open)}
+            onToggle={(e) =>
+              setChapterOpen(String(chapter.id), (e.target as HTMLDetailsElement).open)
+            }
           >
             <summary className={`beatChapter ${state}`}>
               {chapter.title.trim() || `Chapter ${ci + 1}`}
@@ -208,21 +288,9 @@ export function StoryBeats() {
               <ul className="beatChecklist">
                 {beats.map((beat, i) => (
                   <li key={beat.id}>
-                    <input
-                      type="checkbox"
-                      checked={beat.done}
-                      title="Mark this beat done. Nothing ticks it for you."
-                      onChange={(e) =>
-                        updateChapter(chapter.id!, {
-                          blocks: chapter.blocks.map((b) =>
-                            b.id === beat.id ? { ...b, done: e.target.checked } : b,
-                          ),
-                        })
-                      }
-                    />
                     <button
                       type="button"
-                      className={beat.done ? 'beatChecklistRow done' : 'beatChecklistRow'}
+                      className="beatChecklistRow"
                       title="Go to this beat"
                       onClick={() => jump(beat.id)}
                     >
@@ -303,7 +371,7 @@ function DirectionSection() {
   )
 }
 
-// The Story color field each marker kind edits — the Write-mode twin of AppearancePanel's table.
+// The Story color field each marker kind edits, the Write-mode twin of AppearancePanel's table.
 const storyColorField: Record<MarkerKind, 'storyEmphasisColor' | 'storyBoldColor' | 'storyQuoteColor'> = {
   emphasis: 'storyEmphasisColor',
   bold: 'storyBoldColor',
@@ -311,13 +379,16 @@ const storyColorField: Record<MarkerKind, 'storyEmphasisColor' | 'storyBoldColor
 }
 
 // The active connection, shown here so a Story never needs a trip to Settings to switch endpoints.
-function ConnectionSection() {
+// One dropdown, so it sits at the top of the rail rather than inside a collapsible of its own,
+// matching the chat settings panel.
+function ConnectionPick() {
   const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
 
   return (
-    <label className="storyRailPick">
+    <label className="storyRailPick railTopPick">
+      Connection
       <select
         value={activeConnectionId ?? ''}
         onChange={(e) => setActiveConnection(e.target.value || null)}
@@ -370,7 +441,7 @@ function PromptStackSection() {
 }
 
 // Per Story, not per Chapter and not global: sampling is a property of the work being written.
-// The cast is deliberately not a layer — see Story.paramOverrides.
+// The cast is deliberately not a layer, see Story.paramOverrides.
 function ParametersSection() {
   const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
@@ -402,7 +473,7 @@ function AppearanceSection() {
 
   return (
     <>
-      {/* Per Story, like the chat's width is per chat — the rail is only here while a Story is
+      {/* Per Story, like the chat's width is per chat, the rail is only here while a Story is
           open, so the scope is the Story on screen. The palette's Story width is the default
           every Story that has none of its own uses. */}
       <label className="storyWidth">
@@ -466,7 +537,7 @@ const railSections: { id: string; label: string; body: () => ReactNode }[] = [
   { id: 'beats', label: 'Beats', body: () => <StoryBeats /> },
   { id: 'direction', label: 'Direction', body: () => <DirectionSection /> },
   { id: 'characters', label: 'Characters', body: () => <CastSection /> },
-  { id: 'connection', label: 'Connection', body: () => <ConnectionSection /> },
+  { id: 'lorebooks', label: 'Lorebooks', body: () => <BooksSection /> },
   { id: 'promptStack', label: 'Prompt Stack', body: () => <PromptStackSection /> },
   { id: 'parameters', label: 'Parameters', body: () => <ParametersSection /> },
   { id: 'appearance', label: 'Appearance', body: () => <AppearanceSection /> },
@@ -530,7 +601,7 @@ function RailSection({
  * section is a sibling, so the prompt toggles and the beat list can be open at the same time;
  * pinning moves a section to the top of the list.
  *
- * Pin and open state are global rather than per Story — how the rail is arranged is a working
+ * Pin and open state are global rather than per Story, how the rail is arranged is a working
  * habit, not a property of a Story. Per Story is the upgrade path.
  */
 export default function StoryRail() {
@@ -546,6 +617,7 @@ export default function StoryRail() {
 
   return (
     <section className="panel storyRail screenBody">
+      <ConnectionPick />
       {order.map((id) => {
         const section = railSections.find((s) => s.id === id)!
         return (

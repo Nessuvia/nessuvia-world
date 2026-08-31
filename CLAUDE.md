@@ -1,15 +1,17 @@
-# CLAUDE.md — Xenia Nessuvia
+# CLAUDE.md: Xenia Nessuvia
 
 ## What this is
 
 A local-first character app that runs in the browser: chat with character cards, a Write mode for longer-form stories, an Ask scratchpad, and a multiplayer mode where guests join a host's chat from a link. All data lives in the user's browser and there are no accounts.
 
-Three paths leave the tab, and nothing else does:
+Four paths leave the tab, and nothing else does:
 
 - The model endpoint, OpenAI-compatible, hosted or localhost, with the user's own key.
 - The multiplayer relay — a Centrifugo instance the user runs. Broadcast and presence only;
   nothing is stored there and API keys never reach it.
 - The user's own S3-compatible bucket, when sync is on. There is no server of ours in it.
+- jsDelivr, for a tokenizer vocabulary, and only when the user presses the download button in a
+  connection. Two public JSON files, no key and no user text. See `core/prompt/tokenizerCache.ts`.
 
 The build ships as static assets behind a Cloudflare Worker (`src/index.js`, `wrangler.jsonc`) that serves `dist` and has no routes of its own, and it installs as a PWA.
 
@@ -21,9 +23,14 @@ This codebase is a WIP; don't worry about any data that's been imported or is al
 
 Vite · React 19 + TypeScript · plain CSS · React Router · Zustand · Dexie (IndexedDB) · pnpm
 
-Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (token budgeting), `compromise` (POS tagging for the grammar hammer), `centrifuge` (the multiplayer relay client), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping), `react-colorful` (the swatch picker in `app/ColorInput.tsx`). Dev side adds `vite-plugin-pwa` and `wrangler`.
+Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (the bundled GPT token tables), `@lenml/tokenizers` (runs a downloaded `tokenizer.json` for the other model families), `compromise` (POS tagging for the grammar hammer), `centrifuge` (the multiplayer relay client), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping), `react-colorful` (the swatch picker in `app/ColorInput.tsx`). Dev side adds `vite-plugin-pwa` and `wrangler`.
 
 There is no drag-and-drop library. Reordering is hand-rolled in `app/useDragReorder.ts`; use it.
+`itemProps` makes the whole row draggable and is right for a row of plain content. A row holding an
+`input` or a `textarea` must use `handleProps` on a drag handle and `dropProps` on the row instead:
+`draggable` on an ancestor stops Chrome placing the caret in the field, so the caret sticks at the
+start and clicking between words does nothing. `modules/lorebooks/EntryRows.tsx` and the beat rows
+in `modules/write/PlotLayout.tsx` are the pattern.
 
 Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, imported directly. No utility framework, no CSS-in-JS.
 
@@ -31,14 +38,14 @@ Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, 
 
 ``` /src
   /app          sidebar, module registry, routing, shared components and hooks
-    /skins      the structural half of a palette — see Style
+    /skins      the structural half of a palette; see Style
   /core
-    /storage    Dexie + the storage interface — the ONLY place that touches Dexie
+    /storage    Dexie + the storage interface; the ONLY place that touches Dexie
     /connectors the model endpoint: request bodies, SSE streaming, model lists
     /stores     Zustand stores
     /prompt     prompt assembly: buildPrompt, buildStoryPrompt, budget, worldInfo, conditions
     /palette    appearance: palettes, webfonts, background HTML/CSS sanitizing
-    /params     the sampler library — params as data, not code
+    /params     the sampler library: params as data, not code
     /hammer     grammar rules run over model output
     /multiplayer  relay channels, session protocol, turn order, narrator
     /sync       S3 bucket push/pull and dirty-table tracking
@@ -49,29 +56,32 @@ Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, 
 
 Modules self-register by calling `registerModule` from their `index.ts`; the sidebar and the router both derive from that registry. Adding a feature means adding a folder and importing it in `main.tsx` — never editing a central list of screens. Beyond `{ id, label, icon, route, component }` a module may declare:
 
-- `tabs` — `[hashId, label]` pairs shown as sidebar sub-items; the view reads the hash
+- `tabs`: `[hashId, label]` pairs shown as sidebar sub-items; the view reads the hash
   (`app/useHashTab.ts`).
-- `plugin: true` — listed in Settings › Miscellaneous and off until enabled there.
-- `chatPanels` — sections contributed to the chat sidebar, ordered by registration order in
+- `plugin: true`: listed in Settings › Miscellaneous and off until enabled there.
+- `chatPanels`: sections contributed to the chat sidebar, ordered by registration order in
   `main.tsx`. A panel that shouldn't show renders null; there is no visibility API.
-- `decorateMessage(ctx)` — text appended to the outgoing user message before token substitution.
+- `decorateMessage(ctx)`: text appended to the outgoing user message before token substitution.
 
 `component` is `lazy()` for route views; `chatPanels` stay eager, since they render inside the chat rather than behind a route.
 
-Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `prompts`, `appearance`, `settings`, plus four special cases —
+Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `lorebooks`, `prompts`, `appearance`, `settings`, plus four special cases —
 
 - `bodyMap` is a plugin: registered, but off until enabled in Settings.
 - `learn` is registered in every build; the sidebar only shows its button on dev
   (`import.meta.env.DEV` in `Sidebar.tsx`), so `/learn` resolves on live without a way in.
-- `sync` is commented out in `main.tsx`. The code works and the BYO-S3 decision is unmade;
-  unregistering is the whole switch. Re-enable by uncommenting.
+- `sync` is registered and live. It sits under Import/Export in the rail rather than the main nav,
+  and `Sidebar.tsx` guards its entries with `syncModule &&`, so commenting the import out of
+  `main.tsx` is still the whole off switch.
 - `join` is not a module. `App.tsx` mounts `/join/:sessionId` outside the app shell, so a guest
   never loads the sidebar.
 
-## Seams — reuse these, don't reinvent
+## Seams: reuse these, don't reinvent
 
-- **Prompt assembly** — `core/prompt`. `buildPrompt` (chat), `buildStoryPrompt` (Write),
-  `budget` (token counting and history trimming), `flattenPrompt` (text-completion connections),
+- **Prompt assembly** lives in `core/prompt`. `buildPrompt` (chat), `buildStoryPrompt` (Write),
+  `budget` (token counting and history trimming; `loadTokenizer` is async, `countTokens` is not,
+  and it has to stay that way; `tokenizers`/`autoTokenizer`/`tokenizerCache` pick and fetch which
+  one counts), `flattenPrompt` (text-completion connections),
   `swapTokens`, `worldInfo`, `conditions`, `chapterGuide`, `rewrite`. Anything changing what the
   model receives goes through one of these.
 - **Model calls** — `core/connectors`. `openaiCompatible` (streaming), `dummy` (local generator for
@@ -80,22 +90,26 @@ Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas
   implementation; nothing above it touches the relay client.
   `protocol.ts` holds the event shapes, `protocolVersion` (guests reject a mismatch) and the
   240 KB event cap. `hostSession`, `turnOrder`, `narrator`, `rosterAvatar` sit on top.
-- **Sync** — `core/sync/syncClient.ts` is the only outward-facing file; `dirtyTables.ts` decides
-  what needs pushing.
-- **Appearance** — `core/palette` for palettes, webfonts and the sanitizers; `app/skins` for the
-  structural layer.
-- **Sampler params** — `core/params`. A param def is a row, not code, so a new sampler needs no
-  release.
-- **Grammar hammer** — `core/hammer`. `tagger` → `pattern` → `matcher` → `repair`/`strip`, with
-  `exclusions` marking spans a rule may not touch.
+- **Sync** goes through `core/sync/syncClient.ts`, the only outward-facing file; `dirtyTables.ts`
+  decides what needs pushing.
+- **Appearance** uses `core/palette` for palettes and webfonts, plus the sanitizers; `app/skins` for
+  the structural layer.
+- **Sampler params** live in `core/params`. A param def is a row, not code, so a new sampler needs
+  no release.
+- **Grammar hammer** lives in `core/hammer`. `tagger`, then `pattern`, then `matcher`, then
+  `repair`/`strip`, with `exclusions` marking spans a rule may not touch.
 
 ## Data
 
-Everything durable is in Dexie (`core/storage/db.ts`), currently `db.version(12)`: `characters`, `personas`, `worldInfo`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`, `macros`, `palettes`, `backgroundImages`, `bodyTrackers`, `bodyMaps`, `paramDefs`.
+Everything durable is in Dexie (`core/storage/db.ts`), currently `db.version(14)`: `characters`, `personas`, `worldInfo`, `lorebooks`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`, `palettes`, `backgroundImages`, `bodyTrackers`, `bodyMaps`, `paramDefs`.
 
-- Adding a table or index means appending a new `db.version(N).stores({...})` block with the
-  **complete** schema, leaving every older block in place — Dexie needs the whole chain to upgrade
-  an existing local DB. Then add the name to `TableName` in `storageInterface.ts`.
+- One `db.version(N).stores({...})` block, currently 14, holding the **complete** schema. The old
+  chain was deleted; no block ever carried an `upgrade()` callback, so an older local DB upgrades
+  straight to the current schema. Adding a table or index means editing that block and raising the
+  number, then adding the name to `TableName` in `storageInterface.ts`. The number only goes up:
+  IndexedDB refuses to open a database whose stored version is higher than the one requested.
+  Adding an `upgrade()` callback is the one thing that would bring the chain back, and this codebase
+  doesn't migrate.
 - Adding a plain field needs no version bump: put it in `types.ts` and default it in the store's
   `newX()` factory. Indexes are only for fields you query with `find()`.
 - `storage.put/remove/clear/putAll` call `markDirty` before the write, which is how sync knows what
@@ -105,31 +119,40 @@ Three Zustand stores persist to localStorage instead of Dexie, via `zustand/midd
 
 `core/storage/backup.ts` is the only code that reads or writes those keys for export/import, and `stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
 
+**Non-portable preferences.** Small view state that belongs to this browser and not to the user's
+data: whether a panel is collapsed, which rail is open, an example section dismissed. Write it
+straight to `localStorage` under a `nessuTavern.*` key, with no store and no Dexie table, and leave
+it out of the export. `backup.ts` reads only the three keys it names, so a new key stays out of a
+backup by construction. `nessuTavern.sidebarCollapsed` (`app/Sidebar.tsx`) and
+`nessuTavern.lorebooksExample` (`modules/lorebooks/EntryExample.tsx`) are the pattern. The test is
+whether restoring a backup on another machine should carry it: if it shouldn't, it's a preference.
+
 ## Conventions
 
-- camelCase everywhere — variables, functions, filenames. Exceptions only where the platform forces
+- camelCase everywhere: variables, functions, filenames. Exceptions only where the platform forces
   otherwise (CSS class names, HTML attributes).
-- Plain functions, not classes. State lives in Zustand stores. Avoid inheritance, factories, and any
-  abstraction layer with one implementation.
+- Plain functions, not classes. State lives in Zustand stores. Avoid inheritance and factories, and
+  any abstraction layer with one implementation.
 - Write TypeScript like JavaScript. Interfaces for data shapes and function signatures where they
   prevent real mistakes. Avoid generics gymnastics and decorators.
 - Components read from and call into stores. **A component must never touch Dexie.** `core/storage`
   is the only importer of Dexie and that rule has no exceptions.
-- The send path never calls `fetch` from a component: it goes store → connector. Four files outside
-  `core/connectors` talk outward on purpose, each saying why in its header — `sync/syncClient.ts`
+- The send path never calls `fetch` from a component: it goes store → connector. Five files outside
+  `core/connectors` talk outward on purpose, each saying why in its header. `sync/syncClient.ts`
   (every request is SigV4-signed, so threading a signer elsewhere buys nothing),
   `multiplayer/centrifugoChannel.ts` (the relay client), and the two Settings probes,
   `ConnectionEditor.tsx`'s connection test and `readContextLimit.ts`, which are one-shot diagnostics
-  built from the connectors' own `completionUrl`/`modelsUrl`/`buildRequestBody`. Don't add a fifth
-  without the same kind of comment.
+  built from the connectors' own `completionUrl`/`modelsUrl`/`buildRequestBody`, and
+  `prompt/tokenizerCache.ts`, which fetches a static vocabulary from a CDN on a button press. Don't
+  add a sixth without the same kind of comment.
 - Model output and imported character cards are untrusted input. Render them as React elements,
-  never via `dangerouslySetInnerHTML` — this origin holds API keys in localStorage. User markup has
+  never via `dangerouslySetInnerHTML`: this origin holds API keys in localStorage. User markup has
   exactly one vetted route: `palette/sanitizeHtml.ts` (a `<template>` parse against a structural
   allowlist, rejecting the whole input rather than scrubbing it) attached with `replaceChildren` in
   `PageBackground.tsx`, and `palette/scopeCss.ts` for user CSS, which wraps it in `@scope` and
   refuses it whole if a stray `}` escapes the block.
 - Store what the model actually said. Formatting is a display concern; never rewrite stored content.
-- A file that a `check*` script imports uses explicit `.ts` extensions in its own imports — node
+- A file that a `check*` script imports uses explicit `.ts` extensions in its own imports: node
   strips types, it doesn't resolve like Vite. `core/params/paramDef.ts` and
   `core/multiplayer/relayConfig.ts` are the pattern.
 

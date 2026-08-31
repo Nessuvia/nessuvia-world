@@ -1,0 +1,317 @@
+.lorebooks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lorebooksHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lorebooksTitle {
+  margin: 0;
+  margin-right: auto;
+}
+
+/* The file picker is opened by the Import button; the input itself is never shown. */
+.lorebooksFileInput {
+  display: none;
+}
+
+.lorebooksError {
+  color: var(--danger);
+}
+
+.lorebooksList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Spans the list column, so it reads as a heading over the rows in one- and two-column layouts
+   alike. Not a .card: it is a label in the list, not a row you can open. */
+.lorebooksGroupHeader {
+  padding: 4px 2px;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+/* The second header follows a run of rows and needs air off them. */
+.lorebooksListRow + .lorebooksGroupHeader {
+  margin-top: 12px;
+}
+
+.lorebooksListRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  cursor: pointer;
+}
+
+.lorebooksListRow:hover {
+  background: var(--surfaceHover);
+}
+
+.lorebooksListRow.editing {
+  background: var(--surfaceSelected);
+}
+
+.lorebooksName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In the attach list the name is a link to the book on the Lorebooks page. It reads as the row's
+   text until hovered, so the row still looks like a list and not a wall of links. */
+.lorebooksAttachRow .lorebooksName {
+  color: inherit;
+  text-decoration: none;
+}
+
+.lorebooksAttachRow .lorebooksName:hover {
+  text-decoration: underline;
+}
+
+/* The entry count, as dense metadata rather than a number in body text. */
+.lorebooksCount {
+  color: var(--textMuted);
+  font-size: 11px;
+}
+
+.lorebooksBadge {
+  padding: 2px 6px;
+  border: 1px solid var(--borderAccent);
+  border-radius: 999px;
+  color: var(--textMuted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* --- the book editor --------------------------------------------------- */
+
+.lorebooksEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.lorebooksField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+/* An <input> with no type attribute doesn't match the `input[type='text']` baseline in index.css,
+   so the fields in this module carry it themselves. */
+.lorebooksTextInput,
+.lorebooksNumberInput,
+.lorebooksEntryName,
+.lorebooksEntryKeys,
+.lorebooksEntryNumber {
+  padding: 7px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+}
+
+.lorebooksBookFields {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.lorebooksNumberInput {
+  width: 8ch;
+}
+
+.lorebooksGlobalToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--textMuted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Sits on the same row as the book fields, pushed to the far edge. */
+.lorebooksAddEntry {
+  margin-left: auto;
+}
+
+/* --- entry rows -------------------------------------------------------- */
+
+.lorebooksEntryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lorebooksEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.lorebooksEntryRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+
+/* Only the handle is draggable (see the comment in EntryRows), so it carries the grab cursor. */
+.lorebooksEntryHandle {
+  display: flex;
+  align-items: center;
+  color: var(--textMuted);
+  cursor: grab;
+}
+
+.lorebooksEntryName {
+  flex: 1 1 12ch;
+  min-width: 0;
+}
+
+/* Wider than the name: an entry often carries several keys. */
+.lorebooksEntryKeys {
+  flex: 2 1 20ch;
+  min-width: 0;
+}
+
+.lorebooksEntryFlag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--textMuted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lorebooksEntryNumber {
+  width: 6ch;
+}
+
+/* Opened by the Text button: sized to the entry rather than to a row count, so an entry of several
+   hundred words is read in one go. Capped so one entry can't fill the viewport. */
+.lorebooksEntryText {
+  field-sizing: content;
+  min-height: 12em;
+  max-height: 60vh;
+}
+
+/* The whole entry, closed: the column is wide enough to read one, and a truncated line meant
+   opening every entry to find out what was in it. */
+.lorebooksEntrySnippet {
+  margin: 0;
+  white-space: pre-wrap;
+  /* Muted read as placeholder text against the filled-in fields above it. */
+  color: var(--textSoft);
+  cursor: text;
+}
+
+.lorebooksEntryHint {
+  margin: 0;
+}
+
+/* --- the example entry ------------------------------------------------- */
+
+.lorebooksExample {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lorebooksExampleHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.lorebooksExampleTitle {
+  margin-right: auto;
+}
+
+/* Nothing in it is editable, so it sits back from the rows it explains. */
+.lorebooksExampleCard {
+  background: var(--surfaceSunken);
+}
+
+.lorebooksExampleNote {
+  margin: 0;
+}
+
+.lorebooksExampleText {
+  min-height: 8em;
+}
+
+/* --- the attach control, in the chat panel and the character editor ----- */
+
+.lorebooksAttach {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lorebooksAttachList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lorebooksAttachRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.lorebooksAttachActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lorebooksGoEdit {
+  color: var(--textMuted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .lorebooksBookFields,
+  .lorebooksEntryRow {
+    flex-wrap: wrap;
+  }
+}

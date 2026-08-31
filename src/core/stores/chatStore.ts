@@ -4,9 +4,12 @@ import { currentOwnerId } from '../storage/storageInterface'
 import type { StoredRecord } from '../storage/storageInterface'
 import type { Character, Chat, Message, PromptStack, SpeakerAs } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
+import { runSecondPass } from '../secondPass/runSecondPass'
+import type { PassContext } from '../secondPass/passContext'
 import { snapshotOf } from '../connectors/snapshot'
 import { buildPrompt } from '../prompt/buildPrompt'
 import { loadTokenizer } from '../prompt/budget'
+import { tokenizerFor } from '../prompt/tokenizers'
 import type { Connection } from './settingsStore'
 import { activeConnection, useSettings } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
@@ -20,15 +23,16 @@ import { parseCommand, stripEscape } from './slashCommands'
 import { continuePrompt, oldMessageInstruction, rewritePrompt } from '../prompt/rewrite'
 import { isEnabled, modules } from '../../app/moduleRegistry'
 import { chatTokens, swapTokens } from '../prompt/swapTokens'
-import { worldInfoText } from '../prompt/worldInfo'
+import { emptyWorldInfo, resolveWorldInfo, type ResolvedWorldInfo } from '../prompt/worldInfo'
 import { useWorldInfo } from './worldInfoStore'
+import { bookIdsFor, useLorebooks } from './lorebooksStore'
 import { useBlips } from './blipStore'
 import { isNarrator, narratorCharacter } from '../multiplayer/narrator'
 import { budgetOf, maxTokensOf } from '../params/connectionParams'
 
 /**
  * The active session's people as `Name: description` lines, filling {{personas}}, or undefined
- * outside a session. The Narrator's instructions are not here and never were a store concern —
+ * outside a session. The Narrator's instructions are not here and never were a store concern:
  * they come from the prompt stack's `[if Narrator]` branch, the one place the user can edit them.
  */
 let _sessionPersonas: string | undefined = undefined
@@ -45,6 +49,25 @@ export function setSessionCast(cast: Character[] | undefined): void {
 
 const byTime = (a: Message, b: Message) => a.createdAt - b.createdAt || a.id! - b.id!
 
+/**
+ * What Second Pass's repetition check looks at besides the reply itself. Only assistant turns go
+ * in: the thing being detected is the model repeating itself, and folding the user's own words in
+ * would flag the reply for quoting the person it is answering.
+ *
+ * Trimmed generously rather than exactly. The check applies its own `lookback` setting, so this
+ * only has to be at least as much as the largest lookback a user might set.
+ */
+const HISTORY_FOR_NOTES = 40
+function passContext(messages: Message[]): PassContext {
+  return {
+    role: 'assistant',
+    history: messages
+      .filter((m) => m.role === 'assistant')
+      .slice(-HISTORY_FOR_NOTES)
+      .map((m) => m.content),
+  }
+}
+
 // Not state: nothing renders from it, and `streaming` already drives the button.
 let abort: AbortController | null = null
 
@@ -58,7 +81,7 @@ const lengthNotice = (maxTokens: number) =>
 
 /**
  * The stack this chat should actually use: its own override, or the globally active one. The
- * override exists so a multiplayer session's stack cannot leak into every ordinary chat — the
+ * override exists so a multiplayer session's stack cannot leak into every ordinary chat, the
  * global is what the Prompts tab and the Settings picker write, and a session must not repoint it.
  * Falls back to the global when the override names a stack that has since been deleted.
  */
@@ -72,7 +95,7 @@ export async function stackFor(chat: Chat | null): Promise<PromptStack> {
 }
 
 /**
- * The connection as this chat should actually use it — the only place override precedence is
+ * The connection as this chat should actually use it, the only place override precedence is
  * applied. It lives in the store rather than the view because the store is what sends: the
  * budget, the request body and the preview all read the same resolved object.
  */
@@ -82,7 +105,7 @@ export function resolvedConnection(character: Character, chat: Chat): Connection
 }
 
 /**
- * The character at a roster position, falling back to the chat's own character — a participant
+ * The character at a roster position, falling back to the chat's own character, a participant
  * deleted out from under the roster still leaves a turn that can be generated.
  */
 function characterAt(chat: Chat, index: number, fallback: Character): Character {
@@ -94,14 +117,28 @@ function characterAt(chat: Chat, index: number, fallback: Character): Character 
 }
 
 /**
- * The World info text for a turn. Resolved against the *speaker* — in a group chat the character
- * replying owns the book, not the chat's first participant.
+ * The lorebook content for a turn, from three attachment levels at once: every global book, the
+ * *speaker's* books, in a group chat the character replying brings their own, not the chat's first
+ * participant, and the books attached to this chat.
  */
-async function worldInfoFor(speaker: Character, messages: Message[]): Promise<string> {
-  if (!speaker.id) return ''
-  const entries = await useWorldInfo.getState().fetchFor(speaker.id)
-  if (!entries.length) return ''
-  return worldInfoText(entries, messages, speaker.worldBook)
+export async function worldInfoFor(
+  speaker: Character,
+  chat: Chat | null,
+  messages: Message[],
+  /** The stack's `worldInfoBudget`. Passed in rather than read here: which stack is in play is the
+   *  caller's business, and this function already takes every other input it needs. */
+  budget?: number,
+): Promise<ResolvedWorldInfo> {
+  const state = useLorebooks.getState()
+  // The list is loaded once and kept; a send that races a first load would otherwise see no
+  // global books at all.
+  if (!state.books.length && !state.loading) await state.load()
+  const books = useLorebooks.getState().books
+  const ids = bookIdsFor(books, speaker.lorebookIds, chat?.lorebookIds)
+  if (!ids.length) return emptyWorldInfo
+  const entries = await useWorldInfo.getState().fetchForBooks(ids)
+  if (!entries.length) return emptyWorldInfo
+  return resolveWorldInfo(entries, messages, new Map(books.map((b) => [b.id!, b])), budget)
 }
 
 /** Per character: how many chats it has, and when its newest message was (0 = none). */
@@ -110,7 +147,7 @@ export interface CharacterSummary {
   latest: number
   /** Most recently updated chat, so the picker can resume without loading a character's chat list. */
   lastChatId?: number
-  /** `updatedAt` of that chat — only used to pick it. */
+  /** `updatedAt` of that chat, only used to pick it. */
   lastChatAt?: number
 }
 
@@ -122,20 +159,23 @@ interface ChatState {
   chat: Chat | null
   messages: Message[]
   streamingText: string
+  /** Second Pass's first-pass text as it arrives, rendered provisionally. Cleared when the edited
+   *  reply starts, so the dimmed draft never sits under the final text. */
+  streamingDraft: string
   /** Reasoning as it arrives, so the thinking is visible before any reply text shows up.
-   *  Only reset when a stream starts — nothing renders it while `streaming` is false. */
+   *  Only reset when a stream starts, nothing renders it while `streaming` is false. */
   streamingReasoning: string
   streaming: boolean
   /** Which chat the stream belongs to, so opening another chat mid-generation doesn't show its
    *  reply there. Null when idle. */
   streamingChatId: number | null
   /** The chat ChatView currently has open, or null when no chat is on screen. Separate from `chat`,
-   *  which stays loaded after you navigate away — this is the one that says you're *looking* at it,
+   *  which stays loaded after you navigate away, this is the one that says you're *looking* at it,
    *  and it's what decides whether a finished reply blips instead of landing quietly. */
   viewingChatId: number | null
   setViewing(chatId: number | null): void
   error: string
-  /** History messages the budget dropped on the last send — normal operation, not an error. */
+  /** History messages the budget dropped on the last send, normal operation, not an error. */
   trimmedCount: number
   /** The open chat's stack's utility-prompt overrides, for views that show one before it is sent.
    *  The send path re-reads them off the stack it loads rather than trusting this copy. */
@@ -153,17 +193,17 @@ interface ChatState {
   loadChats(characterId: number): Promise<void>
   /** One read of a character's messages, so typing a query filters in memory. */
   loadSearchIndex(characterId: number): Promise<void>
-  /** One pass over chats + messages, keyed by characterId — for the picker cards. */
+  /** One pass over chats + messages, keyed by characterId, for the picker cards. */
   loadSummaries(): Promise<void>
   /** The character's most recent chat, for the stack editor's preview. Doesn't touch chat state. */
   load(chatId: number): Promise<void>
-  /** A chat's messages in order, without opening it — what the chat list's export reads. */
+  /** A chat's messages in order, without opening it, what the chat list's export reads. */
   messagesOf(chatId: number): Promise<Message[]>
   createChat(characterId: number): Promise<number>
   renameChat(id: number, title: string): Promise<void>
   /** Write straight to the open chat: the settings panel debounces, there's no dirty state. */
   patchChat(patch: Partial<Chat>): Promise<void>
-  /** All bookmarked chats, newest first — the sidebar list. */
+  /** All bookmarked chats, newest first, the sidebar list. */
   loadBookmarks(): Promise<void>
   /** Flip a chat's bookmark by id, whether or not it's in the current per-character list. */
   toggleBookmark(id: number): Promise<void>
@@ -175,6 +215,8 @@ interface ChatState {
   retry(character: Character, speakerId?: number): Promise<void>
   /** What the error bar offers: whatever just failed, tried again. */
   retryLast(character: Character): Promise<void>
+  /** Close the error bar without retrying. */
+  clearError(): void
   /** Re-roll any assistant message into a new swipe. With an instruction, it's a rewrite. */
   regenerate(character: Character, messageId: number, instruction?: string): Promise<void>
   /** Carry the last reply on from where it stopped, into the swipe that's showing. */
@@ -196,12 +238,14 @@ export const useChats = create<ChatState>()((set, get) => ({
   chat: null,
   messages: [],
   streamingText: '',
+  streamingDraft: '',
   streamingReasoning: '',
   streaming: false,
   streamingChatId: null,
   viewingChatId: null,
   setViewing: (chatId) => set({ viewingChatId: chatId }),
   error: '',
+  clearError: () => set({ error: '' }),
   trimmedCount: 0,
   miscPrompts: undefined,
   regeneratingId: null,
@@ -252,7 +296,7 @@ export const useChats = create<ChatState>()((set, get) => ({
   load: async (chatId) => {
     const chat = (await storage.get('chats', chatId)) as unknown as Chat | undefined
     const rows = (await storage.find('messages', 'chatId', chatId)) as unknown as Message[]
-    // Resolved here so the view can show the same wording the send path will use — the rewrite box
+    // Resolved here so the view can show the same wording the send path will use, the rewrite box
     // prefills with the old-message instruction, and reading it off the stack in a component would
     // mean an async lookup per message row.
     const miscPrompts = chat ? (await stackFor(chat)).miscPrompts : undefined
@@ -278,7 +322,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     })
     // The greeting seeds the first assistant message with every greeting as a swipe: swiping it
     // picks another greeting rather than calling the model. Tokens resolve here, once, as the
-    // card data becomes a real message — after that it's transcript like any other turn.
+    // card data becomes a real message, after that it's transcript like any other turn.
     const persona = await usePersonas.getState().ensureActive()
     const greetings = character
       ? [character.firstMessage, ...character.alternateGreetings]
@@ -370,7 +414,7 @@ export const useChats = create<ChatState>()((set, get) => ({
         set({ error: 'No message after the character name.' })
         return
       }
-      // The same fields `retry` stamps on a reply, minus the request snapshot and reasoning —
+      // The same fields `retry` stamps on a reply, minus the request snapshot and reasoning:
       // there was no request. Nothing records that a human wrote it: from here on it is that
       // character's line like any other.
       await storage.put('messages', {
@@ -396,7 +440,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     }
 
     const persona = await usePersonas.getState().ensureActive()
-    // Tokens resolve as you send, and the expanded text is what's stored — the message becomes
+    // Tokens resolve as you send, and the expanded text is what's stored, the message becomes
     // transcript the moment it lands, and transcript is never substituted again.
     // In a group this resolves {{char}} against the chat's first participant, not whoever replies
     // next: you type before the round robin picks. Per-message speaker choice is the upgrade path
@@ -433,7 +477,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     await get().load(chat.id!)
     if (command?.name === 'noreply') return
 
-    // A chosen speaker is one reply from that participant — no round robin, no self-reply run.
+    // A chosen speaker is one reply from that participant, no round robin, no self-reply run.
     stopped = false
     if (speakerId !== undefined) {
       await get().retry(character, speakerId)
@@ -458,22 +502,23 @@ export const useChats = create<ChatState>()((set, get) => ({
       // Params resolve against the speaker, not the chat's first participant.
       const connection = resolvedConnection(speaker, chat)
       if (!connection) {
-        set({ error: 'No active connection — pick one in Settings.' })
+        set({ error: 'No active connection, pick one in Settings.' })
         return
       }
 
       const controller = new AbortController()
       abort = controller
-      set({ streaming: true, streamingChatId: chat.id ?? null, streamingText: '', streamingReasoning: '', error: '', failed: null, speakingName: speaker.name, speakingId: speaker.id ?? null })
+      set({ streaming: true, streamingChatId: chat.id ?? null, streamingText: '', streamingDraft: '', streamingReasoning: '', error: '', failed: null, speakingName: speaker.name, speakingId: speaker.id ?? null })
 
       let text = ''
+      let draft = ''
       let reasoning = ''
       let finishReason = ''
       let snapshot: string | undefined
       try {
         const stack = await stackFor(chat)
         const persona = await usePersonas.getState().ensureActive()
-        await loadTokenizer()
+        await loadTokenizer(tokenizerFor(connection))
         const promptMessages = buildPrompt(
           {
             stack,
@@ -482,7 +527,7 @@ export const useChats = create<ChatState>()((set, get) => ({
             chat,
             speaker,
             messages: get().messages,
-            worldInfo: await worldInfoFor(speaker, get().messages),
+            worldInfo: await worldInfoFor(speaker, chat, get().messages, stack.worldInfoBudget),
             tagRules: useSettings.getState().appearance.tagRules,
             cast: _sessionCast,
             personas: _sessionPersonas,
@@ -491,35 +536,46 @@ export const useChats = create<ChatState>()((set, get) => ({
         )
         set({ trimmedCount: promptMessages.droppedCount })
         snapshot = snapshotOf(promptMessages.messages, connection)
-        for await (const chunk of sendMessage(promptMessages.messages, connection, controller.signal)) {
+        for await (const chunk of runSecondPass(
+          promptMessages.messages,
+          connection,
+          controller.signal,
+          undefined,
+          passContext(get().messages),
+        )) {
           if (chunk.reasoning) {
             reasoning += chunk.reasoning
             set({ streamingReasoning: reasoning })
           }
+          if (chunk.draft) {
+            draft += chunk.draft
+            set({ streamingDraft: draft })
+          }
           if (chunk.content) {
             text += chunk.content
-            set({ streamingText: text })
+            // The edited reply is starting: the provisional draft stops being what to look at.
+            set({ streamingText: text, streamingDraft: '' })
           }
           if (chunk.finishReason) finishReason = chunk.finishReason
         }
       } catch (err) {
         // A deliberate stop keeps the partial; a real failure discards it and keeps the error.
         if (!controller.signal.aborted) {
-          set({ streaming: false, streamingChatId: null, streamingText: '', speakingName: '', speakingId: null, error: (err as Error).message })
+          set({ streaming: false, streamingChatId: null, streamingText: '', streamingDraft: '', speakingName: '', speakingId: null, error: (err as Error).message })
           return
         }
       } finally {
         abort = null
       }
 
-      // A clean stream that never produced reply text: don't vanish silently — say so, and name the
+      // A clean stream that never produced reply text: don't vanish silently, say so, and name the
       // reasoning-only case, since a reasoning model that hits its token limit while thinking is the
       // usual cause.
       if (!text && !controller.signal.aborted) {
         const message = reasoning
-          ? `The model produced ${reasoning.length} characters of reasoning but no reply — it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
+          ? `The model produced ${reasoning.length} characters of reasoning but no reply, it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
           : 'The model returned an empty response.'
-        set({ streaming: false, streamingChatId: null, streamingText: '', speakingName: '', speakingId: null, error: message })
+        set({ streaming: false, streamingChatId: null, streamingText: '', streamingDraft: '', speakingName: '', speakingId: null, error: message })
         return
       }
 
@@ -527,6 +583,7 @@ export const useChats = create<ChatState>()((set, get) => ({
         streaming: false,
         streamingChatId: null,
         streamingText: '',
+        streamingDraft: '',
         speakingName: '',
         speakingId: null,
         error: finishReason === 'length' ? lengthNotice(maxTokensOf(connection)) : '',
@@ -542,11 +599,12 @@ export const useChats = create<ChatState>()((set, get) => ({
           // Parallel to swipes: this reply is swipe 0 even before there's a swipes array.
           requestSnapshots: [snapshot],
           reasonings: [reasoning || undefined],
+          drafts: [draft && draft !== text ? draft : undefined],
           createdAt: Date.now(),
         })
         // The cursor only moves on a reply that happened, so a failed turn doesn't skip anyone.
         // Both of these write through the *current* chat, so skip them if you navigated to another
-        // one while this streamed — the message above already landed in the right chat.
+        // one while this streamed, the message above already landed in the right chat.
         if (get().chat?.id === chat.id) {
           await get().patchChat({ lastSpeakerIndex: -1 }) // Narrator doesn't advance round robin
           await get().load(chat.id!)
@@ -556,29 +614,30 @@ export const useChats = create<ChatState>()((set, get) => ({
       return
     }
     // Round robin, unless an avatar was clicked. A solo chat is a roster of one, so this is the
-    // same code path either way — index 0, every time.
+    // same code path either way, index 0, every time.
     const asked = speakerId === undefined ? -1 : participants(chat).indexOf(speakerId)
     const index = asked >= 0 ? asked : nextSpeakerIndex(chat)
     const speaker = characterAt(chat, index, character)
     // Params resolve against the speaker, not the chat's first participant.
     const connection = resolvedConnection(speaker, chat)
     if (!connection) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection, pick one in Settings.' })
       return
     }
 
     const controller = new AbortController()
     abort = controller
-    set({ streaming: true, streamingChatId: chat.id ?? null, streamingText: '', streamingReasoning: '', error: '', failed: null, speakingName: speaker.name, speakingId: speaker.id ?? null })
+    set({ streaming: true, streamingChatId: chat.id ?? null, streamingText: '', streamingDraft: '', streamingReasoning: '', error: '', failed: null, speakingName: speaker.name, speakingId: speaker.id ?? null })
 
     let text = ''
+    let draft = ''
     let reasoning = ''
     let finishReason = ''
     let snapshot: string | undefined
     try {
       const stack = await stackFor(chat)
       const persona = await usePersonas.getState().ensureActive()
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       const promptMessages = buildPrompt(
         {
           stack,
@@ -587,7 +646,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages,
-          worldInfo: await worldInfoFor(speaker, get().messages),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages, stack.worldInfoBudget),
           tagRules: useSettings.getState().appearance.tagRules,
           cast: _sessionCast,
           personas: _sessionPersonas,
@@ -596,35 +655,46 @@ export const useChats = create<ChatState>()((set, get) => ({
       )
       set({ trimmedCount: promptMessages.droppedCount })
       snapshot = snapshotOf(promptMessages.messages, connection)
-      for await (const chunk of sendMessage(promptMessages.messages, connection, controller.signal)) {
+      for await (const chunk of runSecondPass(
+        promptMessages.messages,
+        connection,
+        controller.signal,
+        undefined,
+        passContext(get().messages),
+      )) {
         if (chunk.reasoning) {
           reasoning += chunk.reasoning
           set({ streamingReasoning: reasoning })
         }
+        if (chunk.draft) {
+          draft += chunk.draft
+          set({ streamingDraft: draft })
+        }
         if (chunk.content) {
           text += chunk.content
-          set({ streamingText: text })
+          // The edited reply is starting: the provisional draft stops being what to look at.
+          set({ streamingText: text, streamingDraft: '' })
         }
         if (chunk.finishReason) finishReason = chunk.finishReason
       }
     } catch (err) {
       // A deliberate stop keeps the partial; a real failure discards it and keeps the error.
       if (!controller.signal.aborted) {
-        set({ streaming: false, streamingChatId: null, streamingText: '', speakingName: '', speakingId: null, error: (err as Error).message })
+        set({ streaming: false, streamingChatId: null, streamingText: '', streamingDraft: '', speakingName: '', speakingId: null, error: (err as Error).message })
         return
       }
     } finally {
       abort = null
     }
 
-    // A clean stream that never produced reply text: don't vanish silently — say so, and name the
+    // A clean stream that never produced reply text: don't vanish silently, say so, and name the
     // reasoning-only case, since a reasoning model that hits its token limit while thinking is the
     // usual cause.
     if (!text && !controller.signal.aborted) {
       const message = reasoning
-        ? `The model produced ${reasoning.length} characters of reasoning but no reply — it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
+        ? `The model produced ${reasoning.length} characters of reasoning but no reply, it likely hit the token limit while thinking. Raise max tokens, or turn off the model's thinking mode.`
         : 'The model returned an empty response.'
-      set({ streaming: false, streamingChatId: null, streamingText: '', speakingName: '', speakingId: null, error: message })
+      set({ streaming: false, streamingChatId: null, streamingText: '', streamingDraft: '', speakingName: '', speakingId: null, error: message })
       return
     }
 
@@ -632,6 +702,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       streaming: false,
       streamingChatId: null,
       streamingText: '',
+      streamingDraft: '',
       speakingName: '',
       speakingId: null,
       error: finishReason === 'length' ? lengthNotice(maxTokensOf(connection)) : '',
@@ -647,11 +718,12 @@ export const useChats = create<ChatState>()((set, get) => ({
         // Parallel to swipes: this reply is swipe 0 even before there's a swipes array.
         requestSnapshots: [snapshot],
         reasonings: [reasoning || undefined],
+        drafts: [draft && draft !== text ? draft : undefined],
         createdAt: Date.now(),
       })
       // The cursor only moves on a reply that happened, so a failed turn doesn't skip anyone.
       // Both of these write through the *current* chat, so skip them if you navigated to another
-      // one while this streamed — the message above already landed in the right chat.
+      // one while this streamed, the message above already landed in the right chat.
       if (get().chat?.id === chat.id) {
         await get().patchChat({ lastSpeakerIndex: index })
         await get().load(chat.id!)
@@ -675,13 +747,13 @@ export const useChats = create<ChatState>()((set, get) => ({
     const target = get().messages[at]
     if (!target || target.role !== 'assistant') return
 
-    // Re-rolled as whoever said it, not as whoever is up next — so the snapshot stays truthful and
+    // Re-rolled as whoever said it, not as whoever is up next, so the snapshot stays truthful and
     // the reply keeps the same voice, card and params.
     const speaker =
       useCharacters.getState().characters.find((c) => c.id === target.speakerId) ?? character
     const connection = resolvedConnection(speaker, chat)
     if (!connection) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection, pick one in Settings.' })
       return
     }
 
@@ -710,14 +782,15 @@ export const useChats = create<ChatState>()((set, get) => ({
       : oldMessageInstruction(get().messages.slice(at + 1), speaker.name, stack.miscPrompts)
 
     let text = ''
+    let draft = ''
     let reasoning = ''
     let finishReason = ''
     let snapshot: string | undefined
     try {
       const persona = await usePersonas.getState().ensureActive()
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       // As if this message didn't exist yet: history is everything before it. Anything after it
-      // is neither sent nor touched — it only reaches the model through the instruction above.
+      // is neither sent nor touched, it only reaches the model through the instruction above.
       const prompt = buildPrompt(
         {
           stack,
@@ -726,7 +799,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages.slice(0, at),
-          worldInfo: await worldInfoFor(speaker, get().messages.slice(0, at)),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, at), stack.worldInfoBudget),
           appendSystem,
           tagRules: useSettings.getState().appearance.tagRules,
           cast: _sessionCast,
@@ -736,14 +809,24 @@ export const useChats = create<ChatState>()((set, get) => ({
       )
       set({ trimmedCount: prompt.droppedCount })
       snapshot = snapshotOf(prompt.messages, connection)
-      for await (const chunk of sendMessage(prompt.messages, connection, controller.signal)) {
+      for await (const chunk of runSecondPass(
+        prompt.messages,
+        connection,
+        controller.signal,
+        undefined,
+        passContext(get().messages.slice(0, at)),
+      )) {
         if (chunk.reasoning) {
           reasoning += chunk.reasoning
           set({ streamingReasoning: reasoning })
         }
+        if (chunk.draft) {
+          draft += chunk.draft
+          set({ streamingDraft: draft })
+        }
         if (chunk.content) {
           text += chunk.content
-          set({ streamingText: text })
+          set({ streamingText: text, streamingDraft: '' })
         }
         if (chunk.finishReason) finishReason = chunk.finishReason
       }
@@ -770,14 +853,15 @@ export const useChats = create<ChatState>()((set, get) => ({
       streaming: false,
       streamingChatId: null,
       streamingText: '',
+      streamingDraft: '',
       regeneratingId: null,
       speakingName: '',
       error: finishReason === 'length' ? lengthNotice(maxTokensOf(connection)) : '',
     })
-    const updated = regenerated(target, text, snapshot, reasoning)
+    const updated = regenerated(target, text, snapshot, reasoning, instruction, draft)
     if (updated) {
       await storage.put('messages', updated as unknown as StoredRecord)
-      // Same as retry: don't reload if you've moved to another chat mid-stream — blip instead.
+      // Same as retry: don't reload if you've moved to another chat mid-stream, blip instead.
       if (get().chat?.id === chat.id) await get().load(chat.id!)
       if (get().viewingChatId !== chat.id) {
         useBlips.getState().mark(target.speakerId ?? chat.characterId)
@@ -790,14 +874,14 @@ export const useChats = create<ChatState>()((set, get) => ({
     if (!chat) return
     const target = get().messages.at(-1)
     if (!target || target.role !== 'assistant') {
-      set({ error: 'Nothing to continue — the last message is not a reply.' })
+      set({ error: 'Nothing to continue, the last message is not a reply.' })
       return
     }
     // Trailing whitespace is not part of what was said, and some endpoints reject a prefill that
     // ends in it. Trimmed once here so the text sent and the text appended to are the same string.
     const prefix = target.content.replace(/\s+$/, '')
     if (!prefix) {
-      set({ error: 'Nothing to continue — the last reply is empty.' })
+      set({ error: 'Nothing to continue, the last reply is empty.' })
       return
     }
 
@@ -806,7 +890,7 @@ export const useChats = create<ChatState>()((set, get) => ({
       useCharacters.getState().characters.find((c) => c.id === target.speakerId) ?? character
     const connection = resolvedConnection(speaker, chat)
     if (!connection) {
-      set({ error: 'No active connection — pick one in Settings.' })
+      set({ error: 'No active connection, pick one in Settings.' })
       return
     }
 
@@ -815,7 +899,7 @@ export const useChats = create<ChatState>()((set, get) => ({
     set({
       streaming: true,
       streamingChatId: chat.id ?? null,
-      // The bubble renders streamingText in place of the message, so it carries the partial too —
+      // The bubble renders streamingText in place of the message, so it carries the partial too:
       // otherwise the reply would appear to vanish and regrow from the join.
       streamingText: prefix,
       streamingReasoning: '',
@@ -832,10 +916,10 @@ export const useChats = create<ChatState>()((set, get) => ({
     try {
       const stack = await stackFor(chat)
       const persona = await usePersonas.getState().ensureActive()
-      await loadTokenizer()
+      await loadTokenizer(tokenizerFor(connection))
       // History is everything before this message; the message itself goes in as the prefill, so
       // it appears once rather than twice. Deliberately unlabelled in a group chat, where history
-      // turns carry a `Name:` prefix — the continuation should come back as bare text.
+      // turns carry a `Name:` prefix, the continuation should come back as bare text.
       const prompt = buildPrompt(
         {
           stack,
@@ -844,7 +928,7 @@ export const useChats = create<ChatState>()((set, get) => ({
           chat,
           speaker,
           messages: get().messages.slice(0, -1),
-          worldInfo: await worldInfoFor(speaker, get().messages.slice(0, -1)),
+          worldInfo: await worldInfoFor(speaker, chat, get().messages.slice(0, -1), stack.worldInfoBudget),
           appendSystem: continuePrompt(stack.miscPrompts),
           appendAssistant: prefix,
           tagRules: useSettings.getState().appearance.tagRules,
@@ -855,6 +939,10 @@ export const useChats = create<ChatState>()((set, get) => ({
       )
       set({ trimmedCount: prompt.droppedCount })
       snapshot = snapshotOf(prompt.messages, connection)
+      // Deliberately not through runSecondPass. A continuation's reply is the accepted prefix plus
+      // what the model just added, and `continued` writes the whole thing back over the swipe, so a
+      // second pass would edit text the user already kept. Wiring it needs the pass to be told which
+      // span is new and to leave the rest alone.
       for await (const chunk of sendMessage(prompt.messages, connection, controller.signal)) {
         if (chunk.reasoning) {
           reasoning += chunk.reasoning
@@ -889,10 +977,11 @@ export const useChats = create<ChatState>()((set, get) => ({
       streaming: false,
       streamingChatId: null,
       streamingText: '',
+      streamingDraft: '',
       regeneratingId: null,
       speakingName: '',
       // A continuation can hit the limit as readily as the reply did, and then it can be continued
-      // again — the notice is the same one either way.
+      // again, the notice is the same one either way.
       error: finishReason === 'length' ? lengthNotice(maxTokensOf(connection)) : '',
     })
     // Joined raw. What the model sent is what's stored, and it decides its own leading space.

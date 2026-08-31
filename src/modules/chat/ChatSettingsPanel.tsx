@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { Chat } from '../../core/storage/types'
 import PromptToggles from '../prompts/PromptToggles'
+import { stackKind } from '../prompts/stackKinds'
 import { useChats } from '../../core/stores/chatStore'
 import { useCharacters } from '../../core/stores/charactersStore'
-import { useSettings, useAppearance } from '../../core/stores/settingsStore'
+import { useSettings, useAppearance, useActiveConnection, useSecondPass } from '../../core/stores/settingsStore'
+import ConnectionPicker from '../../app/ConnectionPicker'
 import { usePalette } from '../../core/stores/palettesStore'
 import { useStacks } from '../../core/stores/stacksStore'
 import { participants } from '../../core/stores/roster'
@@ -22,7 +24,7 @@ const clampWidth = (n: number) => Math.min(100, Math.max(1, n || 100))
  * The open chat's settings, rendered in the sidebar. It reads its own state rather than taking
  * props, save for one presentational flag: the sidebar knows a chat is open, not what's in it.
  *
- * No save button and no dirty state — edits land in the chat record 600ms after the last
+ * No save button and no dirty state, edits land in the chat record 600ms after the last
  * keystroke. The sidebar keys this on the chat id, so the draft never needs resetting in place.
  */
 export default function ChatSettingsPanel({
@@ -34,12 +36,15 @@ export default function ChatSettingsPanel({
   const chat = useChats((s) => s.chat)
   const patchChat = useChats((s) => s.patchChat)
   const character = useCharacters((s) => s.characters.find((c) => c.id === chat?.characterId))
-  const connections = useSettings((s) => s.connections)
   const activeConnectionId = useSettings((s) => s.activeConnectionId)
-  const connection = connections.find((c) => c.id === activeConnectionId)
+  const connection = useActiveConnection()
+  const secondPass = useSecondPass()
+  const setSecondPass = useSettings((s) => s.setSecondPass)
   const setActiveConnection = useSettings((s) => s.setActiveConnection)
   const activeStackId = useSettings((s) => s.activeStackId)
   const stacks = useStacks((s) => s.stacks)
+  // Story stacks build a different prompt and have no Chat History block, so they can't run a chat.
+  const chatStacks = stacks.filter((s) => stackKind(s) === 'chat')
   // A chat with its own stack shows and edits that one. Only a chat without an override reaches
   // the global, so a multiplayer session's stack can't be repointed from here by accident.
   const ownStackId = chat?.stackId
@@ -80,22 +85,9 @@ export default function ChatSettingsPanel({
           Every chat resolves generation from those globals, so this is a global default, not a
           per-chat override. Per-chat: add connectionId to the Chat record (stackId already exists)
           and resolve from it in ChatView. */}
-      <label className="chatSettingsPick">
-        Connection
-        <select
-          value={activeConnectionId ?? ''}
-          onChange={(e) => setActiveConnection(e.target.value || null)}
-        >
-          {connections.length === 0 && <option value="">No connections</option>}
-          {connections.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ConnectionPicker value={activeConnectionId} onChange={setActiveConnection} />
 
-      {/* <details> for the section toggles — native, and no state to persist. */}
+      {/* <details> for the section toggles, native, and no state to persist. */}
       <details>
         <summary>Author's Note</summary>
         <label>
@@ -136,8 +128,8 @@ export default function ChatSettingsPanel({
             disabled={ownStackId !== undefined}
             onChange={(e) => useSettings.setState({ activeStackId: Number(e.target.value) })}
           >
-            {stacks.length === 0 && <option value="">No stacks</option>}
-            {stacks.map((s) => (
+            {chatStacks.length === 0 && <option value="">No stacks</option>}
+            {chatStacks.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>
@@ -169,7 +161,7 @@ export default function ChatSettingsPanel({
       </details>
 
       {/* Palette-driven display: these write to the active palette (chat width can carry a per-chat
-          override). Distinct from user-level appearance — see the split into Palette vs Appearance. */}
+          override). Distinct from user-level appearance, see the split into Palette vs Appearance. */}
       <details>
         <summary>Palette</summary>
         <label className="chatWidth">
@@ -195,14 +187,14 @@ export default function ChatSettingsPanel({
         <AppearancePanel colors={false} font="compact" />
       </details>
 
-      {/* Single-chat counterpart to Group Settings — a chat is single or group, never both. Holds the
+      {/* Single-chat counterpart to Group Settings, a chat is single or group, never both. Holds the
           one character's colors (written to the character record, so palette-agnostic). */}
       {!isGroup(value) && (
       <details>
         <summary>Chat Settings</summary>
         <label
           className="checkboxRow"
-          title="Hides the reasoning collapsible block on assistant messages. Visual only — the reasoning is still stored and sent to the model."
+          title="Hides the reasoning collapsible block on assistant messages. Visual only, the reasoning is still stored and sent to the model."
         >
           <input
             type="checkbox"
@@ -212,44 +204,53 @@ export default function ChatSettingsPanel({
           Show reasoning
         </label>
         <SpeakerColors chat={value} />
+      </details>
+      )}
 
-        {/* writes the global grammarHammer settings, same records the Settings panel
-            edits — flipping a rule here affects every chat. Per-chat override: add a
-            grammarHammer field to the Chat record and merge it in stripText's callers. */}
+      {/* Writes the global Second Pass settings, the same records the Settings panel edits, so
+          flipping a rule here affects every chat. Per-chat override: add a secondPass field to the
+          Chat record and merge it in the wrapper. */}
+      <details>
+        <summary>Second Pass</summary>
         <label className="checkboxRow">
           <input
             type="checkbox"
-            checked={appearance.grammarHammer.enabled}
+            checked={secondPass.enabled}
             onChange={(e) =>
-              setAppearance({
-                grammarHammer: { ...appearance.grammarHammer, enabled: e.target.checked },
-              })
+setSecondPass({ enabled: e.target.checked })
             }
           />
-          Grammar Hammer
+          Enable
         </label>
-        {appearance.grammarHammer.enabled &&
-          appearance.grammarHammer.rules.map((rule) => (
-            <label key={rule.id} className="checkboxRow ruleToggleRow">
-              <input
-                type="checkbox"
-                checked={rule.enabled}
-                onChange={(e) =>
-                  setAppearance({
-                    grammarHammer: {
-                      ...appearance.grammarHammer,
-                      rules: appearance.grammarHammer.rules.map((r) =>
-                        r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
-                      ),
-                    },
-                  })
-                }
-              />
-              {rule.label || 'Untitled rule'}
-            </label>
-          ))}
+        {secondPass.enabled && (
+          <ul className="grammarRuleList">
+            {secondPass.rules.map((rule) => (
+              <li key={rule.id}>
+                <label className="checkboxRow ruleToggleRow">
+                  <input
+                    type="checkbox"
+                    checked={rule.enabled}
+                    onChange={(e) =>
+                      setSecondPass({
+                        rules: secondPass.rules.map((r) =>
+                          r.id === rule.id ? { ...r, enabled: e.target.checked } : r,
+                        ),
+                      })
+                    }
+                  />
+                  <span className="ruleToggleText">
+                    <span className="ruleToggleName">{rule.label || 'Untitled rule'}</span>
+                    <span className="ruleTogglePattern">{rule.pattern || '—'}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+            {secondPass.rules.length === 0 && (
+              <p className="hint">No rules yet. Add some in Settings.</p>
+            )}
+          </ul>
+        )}
       </details>
-      )}
 
       {/* Sections contributed by other modules. Order is module registration order (main.tsx). */}
       {chatPanels(enabledPlugins).map(({ label, component: Panel }) => (

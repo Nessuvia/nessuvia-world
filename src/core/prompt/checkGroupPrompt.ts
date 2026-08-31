@@ -84,7 +84,7 @@ assert.strictEqual(isGroup(chatOf({ participantIds: [1, 2] })), true)
   assert.strictEqual(nextSpeakerId(chatOf({ ...three, lastSpeakerIndex: 1 })), 3)
 }
 
-// A cursor left pointing past the end — the character it named was removed — wraps rather than
+// A cursor left pointing past the end (the character it named was removed) wraps rather than
 // throwing or naming nobody.
 {
   const shrunk = chatOf({ participantIds: [1, 2], lastSpeakerIndex: 5 })
@@ -159,7 +159,7 @@ assert.strictEqual(isGroup(chatOf({ participantIds: [1, 2] })), true)
     { role: 'assistant', content: 'Mary: Hello.' },
   ])
 
-  // Only the speaker's card is in the prompt — nobody else's.
+  // Only the speaker's card is in the prompt, nobody else's.
   const fixed = out[0].content
   assert.ok(fixed.includes("Damien's description"))
   assert.ok(fixed.includes("Damien's personality"))
@@ -220,7 +220,7 @@ assert.strictEqual(isGroup(chatOf({ participantIds: [1, 2] })), true)
   assert.strictEqual(out[0].content, 'Ghost: Gone but quoted.')
 }
 
-// An unstamped turn — written before the roster existed — falls back to the chat's character.
+// An unstamped turn (written before the roster existed) falls back to the chat's character.
 {
   const old: Message[] = [
     { id: 8, ownerId: 'local', chatId: 1, role: 'assistant', content: 'From Phase 1.', createdAt: 8 },

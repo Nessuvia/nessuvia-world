@@ -173,7 +173,7 @@ h3.storyPreviewTitle {
   cursor: text;
 }
 
-/* One row, equal widths — same shape as the Export row above it. */
+/* One row, equal widths: same shape as the Export row above it. */
 .storyPreviewActions {
   display: flex;
   gap: 0.5rem;
@@ -190,7 +190,7 @@ h3.storyPreviewTitle {
 }
 
 /* The Story's facts as a marquee plaque: rules top and bottom, letterspaced billing labels, and a
-   dotted leader carrying each label across to its value. Presentation only — the markup stays a
+   dotted leader carrying each label across to its value. Presentation only: the markup stays a
    plain `dl`. */
 .storyPreviewFacts {
   margin: 0;
@@ -448,7 +448,7 @@ h3.storyPreviewTitle {
   margin: 0 auto;
 }
 
-/* Inline markers. The marker spans are always in the DOM — hiding them is presentation only, and
+/* Inline markers. The marker spans are always in the DOM: hiding them is presentation only, and
    the prose read back out of the editor still carries every asterisk. .showMarkers is Toggle
    Styling in its off state: markers visible, no weight or slant applied. */
 .chapterEditor .proseBold {
@@ -502,8 +502,8 @@ h3.storyPreviewTitle {
   color: inherit;
 }
 
-/* Styling off means the raw text: no weight, no slant, no color. Quotes keep theirs — the quote
-   marks are prose either way, so the run never looked decorated. */
+/* Styling off means the raw text: no weight, no slant, no color. Quotes keep theirs, since the
+   quote marks are prose either way, so the run never looked decorated. */
 .chapterEditor.showMarkers [data-win='emphasis'],
 .chapterEditor.showMarkers [data-win='bold'] {
   color: inherit;
@@ -550,6 +550,10 @@ h3.storyPreviewTitle {
   line-height: var(--storyLineHeight, 1.6);
   /* The Story's own text color; unset falls straight to the theme's, never to the chat's. */
   color: var(--storyTextColor, var(--text));
+  /* Prose sits on its own surface so it stays readable over a page background image. */
+  background: var(--storyProseBg, var(--surface));
+  padding: 8px 12px;
+  border-radius: var(--radius);
 }
 
 .storyProse:empty::before {
@@ -584,7 +588,7 @@ h3.storyPreviewTitle {
   padding: 0.25rem;
 }
 
-/* The beat's control row. Reads as chrome, not prose — solid ground, so it never sits translucent
+/* The beat's control row. Reads as chrome, not prose: solid ground, so it never sits translucent
    over the text it labels. */
 .blockHead {
   display: flex;
@@ -624,7 +628,7 @@ h3.storyPreviewTitle {
 }
 
 /* A collapsed beat keeps its head and hides everything below it. The prose element stays in the
-   DOM — it is the source of truth for typing, so it must not unmount. */
+   DOM, since it is the source of truth for typing and must not unmount. */
 .blockRegion.collapsed .storyProse,
 .blockRegion.collapsed .blockPreview,
 .blockRegion.collapsed .streamingTail,
@@ -633,7 +637,7 @@ h3.storyPreviewTitle {
 }
 
 /* Where the beat is written. It reads as the Story's own type on a raised field, not as another
-   row of chrome — this is composition, not a checklist entry.
+   row of chrome: this is composition, not a checklist entry.
 
    `min-height` next to `field-sizing: content` is what stops the card from resizing under the
    cursor: the field opens three lines tall and only ever grows from there. */
@@ -652,7 +656,8 @@ h3.storyPreviewTitle {
   padding: 0.5rem 0.6rem;
   field-sizing: content;
   min-height: 5.5rem;
-  max-height: 12rem;
+  max-height: 20rem;
+  overflow-y: auto;
   resize: vertical;
   user-select: text;
 }
@@ -665,6 +670,7 @@ h3.storyPreviewTitle {
   flex: none;
   color: var(--textMuted);
 }
+
 
 .blockSwipes {
   display: flex;
@@ -747,8 +753,8 @@ h3.storyPreviewTitle {
   margin: 0;
 }
 
-/* input[type='number'] isn't in the index.css text-entry baseline, so match it here. */
-.blockMenuPop .blockMenuTarget input {
+/* The length control in the kebab menu: the select carries the value, the words are read-only. */
+.blockMenuPop .blockMenuTarget .weightSelect {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -761,32 +767,8 @@ h3.storyPreviewTitle {
   text-align: left;
 }
 
-/* Free-stretch tools and the add strip between Blocks: both sit in the middle of a document being
-   read, so neither shows until the pointer is near it. */
-.freeTools {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  gap: 0.2rem;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.blockRegion.free:hover .freeTools,
-.freeTools:focus-within {
-  opacity: 1;
-}
-
-.freeTools button {
-  display: flex;
-  padding: 0.15rem;
-  background: var(--surfaceSunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--textSoft);
-  cursor: pointer;
-}
+/* The add strip between Blocks sits in the middle of a document being read, so it does not show
+   until the pointer is near it. */
 
 .blockGap {
   display: flex;
@@ -953,6 +935,15 @@ h3.storyPreviewTitle {
   width: 100%;
 }
 
+/* Sits above the collapsible sections, so it carries its own label. */
+.storyRail .railTopPick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
 /* The row that moves between the two tiers: full width, so it reads as a destination rather than
    one control in a row of them. */
 .storyRail .storyRailTier {
@@ -1032,11 +1023,6 @@ h3.storyPreviewTitle {
   color: var(--text);
 }
 
-.beatChecklistRow.done {
-  color: var(--textMuted);
-  text-decoration: line-through;
-}
-
 .castList {
   list-style: none;
   margin: 0;
@@ -1052,7 +1038,7 @@ h3.storyPreviewTitle {
   gap: 0.5rem;
 }
 
-/* Same row shape as .entityPickerList buttons — the whole row is the on/off toggle. */
+/* Same row shape as .entityPickerList buttons: the whole row is the on/off toggle. */
 .castRow {
   display: flex;
   align-items: center;
@@ -1075,7 +1061,7 @@ h3.storyPreviewTitle {
   color: var(--textMuted);
 }
 
-/* The gear is a Link, the remove is a button — same square icon slot either way. */
+/* The gear is a Link, the remove is a button. Same square icon slot either way. */
 .castRowAction {
   flex: none;
   display: grid;
@@ -1104,6 +1090,20 @@ h3.storyPreviewTitle {
   border-radius: var(--radius);
   background: none;
   color: var(--textSoft);
+}
+
+/* The Lorebooks section of the rail. Rows reuse .castRow: a book row toggles and dims exactly the
+   way a cast row does, and the two sit one above the other. */
+.storyBooks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* No avatar in this row, so the name needs the padding the avatar was providing. */
+.storyBookRow {
+  gap: 0.4rem;
+  padding-left: 0.5rem;
 }
 
 .storyColorRow {
@@ -1172,6 +1172,29 @@ h3.storyPreviewTitle {
 }
 
 @media (max-width: 700px) {
+  /* Icon only, fixed in the top strip beside the navbar button (.sidebarOpenButton, top-left),
+     so it stops eating a row of the title bar. 27 is the phone drawer band's floor, which is what
+     this strip sits at. */
+  .storyBar .stylingToggle {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 27;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin-left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .stylingToggleLabel {
+    display: none;
+  }
+
   /* The header's three controls each take a row: side by side the button falls off the edge.
      Order is set here rather than in the markup so the desktop row keeps its own order. */
   .shelf {
@@ -1314,6 +1337,33 @@ h3.storyPreviewTitle {
   margin-right: 0.4rem;
 }
 
-.regenTarget input {
-  width: 6rem;
+.regenTarget .weightSelect {
+  font: inherit;
+}
+
+/* The instructions already applied to the version being rewritten. Read-only: they are sent again
+   whatever is typed below, so the box says what the request will actually carry. */
+.regenChain {
+  padding: 8px 12px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.regenChainList {
+  margin: 4px 0 0;
+  padding-left: 24px;
+  color: var(--textSoft);
+}
+
+/* What the selected version was asked to be, next to its n/total. One line: the full text is on
+   the title attribute. */
+.blockSwipeNote {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--textMuted);
+  font-size: 12px;
 }

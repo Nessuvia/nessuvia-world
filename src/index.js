@@ -6,7 +6,7 @@
 // sends no Access-Control-Allow-Origin, so the browser can't read it directly and something has to
 // front it. Nothing is stored or logged here; the response is the PNG and nothing else.
 //
-// Named environments inherit top-level "main", so env.dev needs its own entry point — otherwise
+// Named environments inherit top-level "main", so env.dev needs its own entry point, otherwise
 // dev would deploy the coming-soon page. Assets apply not_found_handling:
 // single-page-application on a miss, which is what serves the SPA fallback.
 

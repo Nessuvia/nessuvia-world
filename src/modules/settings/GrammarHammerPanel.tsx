@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
-import { RiDeleteBinLine, RiFileCopyLine, RiHammerLine } from '@remixicon/react'
+import { RiHammerLine } from '@remixicon/react'
 import {
   newGrammarHammerRule,
   seedGrammarHammerRules,
-  useAppearance,
+  useSecondPass,
   useSettings,
   type GrammarHammerRule,
 } from '../../core/stores/settingsStore'
+import RuleCardHead from './RuleCardHead'
 import { tryCompile, POS_TAGS } from '../../core/hammer/pattern'
 import { previewStrips, stripText } from '../../core/hammer/strip'
 import './settings.css'
@@ -18,15 +19,13 @@ function ruleError(rule: GrammarHammerRule): string | null {
   return 'error' in r ? r.error : null
 }
 
-/** Grammar Hammer: render-time strip of slop constructions matched by POS patterns. */
+/** Grammar Hammer: slop constructions matched by POS patterns, stripped or flagged inside Second
+ *  Pass. The Enable toggle here is Second Pass's own, since the rules do nothing without it. */
 export default function GrammarHammerPanel() {
-  const appearance = useAppearance()
-  const setAppearance = useSettings((s) => s.setAppearance)
-  const gh = appearance.grammarHammer
+  const gh = useSecondPass()
+  const patchGh = useSettings((s) => s.setSecondPass)
   const [preview, setPreview] = useState('')
   const [cheat, setCheat] = useState(false)
-
-  const patchGh = (patch: Partial<typeof gh>) => setAppearance({ grammarHammer: { ...gh, ...patch } })
 
   const patchRule = (id: string, patch: Partial<GrammarHammerRule>) =>
     patchGh({ rules: gh.rules.map((r) => (r.id === id ? { ...r, ...patch } : r)) })
@@ -38,7 +37,7 @@ export default function GrammarHammerPanel() {
     return previewStrips(preview, gh.rules, 'assistant')
   }, [preview, gh.rules, gh.enabled])
 
-  // The actual text a message would render — repaired, with removals gone and replacements in place.
+  // The actual text a message would render, repaired, with removals gone and replacements in place.
   const resultText = useMemo(() => {
     if (!preview.trim() || !gh.enabled) return null
     return stripText(preview, gh.rules, 'assistant').text
@@ -61,55 +60,17 @@ export default function GrammarHammerPanel() {
           const error = ruleError(rule)
           return (
             <li key={rule.id} className="card ruleCard">
-              <div className="ruleCardHead">
-                <label className="ruleToggle">
-                  <input
-                    type="checkbox"
-                    checked={rule.enabled}
-                    onChange={(e) => patchRule(rule.id, { enabled: e.target.checked })}
-                  />
-                </label>
-                <input
-                  className="labelInput"
-                  value={rule.label ?? ''}
-                  placeholder="Untitled rule"
-                  onChange={(e) => patchRule(rule.id, { label: e.target.value })}
-                />
-                <select
-                  value={rule.scope}
-                  onChange={(e) => patchRule(rule.id, { scope: e.target.value as GrammarHammerRule['scope'] })}
-                >
-                  <option value="assistant">Model</option>
-                  <option value="user">You</option>
-                  <option value="both">Both</option>
-                </select>
-                {/* Icon plus label: the label is hidden at phone width, where the row has no
-                    space for two words of button. */}
-                <button
-                  type="button"
-                  title="Copy"
-                  aria-label="Copy"
-                  onClick={() => {
-                    const i = gh.rules.findIndex((r) => r.id === rule.id)
-                    patchGh({
-                      rules: gh.rules.toSpliced(i + 1, 0, { ...rule, id: crypto.randomUUID() }),
-                    })
-                  }}
-                >
-                  <RiFileCopyLine size={16} />
-                  <span className="btnText">Copy</span>
-                </button>
-                <button
-                  type="button"
-                  className="danger"
-                  title="Delete"
-                  aria-label="Delete"
-                  onClick={() => patchGh({ rules: gh.rules.filter((r) => r.id !== rule.id) })}
-                >
-                  <RiDeleteBinLine size={16} />
-                  <span className="btnText">Delete</span>
-                </button>
-              </div>
+              <RuleCardHead
+                enabled={rule.enabled}
+                label={rule.label ?? ''}
+                scope={rule.scope}
+                onChange={(patch) => patchRule(rule.id, patch)}
+                onCopy={() => {
+                  const i = gh.rules.findIndex((r) => r.id === rule.id)
+                  patchGh({ rules: gh.rules.toSpliced(i + 1, 0, { ...rule, id: crypto.randomUUID() }) })
+                }}
+                onDelete={() => patchGh({ rules: gh.rules.filter((r) => r.id !== rule.id) })}
+              />
               <label className="ruleField">
                 <span>Pattern</span>
                 <input
@@ -128,6 +89,7 @@ export default function GrammarHammerPanel() {
                   >
                     <option value="strip">Remove match</option>
                     <option value="replace">Replace with…</option>
+                    <option value="flag">Report to the model</option>
                   </select>
                   {rule.action === 'replace' && (
                     <input

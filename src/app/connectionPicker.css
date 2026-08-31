@@ -1,0 +1,13 @@
+/* Deliberately matches `.chatSettingsPick` in chat.css: the stack picker still uses that class and
+   sits directly above this one in the chat sidebar, so the two labels have to agree. */
+.connectionPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--textMuted);
+}
+
+.connectionPickerSelect {
+  width: 100%;
+}

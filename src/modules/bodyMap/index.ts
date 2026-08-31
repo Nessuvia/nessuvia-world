@@ -1,6 +1,5 @@
-import { lazy } from 'react'
 import { RiBodyScanLine } from '@remixicon/react'
-import { registerModule } from '../../app/moduleRegistry'
+import { lazyView, registerModule } from '../../app/moduleRegistry'
 import BodyMapPanel from './BodyMapPanel'
 import { useBodyMap } from './bodyMapStore'
 
@@ -11,7 +10,7 @@ registerModule({
   label: 'Body map',
   icon: RiBodyScanLine,
   route: '/body-map',
-  component: lazy(() => import('./BodyMapAuthor')),
+  component: lazyView(() => import('./BodyMapAuthor')),
   plugin: true,
   chatPanels: [{ label: 'Body map', component: BodyMapPanel }],
   // The panel opens the tracker when it mounts, but that races the first send, and a send can

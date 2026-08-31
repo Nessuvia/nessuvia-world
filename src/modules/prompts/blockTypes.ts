@@ -1,5 +1,5 @@
 // What a block *is*, as one flat list for the picker on the card. A type is a source, plus
-// 'scroll' — a text block carrying a range input, which is a distinct thing to the user even
+// 'scroll': a text block carrying a range input, which is a distinct thing to the user even
 // though the stored difference is just `input`.
 import type { BlockSource, PromptBlock } from '../../core/storage/types'
 
@@ -13,11 +13,12 @@ export const sourceLabels: Record<BlockSource, string> = {
   characterPostHistory: 'Character post-history instructions',
   personaDescription: 'Persona description',
   authorNote: "Author's note",
-  worldInfo: 'World info',
+  worldInfo: 'World info (before character)',
+  worldInfoAfter: 'World info (after character)',
+  worldInfoDepth: 'World info (at depth)',
   chatHistory: 'Chat history',
   cast: 'Cast',
   storyContext: 'Story context',
-  chapterGuide: 'Chapter guide',
   storyTrailing: 'What follows',
 }
 
@@ -37,7 +38,7 @@ export const blockType = (block: PromptBlock): BlockType =>
 const seedScroll = 'Write about {{blockVal}} to {{blockVal2}} words.'
 
 /** Rewrite a block to be of `type`, keeping everything the new type still uses. The label follows
- *  along when it was the old type's name — a block the user renamed keeps its name. */
+ *  along when it was the old type's name: a block the user renamed keeps its name. */
 export function applyType(block: PromptBlock, type: BlockType): PromptBlock {
   const named = block.label === typeLabels[blockType(block)]
   const label = named ? typeLabels[type] : block.label
@@ -60,5 +61,8 @@ export function applyType(block: PromptBlock, type: BlockType): PromptBlock {
     input: undefined,
     // The point of an author's note block is depth injection, so give a new one somewhere to land.
     ...(type === 'authorNote' && block.depth === undefined ? { depth: 2 } : {}),
+    // Its entries go in as system turns unless the block says otherwise; a block retyped from a
+    // user or assistant one would otherwise change how they read for no reason the user asked for.
+    ...(type === 'worldInfoDepth' ? { role: 'system' as const } : {}),
   }
 }

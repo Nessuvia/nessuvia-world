@@ -1,4 +1,4 @@
-/* Multiplayer room shell — three-column layout (section 11a) */
+/* Multiplayer room shell: three-column layout (section 11a) */
 
 .multiplayerRoom {
   display: grid;
@@ -39,7 +39,7 @@
 }
 
 /* Phones: the message column is the room. The side panels leave the grid and become drawers on
-   their own edges — sideDrawer.css says where they sit and how they move; the height and radius
+   their own edges. sideDrawer.css says where they sit and how they move; the height and radius
    they carry as columns have to come off here, where the panel selectors are specific enough. */
 @media (max-width: 700px) {
   .multiplayerRoom {
@@ -175,7 +175,7 @@
   max-width: 60%;
 }
 
-/* Right panel — host session controls (section 14b) */
+/* Right panel: host session controls (section 14b) */
 .multiplayerPanelContent {
   display: flex;
   flex-direction: column;
@@ -742,7 +742,7 @@
   font-size: 0.8125rem;
 }
 
-/* Relay disclaimer — gates the host landing and the guest persona form. Shared by both, so it
+/* Relay disclaimer: gates the host landing and the guest persona form. Shared by both, so it
    lives here rather than in join.css. */
 .relayNotice {
   display: flex;

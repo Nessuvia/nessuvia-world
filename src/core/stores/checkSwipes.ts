@@ -1,7 +1,7 @@
 // Run: node --experimental-strip-types src/core/stores/checkSwipes.ts
 import assert from 'node:assert'
 import type { Message } from '../storage/types'
-import { continued, deletedSwipes, reasoningFor, regenerated, selectSwipe, snapshotFor, swipeCount, swipeIndex } from './swipes.ts'
+import { continued, deletedSwipes, draftFor, instructionChain, reasoningFor, regenerated, selectSwipe, snapshotFor, swipeCount, swipeIndex } from './swipes.ts'
 
 const reply = (id: number, content: string): Message => ({
   id,
@@ -198,6 +198,68 @@ function mirrors(m: Message) {
   const bare = continued(selectSwipe(m, 1), 'two and more')!
   assert.strictEqual(snapshotFor(bare), '{"b":2}')
   assert.strictEqual(reasoningFor(bare), 'r2')
+}
+
+// --- instructions stay parallel, and the chain stops at the selection ------
+{
+  // one, then a plain re-roll (no instruction), then two corrections.
+  let m = regenerated(reply(1, 'one'), 'two')!
+  m = regenerated(m, 'three', undefined, undefined, 'less dialogue')!
+  m = regenerated(m, 'four', undefined, undefined, '  she should refuse  ')!
+  assert.strictEqual(m.instructions!.length, m.swipes!.length)
+  // Swipe 0 and 1 predate any instruction, so they are holes rather than a shifted array.
+  assert.deepStrictEqual(m.instructions, [undefined, undefined, 'less dialogue', 'she should refuse'])
+  assert.deepStrictEqual(instructionChain(m), ['less dialogue', 'she should refuse'])
+
+  // Swiping back drops the later gripes: that is how a correction is backed out of.
+  assert.deepStrictEqual(instructionChain(selectSwipe(m, 2)), ['less dialogue'])
+  assert.deepStrictEqual(instructionChain(selectSwipe(m, 1)), [])
+  assert.deepStrictEqual(instructionChain(reply(9, 'untouched')), [])
+
+  // Deleting a middle swipe keeps the array aligned with what is left.
+  const dropped = deletedSwipes(m, [2])!
+  assert.deepStrictEqual(dropped.swipes, ['one', 'two', 'four'])
+  assert.deepStrictEqual(dropped.instructions, [undefined, undefined, 'she should refuse'])
+  assert.deepStrictEqual(instructionChain(dropped), ['she should refuse'])
+
+  // An empty instruction is a hole, not an empty string in the chain.
+  const blank = regenerated(m, 'five', undefined, undefined, '   ')!
+  assert.strictEqual(blank.instructions![4], undefined)
+  assert.deepStrictEqual(instructionChain(blank), ['less dialogue', 'she should refuse'])
+
+  // Continuing writes in place, so it must not disturb the instructions either.
+  const on = continued(selectSwipe(m, 2), 'three and more')!
+  assert.deepStrictEqual(on.instructions, m.instructions)
+  assert.deepStrictEqual(instructionChain(on), ['less dialogue'])
+}
+
+// --- Second Pass drafts run parallel to swipes ----------------------------
+{
+  // A draft is kept only where it differs from the stored text: an unedited reply means the pass
+  // was skipped, and a draft equal to the text is a comparison with nothing in it.
+  const edited = regenerated(reply(1, 'one'), 'two, tightened', undefined, undefined, undefined, 'two, sloppy')!
+  assert.strictEqual(edited.drafts!.length, edited.swipes!.length)
+  assert.strictEqual(draftFor(edited), 'two, sloppy')
+  assert.strictEqual(draftFor(selectSwipe(edited, 0)), undefined) // swipe 0 predates the pass
+
+  const same = regenerated(reply(1, 'one'), 'two', undefined, undefined, undefined, 'two')!
+  assert.strictEqual(draftFor(same), undefined)
+
+  // Padding: a swipe made with the pass off leaves a hole rather than shifting the array.
+  const mixed = regenerated(edited, 'three')!
+  assert.strictEqual(mixed.drafts!.length, 3)
+  assert.strictEqual(draftFor(mixed), undefined)
+  assert.strictEqual(draftFor(selectSwipe(mixed, 1)), 'two, sloppy')
+
+  // Deleting a swipe takes its draft with it, so the arrays stay aligned.
+  const pruned = deletedSwipes(mixed, [0])!
+  assert.deepStrictEqual(pruned.swipes, ['two, tightened', 'three'])
+  assert.strictEqual(draftFor(selectSwipe(pruned, 0)), 'two, sloppy')
+  assert.strictEqual(draftFor(selectSwipe(pruned, 1)), undefined)
+
+  // A continuation writes in place and must not disturb the drafts.
+  const cont = continued(selectSwipe(mixed, 1), 'two, tightened and more')!
+  assert.strictEqual(draftFor(cont), 'two, sloppy')
 }
 
 console.log('ok')

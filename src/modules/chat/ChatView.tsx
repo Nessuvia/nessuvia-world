@@ -4,7 +4,7 @@ import { RiDeleteBinLine } from '@remixicon/react'
 import { useParams } from 'react-router-dom'
 import { useChats } from '../../core/stores/chatStore'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
-import { useAppearance, useSettings } from '../../core/stores/settingsStore'
+import { useAppearance, useSettings, useActiveConnection } from '../../core/stores/settingsStore'
 import { usePalette } from '../../core/stores/palettesStore'
 import { effectiveFont } from '../../core/palette/palette'
 import { usePersonas } from '../../core/stores/personasStore'
@@ -26,6 +26,7 @@ export default function ChatView() {
     chat,
     messages,
     streamingText,
+    streamingDraft,
     streamingReasoning,
     streaming,
     streamingChatId,
@@ -39,6 +40,7 @@ export default function ChatView() {
     send,
     retry,
     retryLast,
+    clearError,
     patchChat,
     regenerate,
     swipeTo,
@@ -49,7 +51,7 @@ export default function ChatView() {
     deleteSwipes,
   } = useChats()
   const { characters, load: loadCharacters } = useCharacters()
-  const connection = useSettings((s) => s.connections.find((c) => c.id === s.activeConnectionId))
+  const connection = useActiveConnection()
   const personas = usePersonas((s) => s.personas)
   const ensurePersona = usePersonas((s) => s.ensureActive)
   const activePersonaId = useSettings((s) => s.activePersonaId)
@@ -62,6 +64,9 @@ export default function ChatView() {
   // Which message has the regen modal open. Lives here so an empty composer submit can open it.
   const [rewritingId, setRewritingId] = useState<number | null>(null)
   const [deletingRange, setDeletingRange] = useState(false)
+  // Which message has its inline edit box open. On a phone the composer hides while it does, the
+  // edit box and the composer together leave almost no room for the message.
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
     load(chatId)
@@ -95,7 +100,7 @@ export default function ChatView() {
 
   if (!chat || !character) return <p className="placeholder">Loading…</p>
 
-  /** The card a message was written by, when it's still around — for the avatar and the re-roll. */
+  /** The card a message was written by, when it's still around, for the avatar and the re-roll. */
   const speakerOf = (speakerId?: number) =>
     speakerId === undefined ? character : characters.find((c) => c.id === speakerId)
 
@@ -149,7 +154,7 @@ export default function ChatView() {
           stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60
         }}
       >
-        {/* `who` on a user turn is the name recorded at send time — a deleted persona still gets credited. */}
+        {/* `who` on a user turn is the name recorded at send time, a deleted persona still gets credited. */}
         {messages.map((m, i) => (
           <MessageBubble
             key={m.id}
@@ -176,6 +181,7 @@ export default function ChatView() {
             canRegenerate={m.role === 'assistant' && !streaming}
             greeting={i === 0 && m.role === 'assistant'}
             streamingText={regeneratingId === m.id ? streamingText : null}
+            streamingDraft={regeneratingId === m.id ? streamingDraft : ''}
             streamingReasoning={regeneratingId === m.id ? streamingReasoning : ''}
             defaultInstruction={() =>
               oldMessageInstruction(
@@ -187,6 +193,9 @@ export default function ChatView() {
             rewriting={rewritingId === m.id}
             onRewriteOpen={(open) => setRewritingId(open ? m.id! : null)}
             onEdit={(content) => editMessage(m.id!, content)}
+            onEditingChange={(on) =>
+              setEditingId((cur) => (on ? m.id! : cur === m.id ? null : cur))
+            }
             onReprompt={
               m.role === 'user' && i === messages.length - 1 && !streaming
                 ? () => retry(character, chat.respondWith)
@@ -213,12 +222,24 @@ export default function ChatView() {
                 {renderText(streamingReasoning, { tagRules: appearance.tagRules, order: palette.colorOrder })}
               </details>
             )}
-            <div className="messageBody">
-              {/* Mid-stream an opener has no closer yet, so the block reads as plain text
-                  until the model finishes it and it folds away. */}
-              {renderText(streamingText, { tagRules: appearance.tagRules, order: palette.colorOrder })}
-              <span className="caret">▌</span>
-            </div>
+            {/* Second Pass's first take, before the editing pass has produced anything. Dimmed
+                because it is provisional: it either gets replaced by the edited reply or brightens
+                in place when nothing was flagged. Cleared by the store on the first edited chunk,
+                so the two never show at once. */}
+            {streamingDraft && (
+              <div className="messageBody secondPassDraft">
+                {renderText(streamingDraft, { tagRules: appearance.tagRules, order: palette.colorOrder })}
+                <span className="caret">▌</span>
+              </div>
+            )}
+            {!streamingDraft && (
+              <div className="messageBody">
+                {/* Mid-stream an opener has no closer yet, so the block reads as plain text
+                    until the model finishes it and it folds away. */}
+                {renderText(streamingText, { tagRules: appearance.tagRules, order: palette.colorOrder })}
+                <span className="caret">▌</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -228,6 +249,9 @@ export default function ChatView() {
           {error}{' '}
           <button type="button" onClick={() => retryLast(character)}>
             Retry
+          </button>{' '}
+          <button type="button" className="secondary" onClick={clearError}>
+            Dismiss
           </button>
         </p>
       )}
@@ -239,7 +263,7 @@ export default function ChatView() {
         </p>
       )}
 
-      <div className="chatBottomBar">
+      <div className={editingId !== null ? 'chatBottomBar editingOpen' : 'chatBottomBar'}>
         <RosterBar
           chat={chat}
           characters={characters}
@@ -282,20 +306,22 @@ export default function ChatView() {
         />
       )}
 
-      <Composer
-        streaming={streaming}
-        disabledReason={connection ? '' : 'No active connection — set one up in Settings.'}
-        commandTargets={participants(chat)
-          .map((id) => characters.find((c) => c.id === id))
-          .filter((c) => !!c)
-          .map((c) => ({ id: c.id!, name: displayName(c), avatar: c.avatar }))}
-        onSend={(text) => send(character, text, chat.respondWith)}
-        onStop={stop}
-        onRegenLast={() => {
-          const last = messages.at(-1)
-          if (last?.role === 'assistant') setRewritingId(last.id!)
-        }}
-      />
+      <div className={editingId !== null ? 'chatComposerSlot editingOpen' : 'chatComposerSlot'}>
+        <Composer
+          streaming={streaming}
+          disabledReason={connection ? '' : 'No active connection, set one up in Settings.'}
+          commandTargets={participants(chat)
+            .map((id) => characters.find((c) => c.id === id))
+            .filter((c) => !!c)
+            .map((c) => ({ id: c.id!, name: displayName(c), avatar: c.avatar }))}
+          onSend={(text) => send(character, text, chat.respondWith)}
+          onStop={stop}
+          onRegenLast={() => {
+            const last = messages.at(-1)
+            if (last?.role === 'assistant') setRewritingId(last.id!)
+          }}
+        />
+      </div>
     </div>
   )
 }

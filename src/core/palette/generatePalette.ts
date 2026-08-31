@@ -49,7 +49,7 @@ export async function generatePalette(
 ): Promise<GeneratedPalette> {
   const messages = buildPaletteMessages(prompt, ask, palette)
   // A full palette object runs past the 512-token default, and a truncated object parses as
-  // nothing at all — so this one request gets its own floor rather than the connection's limit.
+  // nothing at all, so this one request gets its own floor rather than the connection's limit.
   const wide = withParam(connection, 'max_tokens', Math.max(maxTokensOf(connection), 1500))
   const rungs = modeLadder(connection.structuredOutput)
   let lastError: PaletteError | undefined
@@ -79,7 +79,7 @@ export async function generatePalette(
 
 /**
  * The message the panel shows. The parse errors say what was wrong with the text; this adds the
- * cases where there was no text to be wrong — an empty reply reads as "held no palette" otherwise,
+ * cases where there was no text to be wrong: an empty reply reads as "held no palette" otherwise,
  * which points at the parser instead of at the token budget or the endpoint.
  */
 function explain(err: Error, attempt: PaletteAttempt, maxTokens: number): string {
