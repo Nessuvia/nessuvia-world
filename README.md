@@ -30,7 +30,9 @@ The Palette feature was born from the fun I had making custom CSS in SillyTavern
 
 **Chat**
 
-The Chat is the most "standard" feature I have. It's got support for everything in the TavernV2 specification, as well as some quality-of-life features I love, like Alternate Descriptions, a Gallery, per-character text coloring, etc. The lorebooks are very barebones; sorry, I don't use character lorebooks much at all, so it hasn't gotten much love. (Though with a nice UI, I may be tempted to try them out more!)
+The Chat is the most "standard" feature I have. It's got support for everything in the TavernV2 specification, as well as some quality-of-life features I love, like Alternate Descriptions, a Gallery, per-character text coloring, etc. The lorebooks are intentionally simple today: keyword-triggered world info entries that inject when they match, with no advanced insertion strategies yet.
+
+Model output can be cleaned before it reaches the screen in two ways. The grammar hammer runs a quick rules pass over the displayed text while leaving the stored message untouched. For heavier cleanup, Second Pass lets you write your own post-processing rules — anything from stripping a repeated tic to long regex replacements — and again only changes what you see, not what is saved.
 
 **Write**
 
@@ -42,9 +44,17 @@ The part I actually care about is the Plot Layout. A Chapter is a row of beats, 
 
 The prompt handling is another feature inspired by SillyTavern. I wanted prompt "blocks" that were reusable, easily rearranged, and supported XML-style tagging (which I use heavily in my prompts, and see used in other community prompts). The scroll-type block was something I especially loved; I use it for changing how many words I want on the fly. In a chat, having the prompt live in a place outside of it at first felt awkward. But with the toggleable blocks and the scroll, it felt more polished to me. Yes, I know that's not quantifiable. No, I will not elaborate. ~~(I would absolutely elaborate if anyone asked)~~
 
+There's also a live prompt preview for testing a prompt stack, and Chat has a raw request inspector so you can see the exact array and payload your endpoint receives before it goes out.
+
 **Ask**
 
 The Ask mode is small and single-use, which is why it lives as a single icon at the bottom of the navbar. Basically, it's a no-frills way to just send a message to your LLM backend. It exists because I had a Narrator card in SillyTavern that I only used for asking questions, so I made it a feature. You may notice you can load a character to "be" the Assistant. If you remember Stella from the c.ai days, you're essentially putting your character in her role.
+
+## Models and samplers
+
+Xenia connects to any OpenAI-compatible endpoint, local or hosted, for chat or text completion. Sampler parameters are stored as data rows rather than hardcoded fields, so a backend-specific sampler — Mirostat, Min-P, DRY, quadratic sampling, dynamic temperature — can be added by writing a small JSON definition. No code release required; it shows up in the UI once the row exists.
+
+Role-tag formatting for local backends (Llama-3 headers, `[INST]`, `<|im_start|>`, Command-R tags, and so on) is on the near-term roadmap.
 
 ## Where data goes
 
