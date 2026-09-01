@@ -8,6 +8,7 @@ import type { Chapter, Story } from '../../core/storage/types.ts'
 import type { Palette } from '../../core/palette/palette.ts'
 import { effectiveFont, paletteVars } from '../../core/palette/palette.ts'
 import { chapterProse } from '../../core/prompt/chapterGuide.ts'
+import { readAloudBar, readAloudCss, readAloudScript } from '../../core/readAloud/readAloud.ts'
 import { parseProse, type ProsePiece } from './proseMarkup.ts'
 
 const fileName = (name: string) =>
@@ -174,6 +175,7 @@ strong { color: var(--storyBoldColor); }
 em { color: var(--storyEmphasisColor); }
 q { quotes: '"' '"'; color: var(--storyQuoteColor); }
 code { font-family: ui-monospace, monospace; font-size: 0.92em; color: var(--accent); }
+${readAloudCss}
 @media (max-width: 700px) {
   body { padding: 1rem 1rem 3rem; }
   nav { margin: 0 -1rem; padding: 0.4rem 1rem; }
@@ -184,7 +186,11 @@ code { font-family: ui-monospace, monospace; font-size: 0.92em; color: var(--acc
 <body>
 <nav>${nav}</nav>
 <h1>${title}</h1>
+${readAloudBar}
 ${body}
+<script>
+${readAloudScript('nav, .readAloud')}
+</script>
 <script>
 // Scrollspy: the last heading whose top has passed under the bar wins.
 // recomputed on every scroll event, cheap at this document size.
