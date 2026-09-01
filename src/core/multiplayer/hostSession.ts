@@ -200,8 +200,7 @@ export async function createSession(
 
   session = {
     sessionId,
-    // A self-hosted session puts its relay on the link, because a guest has no other way to learn
-    // where the room is. A Supabase session's link is the bare path it has always been.
+    // The link carries the relay, because a guest has no other way to learn where the room is.
     link: inviteLink(window.location.origin, sessionId, relay),
     admit,
     deny,

@@ -58,7 +58,7 @@ Role-tag formatting for local backends (Llama-3 headers, `[INST]`, `<|im_start|>
 
 ## Where data goes
 
-Everything stays in your browser, with one exception. On the live site, multiplayer messages pass through a relay server run by the me (Supabase Realtime). They are not stored there, and they are carried in plaintext. API keys are never sent to the relay.
+Everything stays in your browser, with one exception. Multiplayer messages pass through a Centrifugo relay the host runs. They are not stored there, and they are carried in plaintext. API keys are never sent to the relay.
 
 A host can point a session at a Centrifugo relay on their own machine instead, set up in Settings under Multiplayer. [Click here for more information.](src/resources/self-hosted-relay.md)
 

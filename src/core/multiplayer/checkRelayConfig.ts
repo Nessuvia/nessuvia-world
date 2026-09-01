@@ -1,7 +1,6 @@
 // Run: node --experimental-strip-types src/core/multiplayer/checkRelayConfig.ts
 import assert from 'node:assert'
 import {
-  emptyRelayConfig,
   inviteLink,
   relayConfigured,
   relayFromLink,
@@ -24,43 +23,35 @@ assert.equal(validRelayUrl('wss://'), false)
 
 // --- relayConfigured ------------------------------------------------------
 
-// Supabase depends on the build's env values, which the caller supplies.
-assert.equal(relayConfigured({ kind: 'supabase', url: '' }, true), true)
-assert.equal(relayConfigured({ kind: 'supabase', url: '' }, false), false)
-// A self-hosted relay is configured by its URL alone, with or without Supabase in the build.
-assert.equal(relayConfigured({ kind: 'centrifugo', url: 'wss://r.example.net' }, false), true)
-assert.equal(relayConfigured({ kind: 'centrifugo', url: '' }, true), false)
+assert.equal(relayConfigured({ url: 'wss://r.example.net' }), true)
+assert.equal(relayConfigured({ url: '' }), false)
 
 // --- relayHost ------------------------------------------------------------
 
-assert.equal(relayHost({ kind: 'centrifugo', url: 'wss://r.example.net:8443/ws' }), 'r.example.net:8443')
-assert.equal(relayHost({ kind: 'supabase', url: '' }), '')
-assert.equal(relayHost({ kind: 'centrifugo', url: 'nonsense' }), '')
+assert.equal(relayHost({ url: 'wss://r.example.net:8443/ws' }), 'r.example.net:8443')
+assert.equal(relayHost({ url: 'nonsense' }), '')
 
 // --- the invite link round trip -------------------------------------------
 
 const origin = 'https://xenia.nessuvia.com'
 
-// A Supabase session's link is the bare path it has always been: no parameter, nothing to parse.
-assert.equal(inviteLink(origin, 'abc123', emptyRelayConfig), `${origin}/join/abc123`)
-assert.deepEqual(relayFromLink(null), emptyRelayConfig)
-
-const selfHosted = { kind: 'centrifugo' as const, url: 'wss://r.example.net/connection/websocket' }
-const link = inviteLink(origin, 'abc123', selfHosted)
+const relay = { url: 'wss://r.example.net/connection/websocket' }
+const link = inviteLink(origin, 'abc123', relay)
 assert.equal(
   link,
   `${origin}/join/abc123?r=wss%3A%2F%2Fr.example.net%2Fconnection%2Fwebsocket`,
 )
 // What the browser hands JoinView is the decoded parameter, so read it back the same way.
-assert.deepEqual(relayFromLink(new URL(link).searchParams.get('r')), selfHosted)
+assert.deepEqual(relayFromLink(new URL(link).searchParams.get('r')), relay)
 
 // A URL with a query of its own survives the round trip rather than truncating the link.
-const withQuery = { kind: 'centrifugo' as const, url: 'wss://r.example.net/ws?x=1&y=2' }
+const withQuery = { url: 'wss://r.example.net/ws?x=1&y=2' }
 const queryLink = inviteLink(origin, 'abc123', withQuery)
 assert.deepEqual(relayFromLink(new URL(queryLink).searchParams.get('r')), withQuery)
 
-// An `r` that is not a usable relay is undefined: the guest is told the link is bad rather than
-// pointed at whatever it said.
+// An `r` that is missing or not a usable relay is undefined — the guest is told the link is bad
+// rather than pointed at whatever it said.
+assert.equal(relayFromLink(null), undefined)
 assert.equal(relayFromLink('ws://localhost:8000'), undefined)
 assert.equal(relayFromLink('http://evil.example/'), undefined)
 

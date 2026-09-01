@@ -1,6 +1,6 @@
 /**
- * The only file that touches Centrifugo. Same job as `supabaseChannel.ts`, against a relay the user
- * runs themselves. See `resources/self-hosted-relay.md` for the server side.
+ * The only file that touches Centrifugo, the relay the user runs themselves. See
+ * `resources/self-hosted-relay.md` for the server side.
  *
  * A transport and nothing more: events are opaque typed payloads here. No decision belongs in this
  * file.
@@ -46,7 +46,7 @@ export function openCentrifugoChannel(
 ): Channel {
   const client = new Centrifuge(url)
   // `mp` is a Centrifugo namespace, configured with presence and join/leave. The session id is
-  // unguessable and the channel is public, same as the Supabase side.
+  // unguessable and the channel is public.
   const sub: Subscription = client.newSubscription(`mp:${sessionId}`)
 
   /** Centrifugo connection id → who that connection is. Filled by announcements. */
@@ -94,8 +94,7 @@ export function openCentrifugoChannel(
 
   sub.on('publication', (ctx: PublicationContext) => {
     // Centrifugo echoes our own publications back. The host applies its own actions locally and
-    // then broadcasts, so an echo would double-apply: the same reason the Supabase side sets
-    // `broadcast: { self: false }`.
+    // then broadcasts, so an echo would double-apply.
     if (ctx.info?.client && ctx.info.client === myClientId) return
 
     const envelope = ctx.data as Envelope | null

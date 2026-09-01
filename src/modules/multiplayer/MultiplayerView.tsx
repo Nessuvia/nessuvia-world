@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
-import { realtimeConfigured } from '../../core/multiplayer/realtimeClient'
-import { relayConfigured, type RelayKind } from '../../core/multiplayer/relayConfig'
+import { relayConfigured, relayHost } from '../../core/multiplayer/relayConfig'
 import { useSettings } from '../../core/stores/settingsStore'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
 import { useStacks } from '../../core/stores/stacksStore'
@@ -14,7 +13,6 @@ import { RelayNotice, relayNoticeAccepted, acceptRelayNotice } from './RelayNoti
 import { usePersonas } from '../../core/stores/personasStore'
 import { buildPrompt } from '../../core/prompt/buildPrompt'
 import { useDragReorder } from '../../app/useDragReorder'
-import { useMediaQuery } from '../../app/useMediaQuery'
 import { CollapseButton, CollapseRail } from '../../app/CollapseButton'
 import { Avatar } from '../../app/Avatar'
 import '../../app/dragReorder.css'
@@ -28,13 +26,10 @@ export default function MultiplayerView(): JSX.Element {
   const relay = useSettings((s) => s.relay)
   const [accepted, setAccepted] = useState(relayNoticeAccepted)
 
-  // Either relay is enough. A build without the Supabase env values is still a working multiplayer
-  // build for anyone who has set up their own.
-  const anyRelay =
-    realtimeConfigured || relayConfigured({ kind: 'centrifugo', url: relay.url }, false)
+  const haveRelay = relayConfigured(relay)
 
   if (phase !== 'idle') return <SessionView />
-  if (!anyRelay) {
+  if (!haveRelay) {
     return (
       <div className="multiplayerLanding">
         <p>No relay is configured. Set one up in Settings, under Multiplayer.</p>
@@ -67,20 +62,6 @@ function Landing(): JSX.Element {
   const [stackId, setStackId] = useState<number | undefined>(undefined)
   const [personaLock, setPersonaLock] = useState(false)
   const storedRelay = useSettings((s) => s.relay)
-  // Per session. The stored setting is the default this starts from, and picking here does not
-  // write back to it, the narrower level is the one the user means when they choose a relay for
-  // one room. The upgrade path if that turns out wrong is a "remember this" checkbox, not a
-  // silent setRelay call.
-  // Running a relay needs a PC, so the option is struck out on a phone.
-  const isMobile = useMediaQuery('(max-width: 700px)')
-  const selfHostedReady =
-    !isMobile && relayConfigured({ kind: 'centrifugo', url: storedRelay.url }, false)
-  const [relayKind, setRelayKind] = useState<RelayKind>(() => {
-    // Land on a relay that can actually open. A build with no Supabase values but a stored URL
-    // starts on the self-hosted one, and vice versa.
-    if (storedRelay.kind === 'centrifugo' && selfHostedReady) return 'centrifugo'
-    return realtimeConfigured ? 'supabase' : 'centrifugo'
-  })
   const [error, setError] = useState('')
   const [link, setLink] = useState('')
   const [copied, setCopied] = useState(false)
@@ -125,7 +106,7 @@ function Landing(): JSX.Element {
     try {
       const session = await createSession(cast, stackId, {
         personaLock,
-        relay: { kind: relayKind, url: storedRelay.url },
+        relay: storedRelay,
       })
       setLink(session.link)
     } catch (err) {
@@ -253,34 +234,9 @@ function Landing(): JSX.Element {
         <div className="landingColumn">
           <section className="pickerBlock">
             <h3>Host options</h3>
-            <div className="relayPicker">
-              <label className="pickerCheck">
-                <input
-                  type="radio"
-                  name="sessionRelay"
-                  checked={relayKind === 'supabase'}
-                  disabled={!realtimeConfigured}
-                  onChange={() => setRelayKind('supabase')}
-                />
-                Default relay
-              </label>
-              <label className="pickerCheck">
-                <input
-                  type="radio"
-                  name="sessionRelay"
-                  checked={relayKind === 'centrifugo'}
-                  disabled={!selfHostedReady}
-                  onChange={() => setRelayKind('centrifugo')}
-                />
-                {isMobile ? <s>Your relay</s> : 'Your relay'}
-              </label>
-            </div>
             <p className="pickerHint">
-              {isMobile
-                ? 'Running a relay requires a Windows PC.'
-                : selfHostedReady
-                  ? 'Set in Settings, under Multiplayer. Your relay puts its address on the invite link.'
-                  : 'Add your own relay in Settings, under Multiplayer.'}
+              Relay: {relayHost(storedRelay)}. Change it in Settings, under Multiplayer. The
+              address goes on the invite link.
             </p>
 
             <label className="pickerCheck">

@@ -11,8 +11,8 @@
  * gain. One file that talks outward is the boundary that matters. core/connectors/ stays what it
  * is: the model endpoint.
  *
- * Note: src/core/multiplayer/realtimeClient.ts is the app's other outward file. It is unrelated,
- * an ephemeral relay with no storage.
+ * Note: src/core/multiplayer/centrifugoChannel.ts is the app's other outward file. It is
+ * unrelated — an ephemeral relay, no storage.
  */
 import { AwsClient } from 'aws4fetch'
 import { tableNames, type TableName } from '../storage/storageInterface'

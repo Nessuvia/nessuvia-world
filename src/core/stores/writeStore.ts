@@ -5,7 +5,7 @@ import type { StoredRecord } from '../storage/storageInterface'
 import { activeDescription } from '../storage/types'
 import type { Block, CastEntry, Chapter, ParamOverrides, Story } from '../storage/types'
 import { sendMessage } from '../connectors/openaiCompatible'
-import { runSecondPass } from '../secondPass/runSecondPass'
+import { editPass, runSecondPass } from '../secondPass/runSecondPass'
 import {
   buildStoryPrompt,
   castText,
@@ -28,7 +28,7 @@ import { rewritePrompt } from '../prompt/rewrite'
 import { deletedSwipes, instructionChain, regenerated, selectSwipe, swipeIndex } from './swipes'
 import { countTokens, loadTokenizer, perMessageOverhead } from '../prompt/budget'
 import { tokenizerFor } from '../prompt/tokenizers'
-import { activeConnection } from './settingsStore'
+import { activeConnection, secondPassSettings } from './settingsStore'
 import { resolveParams } from '../settings/resolveParams'
 import { useStacks } from './stacksStore'
 import { useCharacters } from './charactersStore'
@@ -366,6 +366,49 @@ async function runOutline(
   return { text, finishReason }
 }
 
+/**
+ * Run generated outline text through Second Pass, one string at a time.
+ *
+ * Not `runSecondPass`: the outline arrived as JSON from one request, so there is no generation to
+ * wrap, only text to edit. Beat by beat rather than as one document, because the reply has to come
+ * back split the same way it went in and re-splitting a numbered list the model retyped is a worse
+ * failure than an extra request. `skipWhenClean` still means a clean beat costs nothing.
+ *
+ * A beat that fails to edit keeps its original text. Losing an outline to the cleanup step would
+ * be worse than an unedited beat.
+ */
+async function passOutlineText(texts: string[]): Promise<string[]> {
+  if (!secondPassSettings().passBeats) return texts
+
+  // Its own controller, put where Stop looks: the outline request's is finished and cleared by the
+  // time this starts, and a twenty-beat cleanup with no way to stop it is not shippable.
+  const controller = new AbortController()
+  abort = controller
+
+  const out: string[] = []
+  try {
+    for (const text of texts) {
+      if (!text.trim() || controller.signal.aborted) {
+        out.push(text)
+        continue
+      }
+      let edited = ''
+      try {
+        for await (const chunk of editPass(text, controller.signal)) {
+          if (chunk.content) edited += chunk.content
+        }
+      } catch {
+        // One beat's edit failing leaves that beat as written. Nothing else is affected.
+        edited = ''
+      }
+      out.push(edited.trim() || text)
+    }
+  } finally {
+    abort = null
+  }
+  return out
+}
+
 /** A parse failure, or the token limit that actually caused it. A truncation reads as a parse error
  *  otherwise, which points at the reply instead of at the limit that cut it. Clears the streaming
  *  flag on the way out: the run is over either way, and the dialog stays open on the message. */
@@ -672,6 +715,8 @@ export const useWrite = create<WriteState>()((set, get) => ({
       throw outlineError(set, err, reply.finishReason, connection, 'ask for fewer chapters')
     }
 
+    const summaries = await passOutlineText(outline.map((c) => c.summary))
+
     // Past here the reply is good, so the Story's existing plan can go. Nothing before this point
     // has written anything.
     for (const chapter of chapters) {
@@ -686,7 +731,7 @@ export const useWrite = create<WriteState>()((set, get) => ({
     for (const [i, entry] of outline.entries()) {
       const chapter: Chapter = {
         ...newChapter(story.id!, i, entry.title || `Chapter ${i + 1}`),
-        summary: entry.summary,
+        summary: summaries[i],
         targetWords: targets[i],
       }
       const id = await storage.put('chapters', chapter as unknown as StoredRecord)
@@ -721,9 +766,11 @@ export const useWrite = create<WriteState>()((set, get) => ({
       throw outlineError(set, err, reply.finishReason, connection, 'ask for fewer beats')
     }
 
+    const cleaned = await passOutlineText(beats.map((b) => b.beat))
+
     // The beats replace the Chapter's own, and the prose in them goes: the caller confirmed that.
     // Nothing else about the Chapter is touched, so its title, summary and target all survive.
-    const blocks = beats.map((b) => newBlock(b.beat, b.weight))
+    const blocks = beats.map((b, i) => newBlock(cleaned[i], b.weight))
     const next = { ...chapter, blocks, targetWords: req.targetWords, updatedAt: Date.now() }
     await storage.put('chapters', next as unknown as StoredRecord)
 

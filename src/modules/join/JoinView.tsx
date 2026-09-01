@@ -170,7 +170,7 @@ export default function JoinView(): JSX.Element {
   return (
     <div id="join">
       {phase === 'idle' && !accepted && (
-        <RelayNotice kind={relay.kind} host={relayHost(relay)} onAccept={() => setAccepted(true)} />
+        <RelayNotice host={relayHost(relay)} onAccept={() => setAccepted(true)} />
       )}
       {phase === 'idle' && accepted && (
         <PersonaForm

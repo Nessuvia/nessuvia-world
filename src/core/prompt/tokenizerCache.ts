@@ -2,7 +2,7 @@
  * Downloaded tokenizer vocabularies.
  *
  * This is the fourth thing that talks outward, alongside sync/syncClient.ts,
- * multiplayer/realtimeClient.ts and the two Settings probes. It fetches two public JSON files from
+ * multiplayer/centrifugoChannel.ts and the two Settings probes. It fetches two public JSON files from
  * jsDelivr and nothing else: no key, no header, no user text, and only when the user presses the
  * button in the connection editor. A vocab is a static asset, so it never reaches the model
  * endpoint or the relay, and nothing about the request identifies the browser beyond the URL.

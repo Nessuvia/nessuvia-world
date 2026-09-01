@@ -2,38 +2,28 @@
 
 ## What this is
 
-A local-first character app that runs in the browser: chat with character cards, a Write mode for
-longer-form stories, an Ask scratchpad, and a multiplayer mode where guests join a host's chat from
-a link. All data lives in the user's browser and there are no accounts.
+A local-first character app that runs in the browser: chat with character cards, a Write mode for longer-form stories, an Ask scratchpad, and a multiplayer mode where guests join a host's chat from a link. All data lives in the user's browser and there are no accounts.
 
 Four paths leave the tab, and nothing else does:
 
 - The model endpoint, OpenAI-compatible, hosted or localhost, with the user's own key.
-- The multiplayer relay: Supabase Realtime on a build, or a Centrifugo instance the user runs.
-  Broadcast and presence only; nothing is stored there and API keys never reach it.
+- The multiplayer relay — a Centrifugo instance the user runs. Broadcast and presence only;
+  nothing is stored there and API keys never reach it.
 - The user's own S3-compatible bucket, when sync is on. There is no server of ours in it.
 - jsDelivr, for a tokenizer vocabulary, and only when the user presses the download button in a
   connection. Two public JSON files, no key and no user text. See `core/prompt/tokenizerCache.ts`.
 
-The build ships as static assets behind a Cloudflare Worker (`src/index.js`, `wrangler.jsonc`) that
-serves `dist` and has no routes of its own, and it installs as a PWA.
+The build ships as static assets behind a Cloudflare Worker (`src/index.js`, `wrangler.jsonc`) that serves `dist` and has no routes of its own, and it installs as a PWA.
 
-Every record carries an `ownerId`, hardcoded to `"local"`. It exists so a multi-user backend stays
-possible later. Do not build anything around it now.
+Every record carries an `ownerId`, hardcoded to `"local"`. It exists so a multi-user backend stays possible later — do not build anything around it now.
 
-This codebase is a WIP; don't worry about any data that's been imported or is already in IndexedDB.
-Skip migrations and back-compat shims for old records; clearing site data is a fine answer.
+This codebase is a WIP; don't worry about any data that's been imported or is already in IndexedDB. Skip migrations and back-compat shims for old records; clearing site data is a fine answer.
 
 ## Stack
 
 Vite · React 19 + TypeScript · plain CSS · React Router · Zustand · Dexie (IndexedDB) · pnpm
 
-Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (the bundled GPT token
-tables), `@lenml/tokenizers` (runs a downloaded `tokenizer.json` for the other model families),
-`compromise` (POS tagging for the grammar hammer), `@supabase/supabase-js` and `centrifuge`
-(multiplayer relays), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping),
-`react-colorful` (the swatch picker in `app/ColorInput.tsx`).
-Dev side adds `vite-plugin-pwa` and `wrangler`.
+Runtime deps worth knowing: `@remixicon/react` (icons), `gpt-tokenizer` (the bundled GPT token tables), `@lenml/tokenizers` (runs a downloaded `tokenizer.json` for the other model families), `compromise` (POS tagging for the grammar hammer), `centrifuge` (the multiplayer relay client), `aws4fetch` (SigV4 for bucket sync), `react-image-crop` (avatar cropping), `react-colorful` (the swatch picker in `app/ColorInput.tsx`). Dev side adds `vite-plugin-pwa` and `wrangler`.
 
 There is no drag-and-drop library. Reordering is hand-rolled in `app/useDragReorder.ts`; use it.
 `itemProps` makes the whole row draggable and is right for a row of plain content. A row holding an
@@ -42,13 +32,11 @@ There is no drag-and-drop library. Reordering is hand-rolled in `app/useDragReor
 start and clicking between words does nothing. `modules/lorebooks/EntryRows.tsx` and the beat rows
 in `modules/write/PlotLayout.tsx` are the pattern.
 
-Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, imported directly.
-No utility framework, no CSS-in-JS.
+Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, imported directly. No utility framework, no CSS-in-JS.
 
 ## Structure
 
-```
-/src
+``` /src
   /app          sidebar, module registry, routing, shared components and hooks
     /skins      the structural half of a palette; see Style
   /core
@@ -64,13 +52,9 @@ No utility framework, no CSS-in-JS.
     /settings   settings resolution helpers
   /modules
     /<name>     one folder per feature: index.ts self-registers it, plus its components and .css
-  /resources    organization folder for markdown plans, etc.
-```
+  /resources    organization folder for markdown plans, etc. ```
 
-Modules self-register by calling `registerModule` from their `index.ts`; the sidebar and the router
-both derive from that registry. Adding a feature means adding a folder and importing it in
-`main.tsx`, never editing a central list of screens. Beyond `{ id, label, icon, route, component }`
-a module may declare:
+Modules self-register by calling `registerModule` from their `index.ts`; the sidebar and the router both derive from that registry. Adding a feature means adding a folder and importing it in `main.tsx` — never editing a central list of screens. Beyond `{ id, label, icon, route, component }` a module may declare:
 
 - `tabs`: `[hashId, label]` pairs shown as sidebar sub-items; the view reads the hash
   (`app/useHashTab.ts`).
@@ -79,11 +63,9 @@ a module may declare:
   `main.tsx`. A panel that shouldn't show renders null; there is no visibility API.
 - `decorateMessage(ctx)`: text appended to the outgoing user message before token substitution.
 
-`component` is `lazy()` for route views; `chatPanels` stay eager, since they render inside the chat
-rather than behind a route.
+`component` is `lazy()` for route views; `chatPanels` stay eager, since they render inside the chat rather than behind a route.
 
-Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `lorebooks`,
-`prompts`, `appearance`, `settings`, plus four special cases:
+Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas`, `lorebooks`, `prompts`, `appearance`, `settings`, plus four special cases —
 
 - `bodyMap` is a plugin: registered, but off until enabled in Settings.
 - `learn` is registered in every build; the sidebar only shows its button on dev
@@ -102,11 +84,10 @@ Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas
   one counts), `flattenPrompt` (text-completion connections),
   `swapTokens`, `worldInfo`, `conditions`, `chapterGuide`, `rewrite`. Anything changing what the
   model receives goes through one of these.
-- **Model calls** go through `core/connectors`. `openaiCompatible` (streaming), `dummy` (local
-  generator for debugging), `buildRequestBody` + `completionUrl`, `listModels` + `modelsUrl`,
-  `snapshot`.
-- **Multiplayer** lives in `core/multiplayer`, where `channel.ts` is the interface; `supabaseChannel`
-  and `centrifugoChannel` are the two implementations and nothing above them knows which is live.
+- **Model calls** — `core/connectors`. `openaiCompatible` (streaming), `dummy` (local generator for
+  debugging), `buildRequestBody` + `completionUrl`, `listModels` + `modelsUrl`, `snapshot`.
+- **Multiplayer** — `core/multiplayer/channel.ts` is the interface and `centrifugoChannel` is the
+  implementation; nothing above it touches the relay client.
   `protocol.ts` holds the event shapes, `protocolVersion` (guests reject a mismatch) and the
   240 KB event cap. `hostSession`, `turnOrder`, `narrator`, `rosterAvatar` sit on top.
 - **Sync** goes through `core/sync/syncClient.ts`, the only outward-facing file; `dirtyTables.ts`
@@ -120,9 +101,7 @@ Registered today: `chat`, `write`, `multiplayer`, `ask`, `characters`, `personas
 
 ## Data
 
-Everything durable is in Dexie (`core/storage/db.ts`): `characters`,
-`personas`, `worldInfo`, `lorebooks`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`,
-`palettes`, `backgroundImages`, `bodyTrackers`, `bodyMaps`, `paramDefs`.
+Everything durable is in Dexie (`core/storage/db.ts`), currently `db.version(14)`: `characters`, `personas`, `worldInfo`, `lorebooks`, `chats`, `messages`, `promptStacks`, `stories`, `chapters`, `palettes`, `backgroundImages`, `bodyTrackers`, `bodyMaps`, `paramDefs`.
 
 - One `db.version(N).stores({...})` block, currently 14, holding the **complete** schema. The old
   chain was deleted; no block ever carried an `upgrade()` callback, so an older local DB upgrades
@@ -136,13 +115,9 @@ Everything durable is in Dexie (`core/storage/db.ts`): `characters`,
 - `storage.put/remove/clear/putAll` call `markDirty` before the write, which is how sync knows what
   changed. A whole-table replacement (restore, pull) runs inside `withDirtySuppressed`.
 
-Three Zustand stores persist to localStorage instead of Dexie, via `zustand/middleware` `persist`:
-`settingsStore` (`nessuTavern.settings`, connections, and the API keys with them),
-`askStore` (`nessuTavern.ask`), `blipStore` (`nessuTavern.blips`).
+Three Zustand stores persist to localStorage instead of Dexie, via `zustand/middleware` `persist`: `settingsStore` (`nessuTavern.settings` — connections, and the API keys with them), `askStore` (`nessuTavern.ask`), `blipStore` (`nessuTavern.blips`).
 
-`core/storage/backup.ts` is the only code that reads or writes those keys for export/import, and
-`stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file
-leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
+`core/storage/backup.ts` is the only code that reads or writes those keys for export/import, and `stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
 
 **Non-portable preferences.** Small view state that belongs to this browser and not to the user's
 data: whether a panel is collapsed, which rail is open, an example section dismissed. Write it
@@ -165,7 +140,7 @@ whether restoring a backup on another machine should carry it: if it shouldn't, 
 - The send path never calls `fetch` from a component: it goes store → connector. Five files outside
   `core/connectors` talk outward on purpose, each saying why in its header. `sync/syncClient.ts`
   (every request is SigV4-signed, so threading a signer elsewhere buys nothing),
-  `multiplayer/realtimeClient.ts` (the relay client), the two Settings probes,
+  `multiplayer/centrifugoChannel.ts` (the relay client), and the two Settings probes,
   `ConnectionEditor.tsx`'s connection test and `readContextLimit.ts`, which are one-shot diagnostics
   built from the connectors' own `completionUrl`/`modelsUrl`/`buildRequestBody`, and
   `prompt/tokenizerCache.ts`, which fetches a static vocabulary from a CDN on a button press. Don't
@@ -183,9 +158,7 @@ whether restoring a backup on another machine should carry it: if it shouldn't, 
 
 ## Specificity
 
-Before wiring up any edit, ask what scope it should change. The same control can sensibly write to
-any of these levels, and the right one is a design decision, not an accident of which record was
-closest to hand:
+Before wiring up any edit, ask what scope it should change. The same control can sensibly write to any of these levels, and the right one is a design decision, not an accident of which record was closest to hand:
 
 - a single message
 - a single chat
@@ -193,91 +166,51 @@ closest to hand:
 - all chats using a prompt stack / connection / persona
 - everything (a global default)
 
-Write to the narrowest level that matches what the user meant, and make the level obvious in the UI.
-A knob that silently edits a wider scope than it appears to is the failure mode to watch for: picking
-a prompt option inside a chat writes back to the shared stack, so the next new chat inherits it.
-That's fine if it's intended and surprising if it isn't. When a level is chosen for expedience rather
-than intent, leave a comment naming the level and the upgrade path (e.g. per-chat override).
+Write to the narrowest level that matches what the user meant, and make the level obvious in the UI. A knob that silently edits a wider scope than it appears to is the failure mode to watch for: picking a prompt option inside a chat writes back to the shared stack, so the next new chat inherits it — fine if that's intended and surprising if it isn't. When a level is chosen for expedience rather than intent, leave a comment naming the level and the upgrade path (e.g. per-chat override).
 
 ## Style
 
-Keep styling light until the polishing phase. A screen that works and looks plain is done; pixel
-work waits. But build the pieces so polish is cheap later.
+Keep styling light until the polishing phase — a screen that works and looks plain is done; pixel work waits. But build the pieces so polish is cheap later.
 
-**Before writing or editing any `.css` file or any `className`, read
-[`.claude/cssConventions.md`](.claude/cssConventions.md).** It is the full rulebook and the rules
-live there and nowhere else: the color vars, the spacing and type scales, the `z-index` ladder, the
-selector and class-naming rules, the breakpoint, the bans, and the skin contract. Its last section
-is a checklist to run against any diff that touches CSS.
+**Before writing or editing any `.css` file or any `className`, read [`.claude/cssConventions.md`](.claude/cssConventions.md).** It is the full rulebook and the rules live there and nowhere else: the color vars, the spacing and type scales, the `z-index` ladder, the selector and class-naming rules, the breakpoint, the bans, and the skin contract. Its last section is a checklist to run against any diff that touches CSS.
 
-The headline, so the shape is in mind before you open it: no hardcoded colors, no invented spacing
-values, no invented `z-index` numbers, a class on every element you style, and nothing shared
-between two tabs living in a module stylesheet.
+The headline, so the shape is in mind before you open it: no hardcoded colors, no invented spacing values, no invented `z-index` numbers, a class on every element you style, and nothing shared between two tabs living in a module stylesheet.
 
-Icons come from `@remixicon/react`. Never stand in an emoji or a unicode glyph for an icon.
-Typography characters (`…`, `·`, `→`) are fine.
+Icons come from `@remixicon/react`. Never stand in an emoji or a unicode glyph for an icon. Typography characters (`…`, `·`, `→`) are fine.
 
-Shared UI patterns live in `/app` with their own `.css`, and modules import them: `CollapseButton`
-(chevron and rail), `Avatar`, `ColorInput`, `ColorStack`, `EntityPicker`, `TwoColumn`, `PageLoader`,
-`PromptPreviewPanel`, and the hooks `useCloseOnOutside` (every button dropdown uses it),
-`useDragReorder`, `useHashTab`, `useMediaQuery`. Second copy of a pattern is a nudge; third is the
-cue to hoist it: small component, obvious props, room to grow.
+Shared UI patterns live in `/app` with their own `.css`, and modules import them: `CollapseButton` (chevron and rail), `Avatar`, `ColorInput`, `ColorStack`, `EntityPicker`, `TwoColumn`, `PageLoader`, `PromptPreviewPanel`, and the hooks `useCloseOnOutside` (every button dropdown uses it), `useDragReorder`, `useHashTab`, `useMediaQuery`. Second copy of a pattern is a nudge; third is the cue to hoist it — small component, obvious props, room to grow.
 
 ## UI copy
 
-Every string a user reads (labels, buttons, placeholders, hints, empty states, errors) is plain
-and boring. State what the thing does and stop. Leave out the pitch, the personality and the
-reassurance.
+Every string a user reads — labels, buttons, placeholders, hints, empty states, errors — is plain and boring. State what the thing does and stop. Leave out the pitch, the personality and the reassurance.
 
-Write the shortest sentence that carries the fact. Then check it against these, which are the tells
-that give away machine-written copy:
+Write the shortest sentence that carries the fact. Then check it against these, which are the tells that give away machine-written copy:
 
-- The rhetorical triple and its shorter cousin, the negated pair: "no requests, no spend", "not a
-  warning, not a block", "faster, simpler, cheaper". Never use either. State the positive fact
-  instead: "Requests are not sent."
+- The rhetorical triple and its shorter cousin, the negated pair: "no requests, no spend" "not a warning, not a block", "faster, simpler, cheaper". Never use either. State the positive fact instead: "Requests are not sent."
 - The em-dash aside that adds a flourish rather than information.
-- Words that praise the feature: simply, just, effortlessly, powerful, flawless, smart.
-- Explaining *why* a design is good, or what it saves the user, in copy that should only say what
-  it does.
+- Words that praise the feature: seamlessly, simply, just, effortlessly, powerful, robust, smart.
+- Explaining *why* a design is good, or what it saves the user, in copy that should only say what it does.
 
-`"Replies come from a local generator. Requests are not sent."` is good. `"Replies come from a
-local lorem ipsum generator instead of the connection, streamed as real SSE, so nothing else
-changes. No requests, no spend."` is an actual string this codebase shipped, and exactly the thing
-to avoid: three clauses of salesmanship for one fact.
+`"Replies come from a local generator. Requests are not sent."` — good. `"Replies come from a local lorem ipsum generator instead of the connection — streamed as real SSE, so nothing else changes. No requests, no spend."` — an actual string this codebase shipped, and exactly the thing to avoid: three clauses of salesmanship for one fact.
 
 This is about user-visible text only. Code comments explain reasoning and can breathe.
 
 ## Builds
 
-`npx pnpm build` builds against `.env`, which is committed and holds only public values: the
-Supabase URL and anon key, which are designed to ship in a client bundle. Nothing secret goes in it.
-
 `wrangler.jsonc` deploys the built `dist`. It holds no binding beyond `ASSETS`.
 
-`pnpm-workspace.yaml` pins which install scripts may run and explains the `packageManager` pin in
-`package.json`; pnpm 10 rejects that file outright.
+`pnpm-workspace.yaml` pins which install scripts may run and explains the `packageManager` pin in `package.json`; pnpm 10 rejects that file outright.
 
 ## Verifying work
 
-`npx pnpm build` (runs `tsc -b` then the Vite build) and the `check*` scripts must both pass. The
-checks are plain `node --experimental-strip-types` scripts with `assert`. `tsconfig.check.json`
-puts them in the `tsc -b` chain, so the build typechecks them but never runs their assertions.
-Run those separately:
+`npx pnpm build` (runs `tsc -b` then the Vite build) and the `check*` scripts must both pass. The checks are plain `node --experimental-strip-types` scripts with `assert`. `tsconfig.check.json` puts them in the `tsc -b` chain, so the build typechecks them but never runs their assertions — run those separately:
 
-```
-find src -name 'check*' -exec node --experimental-strip-types {} \;
-```
+Run `scripts/agent-test.sh` to typecheck and run every check* script; it prints one line when clean. Pass a substring to run a subset (`scripts/agent-test.sh turnOrder`), `-v` for untruncated failures, `--build` before handing off.
 
-One is `.mjs` (`core/multiplayer/checkTurnOrder.mjs`); the glob above catches it. There is no test
-framework; don't add one unasked.
+One is `.mjs` (`core/multiplayer/checkTurnOrder.mjs`); the glob above catches it. There is no test framework — don't add one unasked.
 
-When you add non-trivial logic (a branch, a loop, a parser, a security path), add one `check*.ts`
-next to it: the smallest thing that fails if the logic breaks. No frameworks, no fixtures, no
-per-function suites unless asked. Trivial one-liners need no check.
+When you add non-trivial logic (a branch, a loop, a parser, a security path), add one `check*.ts` next to it — the smallest thing that fails if the logic breaks. No frameworks, no fixtures, no per-function suites unless asked. Trivial one-liners need no check.
 
-**Then stop and hand off.** User drives Chrome and tests in the browser personally. Don't launch
-a browser, don't drive the Chrome tools, and don't leave `npx pnpm dev` running in the background unless
-asked. Report that the build and checks are clean and say what's ready to look at.
+**Then stop and hand off.** User drives Chrome and tests in the browser personally. Don't launch a browser, don't drive the Chrome tools, and don't leave `npx pnpm dev` running in the background unless asked. Report that the build and checks are clean and say what's ready to look at.
 
-`npx pnpm lint` (oxlint) exists from the Vite template but isn't enforced. Don't run it or add lint
-gates unless asked.
+`npx pnpm lint` (oxlint) exists from the Vite template but isn't enforced. Don't run it or add lint gates unless asked.

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { RiDeleteBinLine, RiFileCopyLine } from '@remixicon/react'
 import type { Connection } from '../../core/stores/settingsStore'
 import { newConnection, useSettings } from '../../core/stores/settingsStore'
 import ConnectionEditor from './ConnectionEditor'
@@ -124,16 +125,32 @@ export default function SettingsView() {
                           Set active
                         </button>
                       )}
+                      {/* The copy carries the API key: it is the same account, and a copy you
+                          have to re-key is not a copy. */}
                       <button
                         type="button"
-                        className="danger"
+                        className="connectionIconButton"
+                        title="Copy"
+                        aria-label="Copy"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          addConnection({ ...c, id: crypto.randomUUID(), name: `${c.name} copy` })
+                        }}
+                      >
+                        <RiFileCopyLine size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="danger connectionIconButton"
+                        title="Delete"
+                        aria-label="Delete"
                         onClick={(e) => {
                           e.stopPropagation()
                           if (c.id === editing?.id) setEditing(null)
                           removeConnection(c.id)
                         }}
                       >
-                        Delete
+                        <RiDeleteBinLine size={16} />
                       </button>
                     </span>
                   </li>

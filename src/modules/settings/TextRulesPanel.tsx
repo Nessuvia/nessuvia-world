@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react'
 import { RiTextSnippet } from '@remixicon/react'
 import {
   newSecondPassRule,
@@ -6,8 +5,6 @@ import {
   useSettings,
   type SecondPassRule,
 } from '../../core/stores/settingsStore'
-import { findTextMatches, standingNotes } from '../../core/secondPass/textRules'
-import { defaultBundle, restoreBundle, staleBundledRules } from '../../core/secondPass/defaultRules'
 import RuleCardHead from './RuleCardHead'
 import './settings.css'
 
@@ -34,24 +31,9 @@ export default function TextRulesPanel() {
   const settings = useSecondPass()
   const patch = useSettings((s) => s.setSecondPass)
   const rules = settings.textRules
-  const [preview, setPreview] = useState('')
 
   const patchRule = (id: string, over: Partial<SecondPassRule>) =>
     patch({ textRules: rules.map((r) => (r.id === id ? { ...r, ...over } : r)) })
-
-  // Live preview, the same harness the Hammer panel offers: type a find, see what it would report.
-  const matches = useMemo(() => {
-    if (!preview.trim()) return null
-    return findTextMatches(preview, rules, 'assistant')
-  }, [preview, rules])
-
-  // How many rules a restore would add, so the button can say whether it would do anything. Matched
-  // by id and by content, so a row left from an older bundle counts as already present.
-  const adds = restoreBundle(rules).length - rules.length
-  // Rows from a bundle this build no longer ships. Not duplicates, so a restore leaves them; shown
-  // separately so a list cannot quietly hold two generations of defaults.
-  const stale = staleBundledRules(rules)
-  const standing = standingNotes(rules, 'assistant')
 
   return (
     <section className="textRules screenFrame">
@@ -132,58 +114,6 @@ export default function TextRulesPanel() {
         <button type="button" onClick={() => patch({ textRules: [...rules, newSecondPassRule()] })}>
           Add rule
         </button>
-        {/* Puts back the whole shipped state: the missing rules, and both built-in checks. Rules
-            already present, by id or by wording, are left exactly as they are. */}
-        <button
-          type="button"
-          onClick={() => {
-            const bundle = defaultBundle()
-            patch({
-              textRules: restoreBundle(rules),
-              repetition: bundle.repetition,
-              sprawl: bundle.sprawl,
-            })
-          }}
-        >
-          Restore defaults{adds > 0 ? ` (+${adds})` : ''}
-        </button>
-        {stale.length > 0 && (
-          <button
-            type="button"
-            className="danger"
-            title="Remove rules left over from an older bundle"
-            onClick={() =>
-              patch({ textRules: rules.filter((r) => !stale.some((x) => x.id === r.id)) })
-            }
-          >
-            Remove {stale.length} old default{stale.length === 1 ? '' : 's'}
-          </button>
-        )}
-      </div>
-
-      <div className="grammarPreview">
-        <textarea
-          value={preview}
-          placeholder="Paste sample text to see what would be reported…"
-          rows={4}
-          onChange={(e) => setPreview(e.target.value)}
-        />
-        {matches && matches.length > 0 && (
-          <ul className="textRuleMatches">
-            {matches.map((note, i) => (
-              <li key={i}>
-                <span className="strippedSpan">{note.slice}</span> {note.message}
-              </li>
-            ))}
-          </ul>
-        )}
-        {matches && matches.length === 0 && preview.trim() && <p className="hint">No matches.</p>}
-        {standing.length > 0 && (
-          <p className="hint">
-            {standing.length} {standing.length === 1 ? 'rule applies' : 'rules apply'} to every
-            reply, on top of any matches.
-          </p>
-        )}
       </div>
     </section>
   )

@@ -134,10 +134,24 @@ export interface SecondPassSettings {
   skipWhenClean: boolean
   /** Appended to the built instruction. Non-empty, the pass runs even with nothing flagged. */
   userPrompt: string
+  /** Write mode only: send generated chapter summaries and beats through the pass as well. Off by
+   *  default because an outline of twenty beats is up to twenty extra requests. */
+  passBeats: boolean
   rules: GrammarHammerRule[]
   textRules: SecondPassRule[]
   repetition: RepetitionSettings
   sprawl: SprawlSettings
+  triplet: TripletSettings
+}
+
+/**
+ * The tricolon check: sentences built as exactly three comma-separated members.
+ *
+ * A built-in rather than a rule because the thing that is wrong is a count. There is nothing to
+ * match on, which is why the `rule-of-three` note rule keeps failing to stop it.
+ */
+export interface TripletSettings {
+  enabled: boolean
 }
 
 /**
@@ -218,12 +232,14 @@ export const defaultSecondPass: SecondPassSettings = {
   connectionId: null,
   skipWhenClean: true,
   userPrompt: '',
+  passBeats: false,
   rules: seedGrammarHammerRules(),
   // Rules and both built-in checks come from one place, so the shipped state and what Restore
   // defaults puts back can never drift apart.
   textRules: defaultBundle().rules,
   repetition: defaultBundle().repetition,
   sprawl: defaultBundle().sprawl,
+  triplet: defaultBundle().triplet,
 }
 
 /** Display behavior, global. Everything visual, colors, font, widths, lives on the active
@@ -290,9 +306,8 @@ interface SettingsState {
   /** The user's own S3-compatible bucket, or blank fields when sync is not set up. Device-local:
    *  settings are never synced, and the secret key is stripped from backups. */
   bucket: BucketConfig
-  /** Which relay multiplayer sessions run over, and the self-hosted endpoint when there is one.
-   *  The default for a new session, the Multiplayer landing can pick the other one for that
-   *  session without writing back here. Device-local, like `bucket`. */
+  /** The Centrifugo endpoint multiplayer sessions run over, blank when none is set up.
+   *  Device-local, like `bucket`. */
   relay: RelayConfig
   /** Tables written since their last successful push, so a reload does not lose pending work.
    *  Defaults to every table: a blob persisted before this field existed has no push on record, so

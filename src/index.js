@@ -1,6 +1,6 @@
 // Static hosting plus one route. The app has no backend: sync goes from the browser straight to
-// the user's own bucket, and multiplayer goes straight to Supabase Realtime. Nothing of anyone's
-// is stored on our side.
+// the user's own bucket, and multiplayer goes straight to the relay the host runs. Nothing of
+// anyone's is stored on our side.
 //
 // The one exception is /aicc/, which forwards a card download to aicharactercards.com. That API
 // sends no Access-Control-Allow-Origin, so the browser can't read it directly and something has to

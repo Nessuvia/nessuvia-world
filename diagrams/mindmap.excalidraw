@@ -3001,7 +3001,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "el66",
-      "originalText": "multiplayer: channel + supabase/centrifugo",
+      "originalText": "multiplayer — channel + centrifugo",
       "autoResize": false,
       "lineHeight": 1.25,
       "strokeColor": "#6741d9",
@@ -3012,7 +3012,7 @@
       "y": 181.25,
       "width": 314,
       "height": 17.5,
-      "text": "multiplayer: channel + supabase/centrifugo"
+      "text": "multiplayer — channel + centrifugo"
     },
     {
       "angle": 0,

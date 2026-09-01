@@ -1,199 +1,362 @@
+import { useState } from 'react'
 import { useSecondPass, useSettings } from '../../core/stores/settingsStore'
 import { standingNotes } from '../../core/secondPass/textRules'
+import { defaultBundle, restoreBundle, staleBundledRules } from '../../core/secondPass/defaultRules'
+import { downloadRules, parseRules } from '../../core/secondPass/ruleJson'
 import ConnectionPicker from '../../app/ConnectionPicker'
 import GrammarHammerPanel from './GrammarHammerPanel'
+import SecondPassPreview from './SecondPassPreview'
 import TextRulesPanel from './TextRulesPanel'
 import './settings.css'
 
+type Tab = 'setup' | 'checks' | 'rules' | 'hammer'
+
+const TABS: Array<[Tab, string]> = [
+  ['setup', 'Setup'],
+  ['checks', 'Checks'],
+  ['rules', 'Rules'],
+  ['hammer', 'Hammer'],
+]
+
 /**
- * Second Pass: the enable toggle, which connection edits, the repetition check, and the standing
- * instruction, over the two rule lists.
+ * Second Pass: setup, the three built-in checks, the free-text rule list and the Grammar Hammer,
+ * behind a local tab strip, with one preview under it that every tab shares.
  *
- * Free-text rules are authored here because they only ever report and have nowhere else to live.
- * The Grammar Hammer renders here too, since a rule set to "Report to the model" is a check as
- * much as a free-text rule is; its other two actions edit the text on the way through.
+ * The tab state is a `useState` on purpose: the Settings sidebar keeps one flat entry for Second
+ * Pass, so there is nothing to link to and no hash to read.
  */
 export default function SecondPassPanel() {
   const settings = useSecondPass()
   const patch = useSettings((s) => s.setSecondPass)
+  const [tab, setTab] = useState<Tab>('setup')
+  const [paste, setPaste] = useState('')
+  const [importError, setImportError] = useState('')
+
   // Standing rules force the second request whether or not anything matched, so the skip setting
   // has nothing left to skip while any are on. Say so rather than let it read as broken.
   const alwaysOn = standingNotes(settings.textRules, 'assistant').length
+  const rules = settings.textRules
   const rep = settings.repetition
   const patchRep = (over: Partial<typeof rep>) => patch({ repetition: { ...rep, ...over } })
   const spr = settings.sprawl
   const patchSpr = (over: Partial<typeof spr>) => patch({ sprawl: { ...spr, ...over } })
+  const tri = settings.triplet
+  const patchTri = (over: Partial<typeof tri>) => patch({ triplet: { ...tri, ...over } })
+
+  /** Append what the JSON holds. Import adds; it never replaces the list, so a file with one rule
+   *  in it cannot cost you the other forty. */
+  const addJson = (text: string) => {
+    try {
+      patch({ textRules: [...rules, ...parseRules(text)] })
+      setPaste('')
+      setImportError('')
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not read that.')
+    }
+  }
+
+  // How many rules a restore would add, so the button can say whether it would do anything. Matched
+  // by id and by content, so a row left from an older bundle counts as already present.
+  const adds = restoreBundle(rules).length - rules.length
+  // Rows from a bundle this build no longer ships. Not duplicates, so a restore leaves them; shown
+  // separately so a list cannot quietly hold two generations of defaults.
+  const stale = staleBundledRules(rules)
 
   return (
-    <div className="textRulesCards">
-      <section className="textRules screenFrame">
-        <span className="titleContainer">
-          <h3>Second Pass</h3>
-          <label className="checkboxRow">
-            <input
-              type="checkbox"
-              checked={settings.enabled}
-              onChange={(e) => patch({ enabled: e.target.checked })}
-            />
-            Enable
-          </label>
-        </span>
+    <div className="secondPassPanel">
+      <div className="secondPassTabs">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={id === tab ? 'secondPassTab secondPassTabOn' : 'secondPassTab'}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-        <div className="screenBody secondPassBody">
-          <p className="hint">
-            Each reply is generated, checked against the rules below, then sent back to a model to
-            rewrite. Rules with nothing in their Find field apply to every reply.
-          </p>
-
-          <ConnectionPicker
-            value={settings.connectionId}
-            onChange={(connectionId) => patch({ connectionId })}
-            allowActive
-            label="Editing connection"
-            disabled={!settings.enabled}
-          />
-
-          <label className="checkboxRow">
-            <input
-              type="checkbox"
-              checked={settings.skipWhenClean}
-              disabled={!settings.enabled}
-              onChange={(e) => patch({ skipWhenClean: e.target.checked })}
-            />
-            Skip the second request when nothing is found
-          </label>
-          <p className="hint">
-            {alwaysOn > 0
-              ? `${alwaysOn} ${alwaysOn === 1 ? 'rule applies' : 'rules apply'} to every reply, so the second request runs every time regardless of this setting. Disable or delete those rules to let it skip.`
-              : 'Nothing found means the reply is used as written, and only one request is made.'}
-          </p>
-
-          <label className="secondPassPrompt">
-            Standing instruction
-            <textarea
-              className="secondPassPromptInput"
-              rows={3}
-              value={settings.userPrompt}
-              disabled={!settings.enabled}
-              placeholder="Applied to every reply, on top of anything found."
-              onChange={(e) => patch({ userPrompt: e.target.value })}
-            />
-          </label>
-          <p className="hint">
-            Filled in, the second request runs on every reply, including ones where nothing was
-            found.
-          </p>
-
-          <span className="secondPassSectionTitle">Sentence sprawl</span>
-          <label className="checkboxRow">
-            <input
-              type="checkbox"
-              checked={spr.enabled}
-              disabled={!settings.enabled}
-              onChange={(e) => patchSpr({ enabled: e.target.checked })}
-            />
-            Report sentences that run on
-          </label>
-          <p className="hint">
-            Catches clauses chained at the same level with commas and "and". A rule cannot do this
-            one: what makes a sentence sprawl is how many joints it has, not which words fill them.
-          </p>
-          <div className="secondPassNumbers">
-            <label className="secondPassNumber">
-              Words
+      {tab === 'setup' && (
+        <section className="textRules screenFrame">
+          <span className="titleContainer">
+            <h3>Second Pass</h3>
+            <label className="checkboxRow">
               <input
-                className="secondPassNumberInput"
-                type="number"
-                min={10}
-                max={200}
-                value={spr.maxWords}
-                disabled={!settings.enabled || !spr.enabled}
-                onChange={(e) => patchSpr({ maxWords: Number(e.target.value) })}
+                type="checkbox"
+                checked={settings.enabled}
+                onChange={(e) => patch({ enabled: e.target.checked })}
+              />
+              Enable
+            </label>
+          </span>
+
+          <div className="secondPassBody">
+            <p className="hint">
+              Each reply is generated, checked against the rules and checks here, then sent back to
+              a model to rewrite.
+            </p>
+
+            <ConnectionPicker
+              value={settings.connectionId}
+              onChange={(connectionId) => patch({ connectionId })}
+              allowActive
+              label="Editing connection"
+            />
+
+            <label className="checkboxRow">
+              <input
+                type="checkbox"
+                checked={settings.skipWhenClean}
+                onChange={(e) => patch({ skipWhenClean: e.target.checked })}
+              />
+              Skip the second request when nothing is found
+            </label>
+            <p className="hint">
+              {alwaysOn > 0
+                ? `${alwaysOn} ${alwaysOn === 1 ? 'rule applies' : 'rules apply'} to every reply, so the second request runs every time regardless of this setting. Disable or delete those rules to let it skip.`
+                : 'Nothing found means the reply is used as written, and only one request is made.'}
+            </p>
+
+            <label className="secondPassPrompt">
+              Standing instruction
+              <textarea
+                className="secondPassPromptInput"
+                rows={3}
+                value={settings.userPrompt}
+                placeholder="Applied to every reply, on top of anything found."
+                onChange={(e) => patch({ userPrompt: e.target.value })}
               />
             </label>
-            <label className="secondPassNumber">
-              Commas
+            <p className="hint">
+              Filled in, the second request runs on every reply, including ones where nothing was
+              found.
+            </p>
+
+            {/* Global, like the rest of Second Pass. Per-story override if a Story ever needs its
+                own answer. */}
+            <label className="checkboxRow">
               <input
-                className="secondPassNumberInput"
-                type="number"
-                min={1}
-                max={20}
-                value={spr.maxCommas}
-                disabled={!settings.enabled || !spr.enabled}
-                onChange={(e) => patchSpr({ maxCommas: Number(e.target.value) })}
+                type="checkbox"
+                checked={settings.passBeats}
+                onChange={(e) => patch({ passBeats: e.target.checked })}
               />
+              Pass generated beats in Write mode
             </label>
-            <label className="secondPassNumber">
-              Conjunctions
-              <input
-                className="secondPassNumberInput"
-                type="number"
-                min={1}
-                max={20}
-                value={spr.maxConjunctions}
-                disabled={!settings.enabled || !spr.enabled}
-                onChange={(e) => patchSpr({ maxConjunctions: Number(e.target.value) })}
+            <p className="hint">Adds one request per generated beat.</p>
+
+            <span className="secondPassSectionTitle">Bundle</span>
+            <div className="grammarActions">
+              {/* Puts back the whole shipped state: the missing rules, and the three checks. Rules
+                  already present, by id or by wording, are left exactly as they are. */}
+              <button
+                type="button"
+                onClick={() => {
+                  const bundle = defaultBundle()
+                  patch({
+                    textRules: restoreBundle(rules),
+                    repetition: bundle.repetition,
+                    sprawl: bundle.sprawl,
+                    triplet: bundle.triplet,
+                  })
+                }}
+              >
+                Restore defaults{adds > 0 ? ` (+${adds})` : ''}
+              </button>
+              {stale.length > 0 && (
+                <button
+                  type="button"
+                  className="danger"
+                  title="Remove rules left over from an older bundle"
+                  onClick={() =>
+                    patch({ textRules: rules.filter((r) => !stale.some((x) => x.id === r.id)) })
+                  }
+                >
+                  Remove {stale.length} old default{stale.length === 1 ? '' : 's'}
+                </button>
+              )}
+            </div>
+            <p className="hint">
+              Restore adds the missing default rules and resets sentence sprawl, rule of three and
+              repetition.
+            </p>
+
+            <div className="grammarActions">
+              {/* File inputs can't be styled; the label is the button. */}
+              <label className="ruleImportButton">
+                Import JSON
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (file) addJson(await file.text())
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => downloadRules(rules)}
+                disabled={rules.length === 0}
+              >
+                Export JSON
+              </button>
+            </div>
+            <div className="ruleImport">
+              <textarea
+                className="ruleImportInput"
+                value={paste}
+                rows={3}
+                placeholder="…or paste rule JSON here"
+                onChange={(e) => setPaste(e.target.value)}
               />
-            </label>
+              <div className="grammarActions">
+                <button type="button" disabled={!paste.trim()} onClick={() => addJson(paste)}>
+                  Add pasted rules
+                </button>
+              </div>
+              {importError && <p className="hint danger">{importError}</p>}
+              <p className="hint">
+                Takes an export, a bare array of rules, or a single rule object. Imported rules are
+                added to the list, not swapped in for it.
+              </p>
+            </div>
           </div>
+        </section>
+      )}
 
-          <span className="secondPassSectionTitle">Repetition</span>
-          <label className="checkboxRow">
-            <input
-              type="checkbox"
-              checked={rep.enabled}
-              disabled={!settings.enabled}
-              onChange={(e) => patchRep({ enabled: e.target.checked })}
-            />
-            Report phrases reused from earlier replies
-          </label>
-          <p className="hint">
-            Separate from the rules below because it compares the reply against earlier ones rather
-            than matching anything in it.
-          </p>
-          <div className="secondPassNumbers">
-            <label className="secondPassNumber">
-              Phrase length
-              <input
-                className="secondPassNumberInput"
-                type="number"
-                min={2}
-                max={12}
-                value={rep.phrase}
-                disabled={!settings.enabled || !rep.enabled}
-                onChange={(e) => patchRep({ phrase: Number(e.target.value) })}
-              />
-            </label>
-            <label className="secondPassNumber">
-              Earlier replies using it
-              <input
-                className="secondPassNumberInput"
-                type="number"
-                min={1}
-                max={20}
-                value={rep.repeats}
-                disabled={!settings.enabled || !rep.enabled}
-                onChange={(e) => patchRep({ repeats: Number(e.target.value) })}
-              />
-            </label>
-            <label className="secondPassNumber">
-              Replies to look back over
-              <input
-                className="secondPassNumberInput"
-                type="number"
-                min={1}
-                max={40}
-                value={rep.lookback}
-                disabled={!settings.enabled || !rep.enabled}
-                onChange={(e) => patchRep({ lookback: Number(e.target.value) })}
-              />
-            </label>
-          </div>
-        </div>
-      </section>
+      {tab === 'checks' && (
+        <section className="textRules screenFrame">
+          <span className="titleContainer">
+            <h3>Checks</h3>
+          </span>
 
-      <TextRulesPanel />
-      <GrammarHammerPanel />
+          <ul className="ruleCards screenBody">
+            <li className="card ruleCard">
+              <label className="checkboxRow">
+                <input
+                  type="checkbox"
+                  checked={spr.enabled}
+                  onChange={(e) => patchSpr({ enabled: e.target.checked })}
+                />
+                Sentence sprawl
+              </label>
+              {/* A rule cannot do this one: what makes a sentence sprawl is how many joints it has,
+                  not which words fill them. */}
+              <p className="hint">
+                Reports sentences over these counts of words, commas and conjunctions.
+              </p>
+              {spr.enabled && (
+                <div className="secondPassNumbers">
+                  <label className="secondPassNumber">
+                    Words
+                    <input
+                      className="secondPassNumberInput"
+                      type="number"
+                      min={10}
+                      max={200}
+                      value={spr.maxWords}
+                      onChange={(e) => patchSpr({ maxWords: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="secondPassNumber">
+                    Commas
+                    <input
+                      className="secondPassNumberInput"
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={spr.maxCommas}
+                      onChange={(e) => patchSpr({ maxCommas: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="secondPassNumber">
+                    Conjunctions
+                    <input
+                      className="secondPassNumberInput"
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={spr.maxConjunctions}
+                      onChange={(e) => patchSpr({ maxConjunctions: Number(e.target.value) })}
+                    />
+                  </label>
+                </div>
+              )}
+            </li>
+
+            <li className="card ruleCard">
+              <label className="checkboxRow">
+                <input
+                  type="checkbox"
+                  checked={tri.enabled}
+                  onChange={(e) => patchTri({ enabled: e.target.checked })}
+                />
+                Rule of three
+              </label>
+              <p className="hint">
+                Reports sentences built as exactly three comma-separated items. Commas inside quotes
+                are skipped.
+              </p>
+            </li>
+
+            <li className="card ruleCard">
+              <label className="checkboxRow">
+                <input
+                  type="checkbox"
+                  checked={rep.enabled}
+                  onChange={(e) => patchRep({ enabled: e.target.checked })}
+                />
+                Repetition
+              </label>
+              <p className="hint">Reports phrases the reply reuses from earlier replies.</p>
+              {rep.enabled && (
+                <div className="secondPassNumbers">
+                  <label className="secondPassNumber">
+                    Phrase length
+                    <input
+                      className="secondPassNumberInput"
+                      type="number"
+                      min={2}
+                      max={12}
+                      value={rep.phrase}
+                      onChange={(e) => patchRep({ phrase: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="secondPassNumber">
+                    Earlier replies using it
+                    <input
+                      className="secondPassNumberInput"
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={rep.repeats}
+                      onChange={(e) => patchRep({ repeats: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="secondPassNumber">
+                    Replies to look back over
+                    <input
+                      className="secondPassNumberInput"
+                      type="number"
+                      min={1}
+                      max={40}
+                      value={rep.lookback}
+                      onChange={(e) => patchRep({ lookback: Number(e.target.value) })}
+                    />
+                  </label>
+                </div>
+              )}
+            </li>
+          </ul>
+        </section>
+      )}
+
+      {tab === 'rules' && <TextRulesPanel />}
+      {tab === 'hammer' && <GrammarHammerPanel />}
+
+      <SecondPassPreview />
     </div>
   )
 }

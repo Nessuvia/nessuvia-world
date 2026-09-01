@@ -1,5 +1,10 @@
 // Extension-ful imports on purpose: checkDefaultRules.ts runs this under `node --experimental-strip-types`.
-import type { RepetitionSettings, SecondPassRule, SprawlSettings } from '../stores/settingsStore.ts'
+import type {
+  RepetitionSettings,
+  SecondPassRule,
+  SprawlSettings,
+  TripletSettings,
+} from '../stores/settingsStore.ts'
 
 /**
  * The bundled rules, adapted from AI Writing Rules by Abdulkader Safi.
@@ -170,7 +175,7 @@ export function defaultSecondPassRules(): SecondPassRule[] {
     always(
       'rule-of-three',
       'Break the rule of three',
-      'Count the items in every list. If there are exactly three, use one, two, or four instead. This applies to bullets, adjective strings, and clauses in a sentence.',
+      'Count the items in every list. If there are exactly three, use one, two, or four instead. Commas are the obvious case and the check catches those; this covers the ones it cannot see, where the three arrive as three short sentences in a row, three beats joined by "and", or one detail per line.',
     ),
     always(
       'burstiness',
@@ -211,14 +216,15 @@ export function defaultSecondPassRules(): SecondPassRule[] {
 }
 
 /**
- * Everything the bundle ships: the rules, plus the two built-in checks, which are settings rather
- * than rules but are just as much part of "the defaults". Restoring puts back all three, so there
- * is one shipped state and one action that returns to it.
+ * Everything the bundle ships: the rules, plus the built-in checks, which are settings rather than
+ * rules but are just as much part of "the defaults". Restoring puts back all of it, so there is one
+ * shipped state and one action that returns to it.
  */
 export interface RuleBundle {
   rules: SecondPassRule[]
   repetition: RepetitionSettings
   sprawl: SprawlSettings
+  triplet: TripletSettings
 }
 
 export function defaultBundle(): RuleBundle {
@@ -226,6 +232,7 @@ export function defaultBundle(): RuleBundle {
     rules: defaultSecondPassRules(),
     repetition: { enabled: true, phrase: 4, repeats: 2, lookback: 8 },
     sprawl: { enabled: true, maxWords: 45, maxCommas: 4, maxConjunctions: 3 },
+    triplet: { enabled: true },
   }
 }
 

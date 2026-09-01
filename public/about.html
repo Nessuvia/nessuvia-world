@@ -29,7 +29,7 @@
         "url": "https://xenia.nessuvia.com/",
         "applicationCategory": "BrowserApplication",
         "applicationSubCategory": "Character chat and roleplay writing app",
-        "operatingSystem": "Any (runs in a web browser, installable as a PWA)",
+        "operatingSystem": "Any (runs in a web browser, installable as a PWA with a responsive mobile UI)",
         "browserRequirements": "A modern browser with IndexedDB support",
         "softwareVersion": "See changelog in-app",
         "offers": {
@@ -43,15 +43,19 @@
         "codeRepository": "https://github.com/Nessuvia/xenia-nessuvia",
         "downloadUrl": "https://github.com/Nessuvia/xenia-nessuvia",
         "screenshot": "https://xenia.nessuvia.com/android-chrome-512x512.png",
-        "keywords": "character chat, roleplay, LLM frontend, SillyTavern alternative, local-first, multiplayer roleplay, story writing, OpenAI-compatible, TavernV2, PWA",
-        "storageRequirements": "IndexedDB (local browser storage), no server-side database",
+        "keywords": "character chat, roleplay, LLM frontend, SillyTavern alternative, local-first, free and open source, GPL-3.0, mobile chat UI, self-hosted multiplayer, story writing, OpenAI-compatible, TavernV2, PWA",
+        "storageRequirements": "Browser IndexedDB (100% local browser storage). No server-side database; data can be exported and imported seamlessly if self-hosting or running locally.",
         "permissions": "None required. No account, no login, no tracking.",
         "featureList": [
+          "Completely free and open source software (GPL v3)",
+          "Statically hosted at xenia.nessuvia.com for zero-setup access, with all data staying in the user's browser",
+          "Self-hostable or portable to local environments via git clone and single-file JSON import/export",
+          "Clean, mobile-first responsive UI designed for smooth chatting with granular power-user settings tucked neatly under the hood",
+          "Multiplayer sessions via a self-hosted relay where guests join by link with zero setup or API keys",
           "Character card chat with TavernV2 card import",
           "World info entries that trigger on keywords",
           "Grammar hammer, a rules-based cleanup pass over model output that leaves stored text untouched",
           "Long-form Write mode with chapters built from beats and word targets",
-          "Multiplayer sessions joined by link, no install or account needed, only the host holds the API key",
           "Ask mode for single off-chat questions to the model",
           "Reusable, rearrangeable prompt blocks with XML-style tagging and live-adjustable scroll values",
           "Custom scoped CSS and HTML backgrounds, app-wide palettes, and webfont loading",
@@ -70,18 +74,28 @@
         "additionalProperty": [
           {
             "@type": "PropertyValue",
+            "name": "licensingAndCost",
+            "value": "100% free and open-source software (GPL v3)"
+          },
+          {
+            "@type": "PropertyValue",
             "name": "accounts",
             "value": "None"
           },
           {
             "@type": "PropertyValue",
             "name": "dataStorage",
-            "value": "Browser IndexedDB and localStorage only; no server-side database"
+            "value": "Browser IndexedDB and localStorage only; no server-side database. Portable between hosted app and local git clone via JSON export"
           },
           {
             "@type": "PropertyValue",
             "name": "multiplayerRelay",
-            "value": "Supabase Realtime by default, or a self-hosted Centrifugo instance; carries messages and presence only, stores nothing, never receives API keys"
+            "value": "Self-hosted Centrifugo instance (or Supabase Realtime); carries messages and presence only, stores nothing, never receives API keys"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "userInterface",
+            "value": "Mobile-optimized interface designed for streamlined chatting with hidden-till-needed deep configuration controls"
           },
           {
             "@type": "PropertyValue",
@@ -91,7 +105,7 @@
           {
             "@type": "PropertyValue",
             "name": "sourceAvailability",
-            "value": "Full source published under GPL-3.0"
+            "value": "Full source published under GPL-3.0 at https://github.com/Nessuvia/xenia-nessuvia"
           }
         ]
       }
@@ -144,16 +158,13 @@
   </head>
   <body>
     <h1>Xenia Nessuvia</h1>
-    <p class="tagline">A local-first character chat and story-writing app. No install, no account, no server holding your data.</p>
+    <p class="tagline">A character chat and long-form writing app that runs entirely in your browser. No install, no account, no server of ours holding your data.</p>
 
     <a class="open" href="/">Open the app</a>
 
-    <h2>Summary</h2>
+    <h2>What it is</h2>
     <p>
-      Xenia Nessuvia is a static web app for chatting with character cards, writing long-form
-      stories against the same characters, and running multiplayer sessions that guests join from
-      a link. It talks to any OpenAI-compatible model endpoint using an API key you supply. Nothing
-      goes through an account and no database of ours holds any of it. The source is GPL v3.
+      Xenia Nessuvia is a static web app. It loads once and runs in your browser like any other page. You bring an API key for any OpenAI-compatible model endpoint, and the app talks to it directly, nothing routes through us, and no database of ours stores your characters, chats, or stories. The source is GPL v3.
     </p>
 
     <h2>Chat</h2>
@@ -173,22 +184,17 @@
 
     <h2>Write</h2>
     <p>
-      Write is the long-form counterpart to Chat, and it works on a different model:
-      chapters built from beats with word targets, rather than a back-and-forth. It shares
-      characters and world info with Chat, but the structure underneath is its own.
+      Write is the long-form counterpart to Chat. Instead of back-and-forth, you build chapters from beats with word targets. It shares characters and world info with Chat, but the structure underneath is its own thing.
     </p>
 
     <h2>Multiplayer</h2>
     <p>
-      The host starts a session and shares a link. Guests join with a persona, no install or
-      account. Turn order is rearrangeable. A narrator role answers when no character present
-      should. Only the host holds an API key, and only the host talks to the model.
+      The host starts a session and shares a link. Guests join with a persona, no install, no account. Turn order is rearrangeable. A narrator role answers when no character present should. Only the host holds an API key, and only the host talks to the model.
     </p>
 
     <h2>Ask</h2>
     <p>
-      A single question to the model, outside any chat, with an optional character loaded to
-      answer as.
+      One question to the model, outside any chat. Optionally load a character to answer as. Handy for quick things.
     </p>
 
     <h2>Prompts</h2>
@@ -202,17 +208,14 @@
 
     <h2>Palette</h2>
     <p>
-      Appearance is its own system: built-in webfont loading, app-wide color palettes, and panel
-      styling, plus scoped custom CSS and HTML for backgrounds. Custom CSS is wrapped in
-      <code>@scope</code> so it can't leak into the rest of the app.
+      Appearance is its own system: built-in webfont loading, app-wide color palettes, panel styling, plus scoped custom CSS and HTML for backgrounds. Custom CSS is wrapped in <code>@scope</code> so it can't leak into the rest of the app.
     </p>
 
     <h2>Models and settings</h2>
     <dl>
       <dt>Endpoints</dt>
       <dd>
-        Any OpenAI-compatible endpoint, hosted or on localhost. Chat completion and text
-        completion both work.
+        Any OpenAI-compatible endpoint, hosted or on localhost. Chat completion and text completion both work.
       </dd>
 
       <dt>Samplers</dt>
@@ -224,32 +227,29 @@
 
       <dt>Import and export</dt>
       <dd>
-        A single JSON file holds characters, chats, stories, and settings, and reloads on another
-        machine. API keys and bucket credentials are stripped from that file before it's written.
+        One JSON file holds characters, chats, stories, and settings. Load it on another machine and you're back where you left off. API keys and bucket credentials are stripped before the file is written.
       </dd>
     </dl>
 
     <h2>Where data goes</h2>
     <p>
-      Characters, chats, stories, and settings sit in the browser's IndexedDB. Four things leave
-      the tab, and nothing else does:
+      Characters, chats, stories, and settings live in your browser's IndexedDB. Four things leave the tab, and nothing else:
     </p>
     <ul>
-      <li>Model requests go to the endpoint you configure, with your own API key.</li>
+      <li>Model requests go to the endpoint you configure, with your API key.</li>
       <li>Multiplayer messages pass through a relay (Supabase Realtime, or a self-hosted Centrifugo instance) that stores nothing and never sees API keys.</li>
-      <li>Sync, if turned on, writes records to an S3-compatible bucket you own.</li>
-      <li>A tokenizer vocabulary downloads from jsDelivr, only when requested, with no user text sent.</li>
+      <li>Sync, if turned on, writes to an S3-compatible bucket you own.</li>
+      <li>A tokenizer vocabulary downloads from jsDelivr when requested, with no user text sent.</li>
     </ul>
 
     <h2>Requirements</h2>
     <p>
-      A modern browser and an API key for an OpenAI-compatible endpoint. Nothing else to install;
-      the app can be added to a home screen or desktop as a PWA.
+      A modern browser and an API key for an OpenAI-compatible endpoint. That's it. The app works as a PWA, so you can add it to your home screen or desktop if you want.
     </p>
 
     <h2>Status</h2>
     <p>
-      Free to use, no signup. Actively developed and used daily by its author. Source at
+      Free, no signup. Actively developed and used daily by its author. Source at
       <a href="https://github.com/nessuvia/xenia-nessuvia">github.com/nessuvia/xenia-nessuvia</a>.
     </p>
 

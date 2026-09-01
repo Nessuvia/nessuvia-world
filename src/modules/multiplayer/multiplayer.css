@@ -563,16 +563,6 @@
   cursor: pointer;
 }
 
-.relayPicker {
-  display: flex;
-  gap: 16px;
-}
-
-.relayPicker .pickerCheck:has(input:disabled) {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .multiplayerLanding h2 {
   margin: 0;
 }
