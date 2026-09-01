@@ -61,6 +61,9 @@
           "Custom scoped CSS and HTML backgrounds, app-wide palettes, and webfont loading",
           "Connects to any OpenAI-compatible endpoint, local or hosted, chat or text completion",
           "Sampler parameters defined as data rows, extensible without a code change",
+          "Prompt preview and raw request inspector for debugging what the model receives",
+          "Second Pass post-processing rules for cleaning up model output",
+          "Single-file JSON export and import with API keys and bucket credentials stripped",
           "Optional sync to a user-owned S3-compatible bucket",
           "Installable as a PWA for offline home-screen use"
         ],
@@ -166,10 +169,17 @@
 
     <h2>Chat</h2>
     <p>
-      Import TavernV2 character cards or build one from scratch in the editor. Alternate greetings, swipes, the usual things, all there. Each character can carry its own text color, so a multi-character chat stays readable at a glance. Characters can hold image galleries beyond the main avatar. World info entries watch for keywords in the conversation and inject their text into the prompt when they match.
+      Imports TavernV2 character cards, or build one in the editor. Alternate greetings and swipes
+      work as expected. Each character can carry its own text color, so a multi-character chat
+      stays readable at a glance. Characters can carry a gallery of linked images beyond the main
+      avatar. World info entries trigger on keywords in the conversation and inject their text into
+      the prompt when they match. Lorebook control is intentionally simple today.
     </p>
     <p>
-      Before model output reaches the screen, it passes through the grammar hammer: a rules pass that strips repeated tics and cleans up formatting. It only touches what's displayed, the stored message is the model's raw text, untouched.
+      Before it reaches the screen, model output passes through the grammar hammer: a rules pass
+      that strips repeated tics and cleans up formatting. It only touches what's displayed; the
+      stored message is the model's raw text. For more involved cleanup, Second Pass lets you
+      run your own post-processing rules over model output without changing what gets saved.
     </p>
 
     <h2>Write</h2>
@@ -189,7 +199,11 @@
 
     <h2>Prompts</h2>
     <p>
-      Prompt content is built from reusable, rearrangeable blocks. Blocks support XML-style tagging. One block type is a scroll, a single number, like a target word count, adjusted directly without opening the block.
+      Prompt content is built from reusable, rearrangeable blocks. Blocks support XML-style
+      tagging. One block type is a scroll: a single number, like a target word count, adjusted
+      directly without opening the block. A live prompt preview shows the assembled text before
+      it is sent, and Chat includes a raw request inspector so you can see the exact payload
+      reaching the endpoint.
     </p>
 
     <h2>Palette</h2>
@@ -206,7 +220,9 @@
 
       <dt>Samplers</dt>
       <dd>
-        Sampler parameters are rows of data. Add one by hand for a backend-specific parameter the app doesn't already list, and it shows up in the UI.
+        Sampler parameters are rows of data. Add one by hand for a backend-specific parameter
+        Xenia doesn't already list, and it appears in the UI. That includes local-backend
+        samplers like Mirostat, Min-P, DRY, or quadratic sampling without waiting for a release.
       </dd>
 
       <dt>Import and export</dt>
