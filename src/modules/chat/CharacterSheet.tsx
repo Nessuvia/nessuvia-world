@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RiMoreLine } from '@remixicon/react'
 import { useCharacters, displayName } from '../../core/stores/charactersStore'
@@ -10,6 +10,7 @@ import { useCloseOnOutside } from '../../app/useCloseOnOutside'
 import CharacterEditor from '../characters/CharacterEditor'
 import { exportCardJson, exportCardPng } from '../characters/exportCard'
 import ChatList from './ChatList'
+import type { Lorebook } from '../../core/storage/types'
 
 /**
  * One character, read and edited on the same page, `/chat/c/:characterId`, or `/chat/c/new`.
@@ -32,10 +33,16 @@ export default function CharacterSheet() {
   const [exportError, setExportError] = useState('')
   const [saveState, setSaveState] = useState('')
   const menuRef = useCloseOnOutside<HTMLSpanElement>(menuOpen, () => setMenuOpen(false))
+  const { books, counts, load: loadBooks } = useLorebooks()
 
   useEffect(() => {
     if (characters.length === 0) load()
   }, [characters.length, load])
+
+  // Only the export menu needs the books, so they load when it opens rather than on every visit.
+  useEffect(() => {
+    if (menuOpen) loadBooks()
+  }, [menuOpen, loadBooks])
 
   useEffect(() => {
     if (id) loadChats(id)
@@ -44,16 +51,21 @@ export default function CharacterSheet() {
   // Still loading an existing character. `/chat/c/new` has no id and drops straight through.
   if (id !== null && !character) return <p className="placeholder">Loading…</p>
 
-  // Read at export time rather than held in state, nothing else on this page needs them. A card
-  // carries one `character_book`, so the export takes the character's first attached lorebook and
-  // leaves any others out.
-  const exportBook = async () => {
-    const bookId = character?.lorebookIds?.[0]
-    if (!bookId) return { entries: [], book: undefined }
-    await useLorebooks.getState().load()
-    return {
-      entries: await useWorldInfo.getState().fetchFor(bookId),
-      book: useLorebooks.getState().books.find((b) => b.id === bookId),
+  // A card carries one `character_book`, so a character holding several gets one export item per
+  // book rather than a choice made for them. Entries are read at export time; the menu only needs
+  // the count, which the store already has.
+  const attached = (character?.lorebookIds ?? [])
+    .map((bookId) => books.find((b) => b.id === bookId))
+    .filter((b) => !!b)
+
+  const runExport = async (format: 'png' | 'json', book?: Lorebook) => {
+    setMenuOpen(false)
+    try {
+      const entries = book ? await useWorldInfo.getState().fetchFor(book.id!) : []
+      if (format === 'png') await exportCardPng(character!, entries, book)
+      else exportCardJson(character!, entries, book)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : 'Export failed.')
     }
   }
 
@@ -124,27 +136,28 @@ export default function CharacterSheet() {
                 <button
                   type="button"
                   disabled={!character.avatar}
-                  onClick={async () => {
-                    setMenuOpen(false)
-                    try {
-                      const { entries, book } = await exportBook()
-                      await exportCardPng(character, entries, book)
-                    } catch (e) {
-                      setExportError(e instanceof Error ? e.message : 'Export failed.')
-                    }
-                  }}
+                  onClick={() => runExport('png')}
                 >
                   Export PNG
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    exportBook().then(({ entries, book }) => exportCardJson(character, entries, book))
-                  }}
-                >
+                <button type="button" onClick={() => runExport('json')}>
                   Export JSON
                 </button>
+                {attached.length > 0 && <hr />}
+                {attached.map((book) => (
+                  <Fragment key={book.id}>
+                    <button
+                      type="button"
+                      disabled={!character.avatar}
+                      onClick={() => runExport('png', book)}
+                    >
+                      Export PNG with {book.name || 'Untitled'} ({counts[book.id!] ?? 0})
+                    </button>
+                    <button type="button" onClick={() => runExport('json', book)}>
+                      Export JSON with {book.name || 'Untitled'} ({counts[book.id!] ?? 0})
+                    </button>
+                  </Fragment>
+                ))}
                 <hr />
                 <button
                   type="button"

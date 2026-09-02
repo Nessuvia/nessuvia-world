@@ -6,7 +6,7 @@ import type { Character } from '../storage/types'
 import { emptyColors } from '../storage/types'
 // core reaching into a module, because the card parser and the bundled folder both live
 // there. Move importCard into core if a second core caller ever wants it.
-import { bundledCharacters } from '../../modules/characters/bundledCharacters'
+import { bundledCharacters, bundledLorebooks } from '../../modules/characters/bundledCharacters'
 import { importBook, importCard } from '../../modules/characters/importCard'
 import { useLorebooks } from './lorebooksStore'
 import { useSettings } from './settingsStore'
@@ -79,10 +79,14 @@ export const useCharacters = create<CharactersState>()((set, get) => ({
     if (!useSettings.getState().seededCharacters) {
       useSettings.getState().markCharactersSeeded()
       const now = Date.now()
+      // Standalone books in the same folder, attached to every bundled card. One flag covers both:
+      // a user who deleted the seeded card and its book gets neither back.
+      const bookIds: number[] = []
+      for (const book of bundledLorebooks()) bookIds.push(await useLorebooks.getState().create(book))
       for (const card of await bundledCharacters()) {
         // Bundled cards go through the same book import as a user's, so a seeded character with a
         // lorebook arrives with it.
-        const lorebookIds = await importedBookIds(card.rawCard)
+        const lorebookIds = [...(await importedBookIds(card.rawCard)), ...bookIds]
         await storage.put('characters', {
           ...card,
           ...(lorebookIds.length ? { lorebookIds } : {}),

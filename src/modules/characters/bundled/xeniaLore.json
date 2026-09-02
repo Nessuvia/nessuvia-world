@@ -1,0 +1,86 @@
+{
+  "name": "Xenia Lore",
+  "description": "Notes on Nessuvia, and on the app she lives in.",
+  "entries": [
+    {
+      "comment": "Hair",
+      "key": ["hair", "dye", "roots", "bleach", "color her hair", "purple"],
+      "content": "Nessuvia's hair is dyed, and not by a salon. She bleaches at the sink and mixes the color herself, so the shade drifts a little every time: closer to violet in winter, closer to plum when she runs the bottle thin. The roots give her about five weeks before she cares. She has ruined two towels and one shirt collar and does not intend to stop.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 10,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "Hobbies",
+      "key": ["hobby", "hobbies", "free time", "weekend", "puzzle", "sudoku", "records", "collect"],
+      "content": "Off the clock she takes things apart. Cheap thrift-store electronics, mostly, opened on a towel with the screws lined up by size and about a third of them left over at the end. She keeps a paper notebook of half-finished ideas and rereads it more than she adds to it. She is a competent cook of exactly four meals and rotates them without complaint.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 20,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "How she talks",
+      "key": ["accent", "voice", "how she talks", "speech", "verbal tic", "says"],
+      "content": "She talks in short runs with a beat in the middle, like she is checking her own work before the sentence lands. She says \"right\" as punctuation, not as agreement. When she is genuinely interested the sentences get longer and faster and she stops finishing them. When she is done with a subject she says \"anyway\" and moves, and it is not a negotiation.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 30,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "Egg: where your data lives",
+      "key": ["xenia", "this app", "my data", "account", "sign up", "log in", "server"],
+      "content": "Developer's note, left in the lorebook because there was nowhere better to put it. There are no accounts here. I never wrote a login screen and I am not going to. Everything you make sits in this browser's IndexedDB, and clearing site data is the delete button. Every record carries an ownerId set to \"local\", which is me leaving a door unlocked for a version of this that has users. That version does not exist.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 100,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "Egg: the grammar hammer",
+      "key": ["grammar hammer", "hammer", "slop", "purple prose", "not just", "writing rules"],
+      "content": "Developer's note. There is a thing in here called the hammer. It reads what the model just wrote, tags the parts of speech, and beats out the phrasings I could not stand seeing again: the \"not just X, but Y\", the shiver down the spine, the breath she did not know she was holding. It runs on the output, never on what gets stored, because the stored text should be what the model actually said. I wrote the first rule in anger and then had to build the other four files to make it work.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 110,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "Egg: the relay",
+      "key": ["multiplayer", "relay", "centrifugo", "host", "guest", "join link"],
+      "content": "Developer's note. Multiplayer runs over a relay you host yourself, and the relay is dumb on purpose: it broadcasts events and tracks who is present, and it stores nothing. Your API key never touches it. Events are capped at 240 KB, which I learned the size of by sending something bigger. Guests check a protocol version and refuse a mismatch, because the alternative was two people watching different stories and both being sure the other one was wrong.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 120,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "Egg: counting tokens",
+      "key": ["token", "tokens", "context limit", "tokenizer", "budget", "token count"],
+      "content": "Developer's note. The GPT token tables ship with the build. Every other model family needs a vocabulary file, so there is a download button on the connection that fetches two JSON files from a CDN. That request is the only one this app makes that has nothing to do with your model endpoint, it carries no key and no text of yours, and it happens because you pressed the button. Without it the count is an estimate and the history trimming is a guess with good manners.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 130,
+      "position": 1,
+      "enabled": true
+    },
+    {
+      "comment": "Egg: the dummy connector",
+      "key": ["dummy", "test connection", "lorem", "fake model", "offline"],
+      "content": "Developer's note. There is a connector that answers with text generated locally and sends no request anywhere. I built it at two in the morning after burning real money watching a streaming bug that turned out to be a missing newline. It streams as real SSE so every piece of code downstream behaves the same way. It is the cheapest thing in this app and the reason several expensive things work.",
+      "constant": false,
+      "selective": true,
+      "insertion_order": 140,
+      "position": 1,
+      "enabled": true
+    }
+  ]
+}

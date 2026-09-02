@@ -6,6 +6,7 @@ import { preloadModules } from './app/moduleRegistry'
 import JoinView from './modules/join/JoinView'
 import PageBackground from './app/PageBackground'
 import SplashScreen from './app/SplashScreen'
+import TourHost from './app/TourHost'
 import { usePalettes } from './core/stores/palettesStore'
 import { usePersonas } from './core/stores/personasStore'
 import { useParamDefs } from './core/stores/paramDefsStore'
@@ -66,6 +67,9 @@ function AppShell() {
           <AppRoutes />
         </div>
       </main>
+      {/* Outside the rail and the content pane: the tour dims both, so it cannot sit inside
+          either one's stacking context. */}
+      <TourHost />
     </div>
   )
 }

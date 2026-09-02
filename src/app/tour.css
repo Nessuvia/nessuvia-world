@@ -1,0 +1,116 @@
+/* The onboarding tour: dim, cutout, text box, hand. */
+
+.tourOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-9);
+}
+
+/* One element rather than four dimming panels, so there are no seams to line up. The shadow is
+   larger than any viewport, so whatever is outside the rect is covered. */
+.tourCutout {
+  position: fixed;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 9999px var(--overlay);
+  pointer-events: none;
+}
+
+.tourBox {
+  position: fixed;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  background: var(--surfaceRaised);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  color: var(--text);
+}
+
+.tourBoxCentered {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tourBoxDocked {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  border-radius: calc(var(--radius) + 4px) calc(var(--radius) + 4px) 0 0;
+}
+
+.tourText {
+  margin: 0 0 8px;
+}
+
+.tourFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tourCount {
+  color: var(--textMuted);
+  font-size: 12px;
+  margin-right: auto;
+}
+
+.tourSkip,
+.tourBack {
+  padding: 4px 8px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--textMuted);
+  cursor: pointer;
+}
+
+.tourNext {
+  padding: 4px 12px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--bg);
+  cursor: pointer;
+}
+
+/* Placed by its fingertip rather than its bounding box, so the position and the rotation are both
+   computed in Tour.tsx. */
+.tourHand {
+  position: fixed;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+}
+
+/* The help button in the sidebar, and the first-run offer beside it. */
+.tourButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tourOffer {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: var(--layer-9);
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  background: var(--surfaceRaised);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  color: var(--text);
+}
+
+.tourOfferText {
+  margin: 0 0 8px;
+}
+
+.tourOfferButtons {
+  display: flex;
+  gap: 8px;
+}

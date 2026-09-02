@@ -13,6 +13,7 @@ import ChatSettingsPanel from '../modules/chat/ChatSettingsPanel'
 import StoryRail from '../modules/write/StoryRail'
 import BookmarkList from '../modules/chat/BookmarkList'
 import BackupButtons from './BackupButtons'
+import TourButton from './TourButton'
 import './sideDrawer.css'
 import './Sidebar.css'
 
@@ -262,6 +263,7 @@ export default function Sidebar() {
                     <mod.icon size={18} />
                   </NavLink>
                 ))}
+              <TourButton className="sidebar-item sidebarIconButton" />
             </div>
           </div>
         </>
@@ -396,6 +398,7 @@ export default function Sidebar() {
                     <mod.icon size={18} />
                   </NavLink>
                 ))}
+              <TourButton className="sidebar-item sidebarIconButton" />
             </div>
 
             <div className="sidebarCredit">
