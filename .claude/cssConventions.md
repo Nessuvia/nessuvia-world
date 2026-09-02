@@ -153,34 +153,43 @@ border-radius: calc(var(--radius) - 2px);   /* a chip inside a card */
 
 Every `z-index` comes from the ladder in `index.css`. Do not invent a number.
 
-| Var | Value | For |
-| --- | --- | --- |
-| `--zBackground` | 0 | `.pageBackgroundLayer`, behind all content |
-| `--zContent` | 1 | app content, the desktop sidebar, sticky toolbars |
-| `--zDropdown` | 5 | a menu anchored to the control that opened it |
-| `--zFlyout` | 20 | menus that escape their container: context menus, the collapsed-rail flyout |
-| `--zModal` | 50 | dialog backdrops and dialogs |
-| `--zSplash` | 100 | the boot splash |
+The rungs are numbered, not named: `--layer-0` through `--layer-10`, one tier each, no gaps, higher
+draws over lower.
+
+| Var | For |
+| --- | --- |
+| `--layer-0` | `.pageBackgroundLayer`, behind all content |
+| `--layer-1` | app content, the desktop sidebar, sticky toolbars |
+| `--layer-2` | a menu anchored to the control that opened it |
+| `--layer-3` | menus that escape their container: context menus, the collapsed-rail flyout |
+| `--layer-4` | phone: the drawer open buttons |
+| `--layer-5` | phone: an open side drawer |
+| `--layer-6` | phone: the navbar open button |
+| `--layer-7` | phone: the open navbar drawer |
+| `--layer-8` | dialog backdrops and dialogs |
+| `--layer-9` | the onboarding tour overlay |
+| `--layer-10` | the boot splash |
 
 - **No:** `z-index: 40;` because 30 was not enough.
-- **Yes:** `z-index: var(--zFlyout);` If nothing on the ladder fits, that is a design question
+- **Yes:** `z-index: var(--layer-3);` If nothing on the ladder fits, that is a design question
   to raise, not a number to pick.
 
-**27–30 is reserved** for the phone drawer stack: `drawerOpenButtons` 27, `.sideDrawer` 28,
-`.sidebarOpenButton` 29, `.sidebar.sideDrawer` 30. Four ordered values, each commented where it
-lives, because the navbar must never end up behind a panel. Do not take a number in that range for
-anything else and do not renumber them.
+A new tier goes in at its place in `index.css` and every rung above it shifts up by one. That is a
+single edit, because no stylesheet outside `index.css` names a number: they all say `var(--layer-N)`.
+Renumbering means moving the var names on the rules that move, so do it with the ladder comment open
+and check the phone stack after.
 
-A small `z-index` used purely to order siblings inside one container (the 2/3 pair on
-`.chatExportMenu` in `chat.css`) is not a tier and does not use a var. It gets a comment saying what
-it is ordering against.
+Rungs 4 through 7 are the phone drawer stack, in order: `drawerOpenButtons`, `.sideDrawer`,
+`.sidebarOpenButton`, `.sidebar.sideDrawer`. Each is commented where it lives,
+because the navbar is the way out of any screen and must never end up behind a panel. Do not take a
+rung in that range for anything else.
 
-**Known drift.** Each is marked with a comment where it lives. Fix deliberately, with the browser
-open, not in passing:
+A small `z-index` used purely to order siblings inside one container (the pair on `.chatRow` and
+`.chatExportMenu` in `chat.css`) is not a tier and does not use a var. It is a bare `1`, and it gets
+a comment saying what it is ordering against.
 
-- `.quickActionsMenu` (`chat.css`) and `.modelOptions` (`settings.css`) sit at `10`; both are
-  dropdowns and belong at `--zDropdown`.
-- `.dialogBackdrop` (`chat.css`) sits at `200`; it is a modal and belongs at `--zModal`.
+The two exported-document stylesheets (`exportChat.ts`, `exportStory.ts`) build standalone HTML
+files that never load `index.css`. Their `z-index` values are not on this ladder and are not drift.
 
 ---
 
@@ -346,7 +355,7 @@ Run through this on any diff that touches CSS:
 - [ ] No hex, `rgb()` or `hsl()` outside `index.css`.
 - [ ] Every spacing value is on the scale, or carries a comment.
 - [ ] Every `font-size` you added is actually needed, and is on the scale.
-- [ ] Every `z-index` is a `--z*` var.
+- [ ] Every `z-index` is a `--layer-*` var.
 - [ ] Every new class has a module prefix and is not already defined elsewhere (grep it).
 - [ ] No bare-tag descendant selectors in new rules.
 - [ ] No `!important`, no `&` nesting, no unrequested motion.

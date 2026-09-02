@@ -2,7 +2,7 @@
 .sidebar {
   position: relative;
   /* Above .pageBackgroundLayer, which now runs the full width of the shell. */
-  z-index: var(--zContent);
+  z-index: var(--layer-1);
   width: var(--sidebarWidth, 300px);
   flex: 0 0 var(--sidebarWidth, 300px);
   overflow: hidden;
@@ -100,7 +100,7 @@
    picks it up again rather than starting over from the nav item. */
 .sidebarFlyout {
   position: fixed;
-  z-index: var(--zFlyout);
+  z-index: var(--layer-3);
   display: flex;
   flex-direction: column;
   min-width: 160px;
@@ -209,7 +209,7 @@
   position: fixed;
   top: 8px;
   left: 8px;
-  z-index: 29;
+  z-index: var(--layer-6);
   display: grid;
   place-items: center;
   width: 36px;
@@ -228,7 +228,7 @@
   position: fixed;
   top: 8px;
   left: 52px;
-  z-index: 29;
+  z-index: var(--layer-6);
   display: grid;
   place-items: center;
   width: 36px;
@@ -336,6 +336,6 @@
 
   /* Above the other drawers: the navbar is the way out of any screen. */
   .sidebar.sideDrawer {
-    z-index: 30;
+    z-index: var(--layer-7);
   }
 }

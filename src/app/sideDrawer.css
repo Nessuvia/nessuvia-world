@@ -10,9 +10,9 @@
     width: 100%;
     max-width: none;
     flex: none;
-    /* Under the navbar drawer (30) and its open button (29): the navbar is the way out of any
+    /* Under the navbar drawer (7) and its open button (6): the navbar is the way out of any
        screen and must never end up behind a panel. */
-    z-index: 28;
+    z-index: var(--layer-5);
     transition: transform 220ms ease;
     /* The drawer is the full height of the screen and its contents can outrun it. Sideways it
        clips, the same as everywhere else: see the overflow rules in index.css. */
@@ -45,7 +45,7 @@
     position: fixed;
     top: 8px;
     right: 8px;
-    z-index: 27;
+    z-index: var(--layer-4);
     display: flex;
     flex-direction: column;
     gap: 6px;

@@ -13,7 +13,7 @@
   position: absolute;
   bottom: calc(100% + 4px);
   left: 0;
-  z-index: var(--zFlyout);
+  z-index: var(--layer-3);
   display: flex;
   flex-direction: column;
   min-width: 100%;

@@ -54,9 +54,9 @@
   position: fixed;
   top: 0;
   left: 0;
-  /* Above the phone drawer stack (27-30, see index.css), since the picker opens inside panels that
-     become drawers. --zModal is the next rung up and dialogs don't hold a picker. */
-  z-index: var(--zModal);
+  /* Above the phone drawer stack (rungs 4-7, see index.css), since the picker opens inside panels
+     that become drawers. Rung 8 is the next one up and dialogs don't hold a picker. */
+  z-index: var(--layer-8);
   display: flex;
   flex-direction: column;
   gap: 8px;

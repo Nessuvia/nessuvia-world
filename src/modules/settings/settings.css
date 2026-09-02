@@ -163,9 +163,7 @@
   top: 100%;
   left: 0;
   right: 0;
-  /* Drift: a dropdown, so this belongs at var(--zDropdown). Left at 10 until checked in the
-     browser, since it may have been raised to clear something specific. */
-  z-index: 10;
+  z-index: var(--layer-2);
   max-height: 240px;
   overflow-y: auto;
   margin: 2px 0 0;

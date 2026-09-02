@@ -3,7 +3,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  z-index: var(--zSplash);
+  z-index: var(--layer-10);
   background: #000;
   pointer-events: none;
   animation: splashFade 500ms ease-in 1500ms forwards;

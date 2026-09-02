@@ -15,17 +15,36 @@
   --radius: 6px;
 
   /* The layering ladder. Every z-index in the app comes from here: a literal number in a module
-     stylesheet is a mistake unless it's ordering siblings inside one container. The gaps are room
-     for a tier to land between two of these rather than on top of the stack.
-     27-30 is reserved for the phone drawer stack (sideDrawer.css, Sidebar.css): open buttons 27,
-     drawer 28, navbar button 29, navbar 30. Ordered by hand, since the navbar is the way out of
-     any screen and must never sit behind a panel. See .claude/cssConventions.md. */
-  --zBackground: 0;
-  --zContent: 1;
-  --zDropdown: 5;
-  --zFlyout: 20;
-  --zModal: 50;
-  --zSplash: 100;
+     stylesheet is a mistake unless it's ordering siblings inside one container.
+     One tier per rung, no gaps, higher number draws over lower. A new tier goes in at its place and
+     everything above it shifts up by one, which is a single edit here because nothing else in the
+     app names a number. See .claude/cssConventions.md.
+
+       0  the page background, behind all content
+       1  app content, the desktop sidebar, sticky toolbars
+       2  a menu anchored to the control that opened it
+       3  menus that escape their container: context menus, the collapsed-rail flyout
+       4  phone: the drawer open buttons
+       5  phone: an open side drawer
+       6  phone: the navbar open button
+       7  phone: the open navbar drawer
+       8  dialog backdrops and dialogs
+       9  the onboarding tour overlay
+      10  the boot splash
+
+     4-7 are the phone drawer stack (sideDrawer.css, Sidebar.css), four rungs ordered by hand
+     because the navbar is the way out of any screen and must never sit behind a panel. */
+  --layer-0: 0;
+  --layer-1: 1;
+  --layer-2: 2;
+  --layer-3: 3;
+  --layer-4: 4;
+  --layer-5: 5;
+  --layer-6: 6;
+  --layer-7: 7;
+  --layer-8: 8;
+  --layer-9: 9;
+  --layer-10: 10;
 
   --bg: #101014;
   --surfaceSunken: #131318;
@@ -122,7 +141,7 @@ body {
   overflow: hidden;
   padding: 24px;
   position: relative;
-  z-index: var(--zContent);
+  z-index: var(--layer-1);
 }
 
 /* The background layer. Sized to the window: the sidebar sits over it rather than beside it, so a
@@ -138,7 +157,7 @@ body {
 .pageBackgroundLayer {
   position: absolute;
   inset: 0;
-  z-index: var(--zBackground);
+  z-index: var(--layer-0);
   overflow: hidden;
   contain: layout paint;
   pointer-events: none;
@@ -186,7 +205,7 @@ body {
 
 .appContentInner {
   position: relative;
-  z-index: var(--zContent);
+  z-index: var(--layer-1);
   height: 100%;
   display: flex;
   flex-direction: column;

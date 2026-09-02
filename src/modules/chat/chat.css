@@ -146,7 +146,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  z-index: var(--zDropdown);
+  z-index: var(--layer-2);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -286,7 +286,7 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  z-index: var(--zDropdown);
+  z-index: var(--layer-2);
   display: flex;
   flex-direction: column;
   min-width: 160px;
@@ -471,13 +471,16 @@
    actually are. */
 .chatRow:has(.chatExportMenu) {
   position: relative;
-  z-index: 3;
+  /* Ordering one row against its siblings inside the list, not a tier on the ladder: any positive
+     value lifts it over the rows that follow. */
+  z-index: 1;
 }
 
 .chatExportMenu {
   position: absolute;
   right: 0;
-  z-index: 2;
+  /* Over the rest of its own row's content. Sibling ordering, not a tier. */
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -543,9 +546,7 @@
 .dialogBackdrop {
   position: fixed;
   inset: 0;
-  /* Drift: this is a modal and belongs at var(--zModal). Left at 200 until someone checks it in the
-     browser against the drawer stack. */
-  z-index: 200;
+  z-index: var(--layer-8);
   background: var(--overlay);
   display: flex;
   align-items: center;
@@ -1101,9 +1102,7 @@
 .quickActionsMenu {
   position: absolute;
   right: 0;
-  /* Drift: a dropdown, so this belongs at var(--zDropdown). Left at 10 until checked in the
-     browser: it may have been raised to clear something specific. */
-  z-index: 10;
+  z-index: var(--layer-2);
   display: flex;
   flex-direction: column;
   min-width: 140px;
@@ -1189,7 +1188,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 2px);
-  z-index: var(--zDropdown);
+  z-index: var(--layer-2);
 }
 
 .commandRow {
@@ -1557,7 +1556,7 @@
 
 .tagContextMenu {
   position: fixed;
-  z-index: var(--zFlyout);
+  z-index: var(--layer-3);
   width: 220px;
   padding: 8px;
   background: var(--surface);

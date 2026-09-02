@@ -33,7 +33,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: var(--zContent);
+  z-index: var(--layer-1);
   display: flex;
   flex-wrap: wrap;
   max-width: 100%;
@@ -268,7 +268,7 @@
 /* Portalled to document.body, so it sits outside #root and needs its own stacking order rather
    than inheriting the app shell's. */
 .bodyTypeBackdrop {
-  z-index: var(--zModal);
+  z-index: var(--layer-8);
 }
 
 .bodyTypeDialog {

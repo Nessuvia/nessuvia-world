@@ -29,5 +29,5 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 2px);
-  z-index: var(--zDropdown);
+  z-index: var(--layer-2);
 }

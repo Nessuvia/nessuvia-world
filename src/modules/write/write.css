@@ -711,7 +711,7 @@ h3.storyPreviewTitle {
   position: absolute;
   right: 0;
   top: 100%;
-  z-index: var(--zDropdown);
+  z-index: var(--layer-2);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -1179,7 +1179,7 @@ h3.storyPreviewTitle {
     position: fixed;
     top: 8px;
     right: 8px;
-    z-index: 27;
+    z-index: var(--layer-4);
     display: grid;
     place-items: center;
     width: 36px;
