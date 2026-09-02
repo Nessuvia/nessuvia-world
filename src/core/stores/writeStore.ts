@@ -409,7 +409,7 @@ async function passOutlineText(texts: string[]): Promise<string[]> {
   return out
 }
 
-/** A parse failure, or the token limit that actually caused it. A truncation reads as a parse error
+/** A parse failure, or the token limit that actually caused it. A truncation looks like a parse error
  *  otherwise, which points at the reply instead of at the limit that cut it. Clears the streaming
  *  flag on the way out: the run is over either way, and the dialog stays open on the message. */
 function outlineError(

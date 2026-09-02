@@ -102,7 +102,7 @@
 }
 
 /*
- * Nav items are painted from the opaque surface ramp, which over glass reads as solid blocks pasted
+ * Nav items are painted from the opaque surface ramp, which over glass looks like solid blocks pasted
  * onto the rail. Mixed down to the same degree the rail itself is, so hover and the active item stay
  * a step of the same material.
  */
@@ -147,7 +147,7 @@
 /*
  * On phones the panes stack and overlap instead of sitting side by side, so a translucent navbar or
  * panel shows the content underneath rather than the background. Surfaces go opaque; the edges and
- * shadows stay, so the skin still reads as itself. Blur is dropped with the transparency it was
+ * shadows stay, so the skin still looks like itself. Blur is dropped with the transparency it was
  * blurring. Every surface rule above sets --surfaceTint from --glassTint, so pinning it at the
  * element level covers all four classes and their hover states.
  */

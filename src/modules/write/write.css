@@ -588,7 +588,7 @@ h3.storyPreviewTitle {
   padding: 0.25rem;
 }
 
-/* The beat's control row. Reads as chrome, not prose: solid ground, so it never sits translucent
+/* The beat's control row. looks like chrome, not prose: solid ground, so it never sits translucent
    over the text it labels. */
 .blockHead {
   display: flex;
@@ -636,7 +636,7 @@ h3.storyPreviewTitle {
   display: none;
 }
 
-/* Where the beat is written. It reads as the Story's own type on a raised field, not as another
+/* Where the beat is written. It looks like the Story's own type on a raised field, not as another
    row of chrome: this is composition, not a checklist entry.
 
    `min-height` next to `field-sizing: content` is what stops the card from resizing under the
@@ -944,7 +944,7 @@ h3.storyPreviewTitle {
   color: var(--textMuted);
 }
 
-/* The row that moves between the two tiers: full width, so it reads as a destination rather than
+/* The row that moves between the two tiers: full width, so it looks like a destination rather than
    one control in a row of them. */
 .storyRail .storyRailTier {
   display: flex;
@@ -1258,7 +1258,7 @@ h3.storyPreviewTitle {
 }
 
 /* Preview Word Count: placeholder prose standing in for an empty beat's target. Muted and italic
-   so it never reads as text the Author wrote. */
+   so it never looks like text the Author wrote. */
 .blockPreview {
   white-space: pre-wrap;
   word-break: break-word;

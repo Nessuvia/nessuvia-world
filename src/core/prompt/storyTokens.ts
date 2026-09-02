@@ -59,7 +59,7 @@ export function storyTokens(args: StoryTokenArgs): Record<string, string> {
   const others = (chapter?.blocks ?? []).filter((b) => b.id !== blockId && b.beat.trim())
 
   // The beat's word target is derived, never stored: the Chapter holds the number and the weights
-  // divide it. An unset Chapter target gives zeroes, which reads as unset the same way.
+  // divide it. An unset Chapter target gives zeroes, which looks like unset the same way.
   const target =
     chapter && blockAt !== -1
       ? splitByWeight(chapter.targetWords, chapter.blocks.map((b) => b.weight))[blockAt]

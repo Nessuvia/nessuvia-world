@@ -195,7 +195,7 @@ export function defaultSecondPassRules(): SecondPassRule[] {
     always(
       'elegant-variation',
       'One name per thing',
-      'Repeat the real word rather than reaching for a synonym. "The app, the platform, the solution" reads as padding and makes the reader wonder whether they are the same thing. Pick one name and use pronouns for the rest.',
+      'Repeat the real word rather than reaching for a synonym. "The app, the platform, the solution" looks like padding and makes the reader wonder whether they are the same thing. Pick one name and use pronouns for the rest.',
     ),
     always(
       'narrow-vocabulary',

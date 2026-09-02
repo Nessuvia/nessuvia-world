@@ -44,7 +44,7 @@ export function buildPassPrompt(
   const parts: string[] = []
 
   // Standing rules first: they are how the prose should read, and the found problems are specific
-  // failures against that. The other order reads as a list of fixes with a style guide appended.
+  // failures against that. The other order looks like a list of fixes with a style guide appended.
   if (standing.length) {
     parts.push('Rules for the passage:', '', standing.map((n, i) => `${i + 1}. ${n.message}`).join('\n'))
   }

@@ -28,7 +28,7 @@ export function ColorInput({
   title?: string
   compact?: boolean
   /** Adds the alpha slider and stores `#RRGGBBAA`. Off by default: most fields are opaque colors
-   *  and an accidental alpha there reads as a bug. */
+   *  and an accidental alpha there looks like a bug. */
   alpha?: boolean
 }) {
   const [open, setOpen] = useState(false)

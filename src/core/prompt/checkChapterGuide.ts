@@ -62,7 +62,7 @@ assert.strictEqual(hasProse({ blocks: [beat('a plan', 'a')] }), true)
   assert.ok(!storyProse(chapters, 2).includes('third prose'))
   // No active Chapter (a Story opened but never clicked into) falls back to the last one.
   assert.ok(storyProse(chapters, null).includes('third prose'))
-  // One Chapter reads as plain prose, no divider.
+  // One Chapter looks like plain prose, no divider.
   assert.strictEqual(storyProse([ch({ id: 1, title: 'One', prose: 'prose' })], 1), 'prose')
 }
 

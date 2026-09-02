@@ -42,7 +42,7 @@ function countWords(s: string): number {
  * items does not notice it wrote three items. Counting is what a check is for.
  *
  * Exactly three is the whole test, and the reason it works is that three is the closure number:
- * the smallest count that reads as a complete survey. A room holds forty things and the model
+ * the smallest count that looks like a complete survey. A room holds forty things and the model
  * hands over a tidy three, each member the same length as the last, so the sentence lands with the
  * rhythm of a summary rather than of somebody looking at something. Two items read as a pair.
  * Four read as a list that could have kept going, which is why four is allowed through here.

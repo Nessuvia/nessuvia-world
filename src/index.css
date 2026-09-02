@@ -223,7 +223,7 @@ body {
 
 
 /* Baseline dropdown style. Mirrors the per-module select styling (e.g. .prompts select) so an
-   unstyled select anywhere reads as part of the app; module rules still override where needed. */
+   unstyled select anywhere looks like part of the app; module rules still override where needed. */
 select {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -235,7 +235,7 @@ select {
 }
 
 /* Text entry baseline. Mirrors module rules (e.g. .formPage textarea, .prompts textarea) so an
-   unstyled field reads as part of the app; module rules still override where needed. */
+   unstyled field looks like part of the app; module rules still override where needed. */
 textarea,
 input[type='text'],
 input[type='search'] {
@@ -289,7 +289,7 @@ input[type='checkbox'] {
   cursor: pointer;
 }
 
-/* Lit border when checked: the whole card reads as "on" without a second color for the box. */
+/* Lit border when checked: the whole card looks "on" without a second color for the box. */
 #root label.checkboxRow:has(input[type='checkbox']:checked) {
   border-color: var(--borderAccent);
 }

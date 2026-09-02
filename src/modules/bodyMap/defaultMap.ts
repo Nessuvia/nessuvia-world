@@ -42,7 +42,7 @@ const frontRects: Rect[] = [
   { id: 'right_foot', name: 'right foot', x: 110, y: 460, w: 30, h: 40 },
 ]
 
-// Back layout: same silhouette, but the torso reads as back/buttocks.
+// Back layout: same silhouette, but the torso looks like back/buttocks.
 const backRects: Rect[] = frontRects.map((r) => {
   if (r.id === 'chest') return { ...r, name: 'upper back' }
   if (r.id === 'abdomen') return { ...r, name: 'lower back', h: 60 }

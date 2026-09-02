@@ -73,7 +73,7 @@ export function characterTokens(
  * shape and the sentence about a character who isn't there comes out blank.
  *
  * Each description is swapped once against its own character, same single pass as
- * `characterTokens`, so a card writing {{char}} in its description reads as that character here.
+ * `characterTokens`, so a card writing {{char}} in its description looks like that character here.
  */
 export function castTokens(cast: Character[], userName: string): Partial<TokenValues> {
   const values: Record<string, string> = {}

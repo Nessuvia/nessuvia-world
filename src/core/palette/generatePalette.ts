@@ -79,7 +79,7 @@ export async function generatePalette(
 
 /**
  * The message the panel shows. The parse errors say what was wrong with the text; this adds the
- * cases where there was no text to be wrong: an empty reply reads as "held no palette" otherwise,
+ * cases where there was no text to be wrong: an empty reply looks like "held no palette" otherwise,
  * which points at the parser instead of at the token budget or the endpoint.
  */
 function explain(err: Error, attempt: PaletteAttempt, maxTokens: number): string {

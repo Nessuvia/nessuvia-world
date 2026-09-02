@@ -51,8 +51,7 @@ Plain CSS means plain CSS: one global stylesheet plus a `.css` file per module, 
     /sync       S3 bucket push/pull and dirty-table tracking
     /settings   settings resolution helpers
   /modules
-    /<name>     one folder per feature: index.ts self-registers it, plus its components and .css
-  /resources    organization folder for markdown plans, etc. ```
+    /<name>     one folder per feature: index.ts self-registers it, plus its components and .css```
 
 Modules self-register by calling `registerModule` from their `index.ts`; the sidebar and the router both derive from that registry. Adding a feature means adding a folder and importing it in `main.tsx` — never editing a central list of screens. Beyond `{ id, label, icon, route, component }` a module may declare:
 

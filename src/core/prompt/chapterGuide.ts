@@ -168,12 +168,12 @@ function walk(
     const wantsSummary = chapter.guideSend === 'summary' || chapter.guideSend === 'both'
     const wantsBeats = chapter.guideSend === 'beats' || chapter.guideSend === 'both'
 
-    // A Chapter with nothing degraded reads as it always has. One with something degraded needs a
+    // A Chapter with nothing degraded looks like it always has. One with something degraded needs a
     // header naming it, unless it sends nothing at all.
     if (cut > 0 && !off) {
       parts.push(degradedHeader(i, chapter.title, wantsSummary ? chapter.summary : ''))
     } else if (i > 0) {
-      // The first Chapter's divider is dropped: a one-Chapter Story reads as plain prose.
+      // The first Chapter's divider is dropped: a one-Chapter Story looks like plain prose.
       parts.push(chapterDivider(i, chapter.title))
     }
 

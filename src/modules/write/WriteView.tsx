@@ -802,7 +802,7 @@ function BlockRegion({
   const showReasoning = useSettings((s) => s.appearance.showReasoning)
   const takingStream = useWrite((s) => streamingHere(s) && s.streamingBlockId === id)
   // A regen replaces the Block, so the old text goes off screen the moment the stream starts -
-  // leaving it above the tail reads as if the new prose were being appended to it.
+  // leaving it above the tail looks like if the new prose were being appended to it.
   const replacing = useWrite((s) => s.streamingReplaces)
   const saveBlockText = useWrite((s) => s.saveBlockText)
   const setActiveBlock = useWrite((s) => s.setActiveBlock)
@@ -1079,7 +1079,7 @@ function ChapterRegion({ chapter, index }: { chapter: Chapter; index: number }) 
   )
 }
 
-// The document: one region per Chapter, stacked, dividers drawn between them. It reads as one
+// The document: one region per Chapter, stacked, dividers drawn between them. It looks like one
 // continuous page, prose, a rule carrying the Chapter title, more prose.
 function StoryDocument() {
   const chapters = useWrite((s) => s.chapters)
@@ -1114,7 +1114,7 @@ function StoryDocument() {
 
   return (
     // showMarkers is the off state of Toggle Styling: the marker spans stop being hidden and the
-    // bold/italic rules stop applying, so the prose reads as the raw text it actually is.
+    // bold/italic rules stop applying, so the prose looks like the raw text it actually is.
     <div className={`chapterEditor${styling ? '' : ' showMarkers'}`} style={proseStyle}>
       {chapters.map((chapter, i) => (
         <ChapterRegion key={chapter.id} chapter={chapter} index={i} />

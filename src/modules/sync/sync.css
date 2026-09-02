@@ -136,7 +136,7 @@
   font-size: 14px;
 }
 
-/* A button that reads as a link: the mode toggle and the copy action are asides, not actions with
+/* A button that looks like a link: the mode toggle and the copy action are asides, not actions with
    the same weight as Test connection. #root because .sync button would otherwise pick up the
    app's default button skin. */
 #root .syncLinkButton {

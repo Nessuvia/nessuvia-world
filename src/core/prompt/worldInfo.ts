@@ -150,7 +150,7 @@ export function resolveWorldInfo(
       const used = spent.get(entry.bookId) ?? 0
       // The first match of a book always goes in, over budget or not. Real books set budgets
       // smaller than a single entry (the reference book allows 500 tokens for entries of 700)
-      // and a book that silently injects nothing at all reads as broken rather than as thrifty.
+      // and a book that silently injects nothing at all looks like broken rather than as thrifty.
       // Skips rather than stops: with several books interleaved by `order`, one long entry
       // exhausting its book is no reason to drop everything after it.
       if ((kept.get(entry.bookId) ?? 0) > 0 && used + cost > budget) continue

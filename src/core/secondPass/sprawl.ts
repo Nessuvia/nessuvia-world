@@ -47,7 +47,7 @@ function countConjunctions(s: string): number {
  *
  * The pattern is parataxis: every clause sits at the same level, joined by commas and "and", none
  * of them subordinated, so the sentence can always take one more. Add the discourse markers of
- * speech ("right", "like", "I mean") and it reads as a person talking rather than as a mistake,
+ * speech ("right", "like", "I mean") and it looks like a person talking rather than as a mistake,
  * which is exactly why it survives a read-through.
  *
  * This cannot be a rule. A Grammar Hammer pattern matches parts of speech and a free-text rule

@@ -111,7 +111,7 @@ export function escapeHtml(text: string): string {
  * second copy of that marker table here. React escapes text nodes, which is what keeps untrusted
  * model output safe in a file that gets opened in a browser.
  *
- * Tag rules are passed so a `<think>` block reads as the same collapsed `<details>` it does on
+ * Tag rules are passed so a `<think>` block looks like the same collapsed `<details>` it does on
  * screen. No replaceRules or hammer options: those rewrite what was said, and a transcript
  * shouldn't.
  *

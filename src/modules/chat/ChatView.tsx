@@ -234,7 +234,7 @@ export default function ChatView() {
             )}
             {!streamingDraft && (
               <div className="messageBody">
-                {/* Mid-stream an opener has no closer yet, so the block reads as plain text
+                {/* Mid-stream an opener has no closer yet, so the block looks like plain text
                     until the model finishes it and it folds away. */}
                 {renderText(streamingText, { tagRules: appearance.tagRules, order: palette.colorOrder })}
                 <span className="caret">▌</span>

@@ -20,7 +20,7 @@ const expand = (digits: string) => digits.split('').map((c) => c + c).join('')
 
 /**
  * The stored form of a typed color: `#RRGGBB`, or `#RRGGBBAA` where alpha is allowed. `''` is the
- * empty field, which every caller reads as unset. `null` means the text is not a complete color
+ * empty field, which every caller looks like unset. `null` means the text is not a complete color
  * yet: the caller leaves the value alone and lets the typing continue.
  *
  * Shorthand expands (`#ABC` → `#AABBCC`). Eight digits pasted into a field without alpha lose the

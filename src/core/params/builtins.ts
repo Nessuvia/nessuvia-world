@@ -1,7 +1,7 @@
 import { localOwnerId } from '../storage/storageInterface.ts'
 import type { ConnectionType, ParamDef } from './paramDef.ts'
 
-/** Shorthand so the table below reads as a table. */
+/** Shorthand so the table below looks like a table. */
 function def(
   key: string,
   label: string,

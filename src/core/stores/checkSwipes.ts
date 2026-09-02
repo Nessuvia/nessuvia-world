@@ -17,7 +17,7 @@ function mirrors(m: Message) {
   assert.strictEqual(m.content, m.swipes![m.swipeIndex!], 'content mirrors the selected swipe')
 }
 
-// --- a fresh message reads as one alternate -------------------------------
+// --- a fresh message looks like one alternate -------------------------------
 {
   const m = reply(1, 'original')
   assert.strictEqual(swipeCount(m), 1)

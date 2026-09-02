@@ -86,7 +86,7 @@ const fit = (allowance: number, cs = chapters()) =>
   assert.ok(out.text.includes('- Chapter 2: The Road -'))
 }
 
-// --- a fully degraded Story reads as the plan --------------------------------
+// --- a fully degraded Story looks like the plan --------------------------------
 {
   const out = fit(1)
   assert.strictEqual(out.degradedCount, 4)

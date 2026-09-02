@@ -42,7 +42,7 @@ export function loremParagraphs(words: number): string {
   for (let left = words; left > 0; ) {
     const short = Math.random() < 0.25
     const want = short ? 8 + Math.floor(Math.random() * 8) : 50 + Math.floor(Math.random() * 91)
-    // A stub tail reads as a mistake; fold anything under 20 words into this paragraph instead.
+    // A stub tail looks like a mistake; fold anything under 20 words into this paragraph instead.
     const take = left - want < 20 ? left : want
     paras.push(sentences(take))
     left -= take

@@ -19,7 +19,7 @@
   gap: 8px;
 }
 
-/* Ask's only way back to the settings panel, so it reads as a button rather than a bare glyph.
+/* Ask's only way back to the settings panel, so it looks like a button rather than a bare glyph.
    #root to beat the shared `#root button.collapseChevron` defaults. */
 #root .askHeader button.collapseChevron {
   margin-left: auto;

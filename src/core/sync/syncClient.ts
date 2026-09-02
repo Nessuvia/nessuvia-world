@@ -84,7 +84,7 @@ async function failure(response: Response): Promise<Error> {
 
 /**
  * A signed request that reports a blocked preflight as itself. A browser CORS failure surfaces as
- * a TypeError with no status, which reads as "network down" and sends people looking in the wrong
+ * a TypeError with no status, which looks like "network down" and sends people looking in the wrong
  * place. The bucket's CORS policy is the usual cause and the message says so.
  */
 async function signedFetch(url: string, init: RequestInit, c: BucketConfig): Promise<Response> {
@@ -132,7 +132,7 @@ export async function fetchManifest(): Promise<Manifest> {
     // A table that vanished between the list and the head is simply not in the manifest.
     if (!head.ok) continue
     const hash = head.headers.get(hashMeta)
-    // Compare is built on this hash. Without it every table reads as changed in the bucket and the
+    // Compare is built on this hash. Without it every table looks like changed in the bucket and the
     // screen would keep proposing downloads that overwrite local work, a wrong answer delivered
     // confidently. Two causes, indistinguishable from the browser, so the message names both.
     if (hash === null) throw new Error(missingHash)

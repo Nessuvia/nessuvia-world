@@ -13,7 +13,7 @@ const rules: [RegExp, ResolvedTokenizerId][] = [
   [/gpt-?[45]|gpt-?oss|\bo[1-4]\b|chatgpt/, 'o200k_base'],
   [/gpt-?3\.5|text-davinci|gpt-?3\b/, 'cl100k_base'],
   [/claude/, 'claude'],
-  // The lookahead is load-bearing: without it `codellama-34b` reads as "llama-3".
+  // The lookahead is load-bearing: without it `codellama-34b` looks like "llama-3".
   [/llama-?3(?!\d)/, 'llama3'],
   [/llama-?2(?!\d)|codellama|vicuna|wizardlm/, 'llama2'],
   [/qwen-?3(?!\d)|qwq/, 'qwen3'],

@@ -7,7 +7,7 @@ assert.equal(r2Endpoint(id), `https://${id}.r2.cloudflarestorage.com`)
 assert.equal(r2AccountId(r2Endpoint(id)), id, 'round trip')
 assert.equal(r2AccountId(r2Endpoint(`  ${id}  `)), id, 'the account id is trimmed on the way in')
 
-// A blank account id leaves the endpoint blank, so the form still reads as unconfigured.
+// A blank account id leaves the endpoint blank, so the form still looks like unconfigured.
 assert.equal(r2Endpoint(''), '')
 assert.equal(r2Endpoint('   '), '')
 

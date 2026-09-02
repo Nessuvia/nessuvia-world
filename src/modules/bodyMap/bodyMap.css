@@ -230,7 +230,7 @@
   width: 100%;
 }
 
-/* The state label is the edit control, so it fills the row and reads as text rather than a
+/* The state label is the edit control, so it fills the row and looks like text rather than a
    button. Only the hover tells you it's clickable. */
 .bodyStatePart li .bodyStateEdit {
   flex: 1 1 auto;

@@ -223,7 +223,7 @@ export default function CharacterEditor({
 
   // Every section says what it holds, open or shut. With all six shut on arrival these summaries
   // are the only thing telling you the card system is there at all, so an empty section says
-  // nothing rather than "0 of x", a blank row reads as room, a zero reads as broken.
+  // nothing rather than "0 of x", a blank row looks like room, a zero looks like broken.
   const openings = greetings.length + (draft.firstMessage.trim() ? 1 : 0)
   const promptFields =
     (draft.systemPrompt?.trim() ? 1 : 0) +

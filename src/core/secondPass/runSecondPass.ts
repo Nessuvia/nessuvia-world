@@ -93,7 +93,7 @@ export async function* editPass(
     source: `hammer:${flag.rule.label || flag.rule.id}`,
     span: { start: flag.start, end: flag.end },
     slice: flag.slice,
-    message: `Matches the "${flag.rule.label || flag.rule.pattern}" pattern, which reads as filler. Rewrite it or cut it, whichever keeps the meaning.`,
+    message: `Matches the "${flag.rule.label || flag.rule.pattern}" pattern, which looks like filler. Rewrite it or cut it, whichever keeps the meaning.`,
   }))
   notes.push(...findTextMatches(cleaned, settings.textRules, role))
   notes.push(...findRepetition(cleaned, context.history ?? [], settings.repetition))

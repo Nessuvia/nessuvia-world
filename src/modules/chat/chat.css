@@ -867,7 +867,7 @@
   margin-left: auto;
 }
 
-/* Match the roster chips and the add dropdown so the row reads as one height. */
+/* Match the roster chips and the add dropdown so the row looks like one height. */
 .chatView .chatToolbar button {
   display: flex;
   align-items: center;
