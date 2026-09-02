@@ -10,6 +10,7 @@ import type { Chat, Message } from '../../core/storage/types.ts'
 import type { TagRule } from '../../core/stores/settingsStore'
 import type { Palette } from '../../core/palette/palette.ts'
 import { effectiveFont, paletteVars } from '../../core/palette/palette.ts'
+import { readAloudBar, readAloudCss, readAloudScript } from '../../core/readAloud/readAloud.ts'
 import { renderText } from './renderText.ts'
 
 const fileName = (name: string) =>
@@ -290,6 +291,7 @@ nav .at { color: var(--textMuted, inherit); white-space: nowrap; }
 .codeText, .codeBlock { font-family: ui-monospace, monospace; font-size: 0.92em; color: var(--accent); }
 .codeBlock { margin: 0.6em 0; padding: 0.6em 0.8em; background: var(--bg); border-radius: var(--radius); overflow-x: auto; }
 ${tagCss}
+${readAloudCss}
 @media (max-width: 700px) {
   body { padding: 1rem 1rem 3rem; }
   nav { margin: 0 -1rem; padding: 0.4rem 1rem; }
@@ -304,7 +306,11 @@ ${tagCss}
 <span class="at" id="at"></span>
 </nav>
 <h1>${title}</h1>
+${readAloudBar}
 ${body}
+<script>
+${readAloudScript(`nav, .readAloud, .codeBlock${tagCss ? ', .taggedBlock' : ''}`)}
+</script>
 <script>
 // Same scrollspy as the story export: the last bubble whose top has passed under the bar wins,
 // driving a menu instead of a row of links, and the arrows step through the same list.
