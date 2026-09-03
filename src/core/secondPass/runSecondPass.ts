@@ -2,6 +2,7 @@ import type { ChatMessage, StreamChunk } from '../connectors/connectorInterface'
 import type { Connection } from '../stores/settingsStore'
 import { resolveConnection, secondPassSettings } from '../stores/settingsStore'
 import { sendMessage } from '../connectors/openaiCompatible'
+import { isSentinel } from '../connectors/sentinel'
 import { withParam, maxTokensOf } from '../params/connectionParams'
 import { findFlags, stripText } from '../hammer/strip'
 import type { Note } from './note'
@@ -37,7 +38,13 @@ export async function* runSecondPass(
   context: PassContext = {},
 ): AsyncGenerator<StreamChunk> {
   const settings = secondPassSettings()
-  if (!settings.enabled) {
+  // The sentinel's replies are fixed strings, not model output, and there is nothing behind the
+  // endpoint to edit them with. Passing them through would break twice over: the strip rules would
+  // cut up copy that is written the way it is on purpose, and the editing pass would make a second
+  // "request" that comes back as a different line, so the reply the user read would be replaced by
+  // an unrelated one mid-stream. Checked here rather than in the hammer, which is working exactly
+  // as intended on text that simply should not be given to it.
+  if (!settings.enabled || isSentinel(connection.endpointUrl)) {
     yield* sendMessage(messages, connection, signal, extra)
     return
   }
@@ -110,7 +117,9 @@ export async function* editPass(
   }
 
   const editor = resolveConnection(settings.connectionId)
-  if (!editor) {
+  // The sentinel counts as no connection: it would answer the edit request with its own next line,
+  // which would then be stored as the reply. A real draft is worth more unedited than replaced.
+  if (!editor || isSentinel(editor.endpointUrl)) {
     // No connection to edit with. The draft is a real reply and losing it to a settings problem
     // would be worse than shipping it unedited.
     yield { content: cleaned, finishReason }

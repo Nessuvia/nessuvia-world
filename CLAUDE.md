@@ -13,6 +13,10 @@ Four paths leave the tab, and nothing else does:
 - jsDelivr, for a tokenizer vocabulary, and only when the user presses the download button in a
   connection. Two public JSON files, no key and no user text. See `core/prompt/tokenizerCache.ts`.
 
+`xenia.nessuvia.com` is not a fifth path. It is a sentinel string, and a connection pointing at it
+is answered in the browser with one canned line. Every outward call site checks `isSentinel` first,
+so nothing ever resolves that host. See `core/connectors/sentinel.ts`.
+
 The build ships as static assets behind a Cloudflare Worker (`src/index.js`, `wrangler.jsonc`) that serves `dist` and has no routes of its own, and it installs as a PWA.
 
 Every record carries an `ownerId`, hardcoded to `"local"`. It exists so a multi-user backend stays possible later — do not build anything around it now.

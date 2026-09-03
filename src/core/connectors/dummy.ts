@@ -1,5 +1,7 @@
-import type { ChatMessage, StreamChunk } from './connectorInterface'
-import { parseSse } from './connectorInterface'
+// Extension-ful imports on purpose: checkSentinel.ts pulls this in through sentinel.ts under
+// `node --experimental-strip-types`, which can't resolve extensionless app imports.
+import type { ChatMessage, StreamChunk } from './connectorInterface.ts'
+import { parseSse } from './connectorInterface.ts'
 
 // the word pool is the whole library. `lorem-ipsum` and `faker` both do this, and
 // neither is worth a dependency for three lines.
@@ -61,7 +63,7 @@ function debugReply(userText: string): string {
 }
 
 /** A real SSE body, byte for byte, so debug mode exercises the same parser as a live backend. */
-function loremStream(
+export function loremStream(
   text: string,
   signal?: AbortSignal,
   delayMs = 40,

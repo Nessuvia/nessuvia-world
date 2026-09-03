@@ -3,6 +3,7 @@ import { parseSse } from './connectorInterface'
 import type { Connection } from '../stores/settingsStore'
 import { useSettings } from '../stores/settingsStore'
 import { sendDummyMessage } from './dummy'
+import { isSentinel, sendSentinelMessage } from './sentinel'
 import { buildRequestBody, requestHeaders, completionUrl } from './buildRequestBody'
 import { paramDefList } from '../stores/paramDefsStore'
 import { describeFetchError } from './fetchError'
@@ -18,6 +19,12 @@ export async function* sendMessage(
   // Checked here rather than at each call site, so nothing can accidentally bypass debug mode.
   if (useSettings.getState().debugMode) {
     yield* sendDummyMessage(messages, signal)
+    return
+  }
+
+  // Same reason, one level up: the sentinel host does not exist, so the request must not be made.
+  if (isSentinel(connection.endpointUrl)) {
+    yield* sendSentinelMessage(signal)
     return
   }
 

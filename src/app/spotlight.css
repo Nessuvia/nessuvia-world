@@ -1,0 +1,62 @@
+/* The spotlight overlay: dim, cutout, box, hand. Shared by tours and tutorials. */
+
+.spotlightOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-9);
+}
+
+/* One element rather than four dimming panels, so there are no seams to line up. The shadow is
+   larger than any viewport, so whatever is outside the rect is covered. */
+.spotlightCutout {
+  position: fixed;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 9999px var(--overlay);
+  pointer-events: none;
+}
+
+.spotlightBox {
+  position: fixed;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  background: var(--surfaceRaised);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+  color: var(--text);
+}
+
+.spotlightBoxCentered {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Phone: the box takes an edge instead of anchoring beside the target. The edge flips away from
+   the target, so it never covers the thing it is pointing at. */
+.spotlightBoxDockedBottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  border-radius: calc(var(--radius) + 4px) calc(var(--radius) + 4px) 0 0;
+}
+
+.spotlightBoxDockedTop {
+  left: 0;
+  right: 0;
+  top: 0;
+  width: auto;
+  max-width: none;
+  border-radius: 0 0 calc(var(--radius) + 4px) calc(var(--radius) + 4px);
+}
+
+/* Placed by its fingertip rather than its bounding box, so the position and the rotation are both
+   computed in SpotlightOverlay.tsx. */
+.spotlightHand {
+  position: fixed;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+}

@@ -1,5 +1,6 @@
 import type { Connection } from '../stores/settingsStore'
 import { completionUrl } from './buildRequestBody.ts'
+import { isSentinel, sentinelModel } from './sentinel.ts'
 
 export interface ModelInfo {
   id: string
@@ -37,6 +38,9 @@ export function modelsUrl(endpointUrl: string, query: string | undefined): strin
 }
 
 export async function listModels(connection: Connection): Promise<ModelInfo[]> {
+  // The sentinel host is a string, not a server: answer with the one canned model rather than
+  // resolving it.
+  if (isSentinel(connection.endpointUrl)) return [{ id: sentinelModel, vision: false }]
   try {
     const res = await fetch(modelsUrl(connection.endpointUrl, connection.modelQuery), {
       headers: connection.apiKey ? { Authorization: `Bearer ${connection.apiKey}` } : {},

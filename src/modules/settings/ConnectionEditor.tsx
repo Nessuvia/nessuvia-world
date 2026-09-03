@@ -8,6 +8,7 @@ import type { ModelInfo } from '../../core/connectors/listModels'
 import { buildRequestBody, requestHeaders, completionUrl } from '../../core/connectors/buildRequestBody'
 import { describeFetchError } from '../../core/connectors/fetchError'
 import { parseSse } from '../../core/connectors/connectorInterface'
+import { isSentinel, sentinelHost } from '../../core/connectors/sentinel'
 import { useParamDefs } from '../../core/stores/paramDefsStore'
 import { recommendedParams } from '../../core/params/connectionParams'
 import ParamBuilder from './ParamBuilder'
@@ -74,6 +75,13 @@ export default function ConnectionEditor({ connection, onSave, onClose }: Props)
   async function testConnection() {
     setTesting(true)
     setTestResult('')
+    // The sentinel host has no server to test against, so report what it does instead of
+    // resolving it.
+    if (isSentinel(draft.endpointUrl)) {
+      setTestResult(`OK. ${sentinelHost} is a stand-in endpoint. Requests are not sent.`)
+      setTesting(false)
+      return
+    }
     try {
       // A real non-streaming request with the connection's own params: the raw body shows exactly
       // what the backend sends back, an error message, an empty reply, or where the text lives.

@@ -1,6 +1,7 @@
 import type { Connection } from '../../core/stores/settingsStore'
 import { completionUrl } from '../../core/connectors/buildRequestBody'
 import { modelsUrl } from '../../core/connectors/listModels'
+import { isSentinel, sentinelContextLimit } from '../../core/connectors/sentinel'
 
 /**
  * The context length the server reports, or null when it reports none. Two sources, in order:
@@ -12,6 +13,8 @@ import { modelsUrl } from '../../core/connectors/listModels'
  * its own.
  */
 export async function readContextLimit(connection: Connection): Promise<number | null> {
+  // Nothing to ask: the sentinel host has no server behind it.
+  if (isSentinel(connection.endpointUrl)) return sentinelContextLimit
   const base = completionUrl(connection.endpointUrl, connection.type).replace(
     /\/(chat\/)?completions$/,
     '',
