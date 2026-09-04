@@ -26,13 +26,16 @@ export interface TokenValues {
   char4desc?: string
   /** Every person in a multiplayer session, `Name: description` per line. Absent outside one. */
   personas?: string
+  /** The game being played, by its title ('Go Fish', 'Blackjack'). Absent everywhere but the
+   *  games module, which leaves {{game}} in place in an ordinary chat. */
+  game?: string
 }
 
 /** Cast slots a prompt can address positionally. Also the roster cap in `hostSession`. */
 export const castSlots = 4
 
 const tokenPattern =
-  /\{\{(char|user|charDescription|charPersonality|charScenario|charExampleDialogue|personaDescription|personas|char[1-4]|char[1-4]Desc)\}\}/gi
+  /\{\{(char|user|charDescription|charPersonality|charScenario|charExampleDialogue|personaDescription|personas|game|char[1-4]|char[1-4]Desc)\}\}/gi
 
 /** Substitutes the known tokens. Unknown {{tokens}} are left exactly as they are. */
 export function swapTokens(text: string, values: TokenValues): string {
@@ -102,12 +105,14 @@ export function chatTokens(
   persona: Persona,
   cast?: Character[],
   personas?: string,
+  game?: string,
 ): TokenValues {
   const base = characterTokens(character, persona.name, persona.description)
   return {
     ...base,
     ...(cast ? castTokens(cast, persona.name) : {}),
     ...(personas !== undefined ? { personas } : {}),
+    ...(game !== undefined ? { game } : {}),
   }
 }
 

@@ -18,6 +18,7 @@ const tokenGuide: Record<StackKind, [string, string][]> = {
     ['{{char1}} … {{char4}}', 'Names by roster position, in a multiplayer session'],
     ['{{char1Desc}} … {{char4Desc}}', 'Their descriptions'],
     ['{{personas}}', 'Everyone in the session, one per line'],
+    ['{{game}}', 'The game being played, in a game'],
   ],
   story: [
     ['{{storyTitle}}', "The Story's title"],

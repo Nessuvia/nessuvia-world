@@ -349,6 +349,15 @@ interface SettingsState {
   exportKeys: boolean
   /** Write shelf: clicking a Story cover opens the editor instead of the preview panel. */
   openStoryDirectly: boolean
+  /** Games: text that is not a legal move is kept as something you said rather than refused. It
+   *  changes nothing about the board; it lands in the log and in the character's context, so they
+   *  can answer it on a later turn. Off by default, which is the strict text-adventure input. */
+  gameChatBack: boolean
+  /** Games: answer that line straight away instead of leaving it for the character's next turn.
+   *  Needs `gameChatBack`, and roughly doubles the number of requests a game makes. */
+  gameChatBackReply: boolean
+  /** Games: the card and book sounds. */
+  gameSoundOff: boolean
   /** The Story tab's Chapter rail is collapsed. Global rather than per Story: whether the rail
    *  shows is a working preference, not a property of a Story. Per Story is the upgrade path. */
   railCollapsed: boolean
@@ -387,6 +396,9 @@ interface SettingsState {
   setAppearance(patch: Partial<Appearance>): void
   setDebugMode(on: boolean): void
   setOpenStoryDirectly(on: boolean): void
+  setGameChatBack(on: boolean): void
+  setGameChatBackReply(on: boolean): void
+  setGameSoundOff(on: boolean): void
   setRailCollapsed(collapsed: boolean): void
   setStoryRailPinned(ids: string[]): void
   setStoryRailOpen(ids: string[]): void
@@ -442,6 +454,9 @@ export const useSettings = create<SettingsState>()(
       splashOff: false,
       exportKeys: false,
       openStoryDirectly: false,
+      gameChatBack: false,
+      gameChatBackReply: false,
+      gameSoundOff: false,
       railCollapsed: false,
       storyRailPinned: [],
       storyRailOpen: ['beats', 'characters'],
@@ -467,6 +482,10 @@ export const useSettings = create<SettingsState>()(
       setDebugMode: (debugMode) => set({ debugMode }),
 
       setOpenStoryDirectly: (openStoryDirectly) => set({ openStoryDirectly }),
+
+      setGameChatBack: (gameChatBack) => set({ gameChatBack }),
+      setGameChatBackReply: (gameChatBackReply) => set({ gameChatBackReply }),
+      setGameSoundOff: (gameSoundOff) => set({ gameSoundOff }),
 
       setRailCollapsed: (railCollapsed) => set({ railCollapsed }),
 

@@ -181,6 +181,24 @@ assert.strictEqual(
   )
 }
 
+// --- {{game}}: the game's title, absent outside the games module ---------
+{
+  assert.strictEqual(swapTokens('{{game}}', chatTokens(damien, dom, undefined, undefined, 'Go Fish')), 'Go Fish')
+  assert.strictEqual(swapTokens('{{GAME}}', chatTokens(damien, dom, undefined, undefined, 'Blackjack')), 'Blackjack')
+  // An ordinary chat has no game, so the token stays literal rather than blanking the sentence.
+  assert.strictEqual(swapTokens('{{game}}', chatTokens(damien, dom)), '{{game}}')
+  assert.strictEqual(
+    buildPrompt({
+      stack: stack([block({ content: 'You are playing {{game}} against {{user}}.' })]),
+      character: damien,
+      persona: dom,
+      messages: [],
+      game: 'Go Fish',
+    }).messages[0].content,
+    'You are playing Go Fish against Dom.',
+  )
+}
+
 // --- conditionals branch per turn, in the same stack ---------------------
 {
   const mary: Character = { ...damien, name: 'Mary', description: 'keeps the bar' }

@@ -89,6 +89,35 @@ export function defaultMultiplayerStack(name = 'Multiplayer'): PromptStack {
   }
 }
 
+/**
+ * The stack a game runs on. Kind stays 'chat': a game turn is a user message and an assistant
+ * reply like any other, so nothing needs a new stack kind.
+ *
+ * The sentence cap is load-bearing. A game is 20 to 40 calls and the board has to keep moving, so
+ * the shipped default makes the character terse. Anyone who wants monologues edits the stack.
+ */
+export function defaultGameStack(name = 'Game'): PromptStack {
+  return {
+    ownerId: currentOwnerId(),
+    name,
+    kind: 'chat',
+    active: [
+      newBlock({
+        label: 'Main prompt',
+        // {{game}} is the game's title, filled by the games module. One stack covers every game.
+        content: [
+          'You are playing {{game}} against {{user}}. React to the move that just happened as',
+          '{{char}}. Reply in one to three sentences. Do not decide moves, and do not mention',
+          'cards you were not told about.',
+        ].join(' '),
+      }),
+      newBlock({ label: 'Character description', source: 'characterDescription' }),
+      newBlock({ label: 'Persona description', source: 'personaDescription' }),
+      newBlock({ label: 'Chat History', source: 'chatHistory' }),
+    ],
+  }
+}
+
 /** The Story stack that ships with the build, kept as an exported stack file rather than code so
  *  editing it is an export/replace instead of a diff. Same parser as a user import, so it gets
  *  fresh block ids every time. */
@@ -120,7 +149,7 @@ interface StacksState {
   load(): Promise<void>
   save(stack: PromptStack): Promise<number>
   /** `preset` picks the starting blocks; without it a chat stack gets `defaultStack`. */
-  create(kind?: 'chat' | 'story', preset?: 'multiplayer'): Promise<number>
+  create(kind?: 'chat' | 'story', preset?: 'multiplayer' | 'game'): Promise<number>
   duplicate(id: number): Promise<number>
   remove(id: number): Promise<void>
   /** The active stack of a kind, creating its default one on first use rather than erroring. */
@@ -159,9 +188,11 @@ export const useStacks = create<StacksState>()((set, get) => ({
     const stack =
       preset === 'multiplayer'
         ? defaultMultiplayerStack(taken('Multiplayer') ? `Multiplayer ${count}` : 'Multiplayer')
-        : kind === 'story'
-          ? defaultStoryStack(`Story ${count}`)
-          : defaultStack(`Stack ${count}`)
+        : preset === 'game'
+          ? defaultGameStack(taken('Game') ? `Game ${count}` : 'Game')
+          : kind === 'story'
+            ? defaultStoryStack(`Story ${count}`)
+            : defaultStack(`Stack ${count}`)
     const id = await get().save(stack)
     setActiveId(kind, id)
     return id

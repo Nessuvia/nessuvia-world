@@ -1,3 +1,6 @@
+import type { MoveQuality } from '../games/goFish'
+import type { GameEvent, GameKind } from '../games/gameEvent'
+
 export interface Character {
   id?: number
   ownerId: string
@@ -457,6 +460,32 @@ export interface PromptStack {
    *  Absent, or a blank entry, means the built-in wording. Not indexed and not versioned, a plain
    *  field, so an older row simply has none. */
   miscPrompts?: Record<string, string>
+}
+
+/**
+ * One played game. Append-only: the seed reproduces the deal and the events reproduce every state
+ * after it, so nothing about the board is stored and a finished game replays turn by turn.
+ * A game is not a chat. It sees no chat history and writes no messages.
+ */
+export interface Game {
+  id?: number
+  ownerId: string
+  /** Which game this is, and which half of `GameEvent` its log is. */
+  kind: GameKind
+  characterId: number
+  characterName: string // copied, so it survives deleting the character
+  personaId?: number
+  personaName?: string
+  stackId?: number
+  /** How well the character plays. Go Fish only today; Blackjack's dealer has no decisions to
+   *  make. Absent = 'average', which is what every game before the setting existed was played at. */
+  difficulty?: MoveQuality
+  seed: number
+  /** Unindexed, so the event shape can change without a schema version. */
+  events: GameEvent[]
+  status: 'playing' | 'finished' | 'abandoned'
+  createdAt: number
+  updatedAt: number
 }
 
 /**

@@ -7,10 +7,10 @@ const db = new Dexie('nessuTavern')
 
 // The only schema block. Versions 1 to 13 were deleted: none carried an upgrade() callback, so the
 // chain did nothing a single declaration doesn't, and an older local DB upgrades straight to this
-// schema. The number stays 14 and only ever goes up. IndexedDB refuses to open a database whose
+// schema. The number only ever goes up. IndexedDB refuses to open a database whose
 // stored version is higher than the one requested, so renumbering to 1 would throw VersionError on
 // every browser that already has the data.
-db.version(14).stores({
+db.version(15).stores({
   characters: '++id, ownerId',
   personas: '++id, ownerId',
   worldInfo: '++id, ownerId, bookId',
@@ -25,6 +25,7 @@ db.version(14).stores({
   bodyTrackers: '++id, ownerId, chatId',
   bodyMaps: '++id, ownerId',
   paramDefs: '++id, ownerId, key',
+  games: '++id, ownerId, characterId',
 })
 
 function table(name: TableName) {

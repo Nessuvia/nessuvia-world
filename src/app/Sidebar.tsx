@@ -11,6 +11,7 @@ import { useSideDrawer } from './useSideDrawer'
 import PersonaSwitcher from './PersonaSwitcher'
 import ChatSettingsPanel from '../modules/chat/ChatSettingsPanel'
 import StoryRail from '../modules/write/StoryRail'
+import GameSettingsPanel from '../modules/games/GameSettingsPanel'
 import BookmarkList from '../modules/chat/BookmarkList'
 import BackupButtons from './BackupButtons'
 import TourButton from './TourButton'
@@ -29,6 +30,9 @@ export default function Sidebar() {
   const chatId = useMatch('/chat/:chatId')?.params.chatId
   // A Story takes the rail over the same way an open chat does.
   const storyId = useMatch('/write/s/:storyId')?.params.storyId
+  // So does an open game. The live board has its own route purely so this match has something to
+  // key on; /games itself stays the Play and History tabs.
+  const gameId = useMatch('/games/:gameId')?.params.gameId
   // Back to the character list, not the character's own page, leaving a chat means leaving the
   // character, and getting to the list from the character page was the extra step people hit.
   const back = '/chat'
@@ -172,9 +176,9 @@ export default function Sidebar() {
 
     {/* Out of the rail on a phone: the row it took there was vertical space, and the strip beside
         the menu button was empty. */}
-    {phone && !open && (chatId || storyId) && (
+    {phone && !open && (chatId || storyId || gameId) && (
       <Link
-        to={chatId ? back : '/write'}
+        to={chatId ? back : gameId ? '/games' : '/write'}
         className="sidebarBackButton"
         title="Go back"
         aria-label="Go back"
@@ -185,7 +189,7 @@ export default function Sidebar() {
 
     <nav
       ref={rail}
-      className={`navbar sidebar ${drawer.className}${chatId || storyId ? ' inChat' : ''}${collapsed ? ' collapsed' : ''}`}
+      className={`navbar sidebar ${drawer.className}${chatId || storyId || gameId ? ' inChat' : ''}${collapsed ? ' collapsed' : ''}`}
       style={railStyle}
       // Going somewhere closes the drawer, so the destination isn't hidden behind it. One handler
       // rather than an onClick per link, the rail's links come from four different places. Links
@@ -214,6 +218,10 @@ export default function Sidebar() {
             </Link>
           ) : storyId ? (
             <Link to="/write" className="sidebar-item sidebarIconOnly" title="Go back" aria-label="Go back">
+              <RiArrowLeftLine size={18} />
+            </Link>
+          ) : gameId ? (
+            <Link to="/games" className="sidebar-item sidebarIconOnly" title="Go back" aria-label="Go back">
               <RiArrowLeftLine size={18} />
             </Link>
           ) : (
@@ -332,6 +340,14 @@ export default function Sidebar() {
                 Go back
               </Link>
               <StoryRail key={storyId} />
+            </>
+          ) : gameId ? (
+            <>
+              <Link to="/games" className="sidebar-item sidebarBackLink">
+                <RiArrowLeftLine size={18} />
+                Go back
+              </Link>
+              <GameSettingsPanel key={gameId} />
             </>
           ) : (
             modules

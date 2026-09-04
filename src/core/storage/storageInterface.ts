@@ -32,6 +32,7 @@ export type TableName =
   | 'bodyTrackers'
   | 'bodyMaps'
   | 'paramDefs'
+  | 'games'
 
 /** Every stored record carries an ownerId; id is assigned by Dexie on insert. */
 export interface StoredRecord {
@@ -76,4 +77,6 @@ export const tableNames: TableName[] = [
   // The sampler library. Rides along in a backup: a connection references defs by key, so a
   // restore without them would leave every custom param unresolvable.
   'paramDefs',
+  // Played games, log and all. Small rows: a seed, a few hundred events, no card positions.
+  'games',
 ]

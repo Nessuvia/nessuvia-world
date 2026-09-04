@@ -212,6 +212,9 @@ export interface BuildPromptArgs {
   /** The session's people as `Name: description` lines, filling {{personas}}. Resolved by the
    *  caller, as `worldInfo` is: the roster lives in the multiplayer store, not here. */
   personas?: string
+  /** The game's title, filling {{game}}. Absent outside the games module, which leaves the token
+   *  in place rather than blanking it in an ordinary chat. */
+  game?: string
 }
 
 /** A block that contributed nothing, and the reason. The preview lists these. */
@@ -255,6 +258,7 @@ export function buildPrompt(
     nameSpeakers,
     cast,
     personas,
+    game,
   }: BuildPromptArgs,
   budget?: Budget,
 ): BuiltPrompt {
@@ -286,7 +290,7 @@ export function buildPrompt(
   // that character's own description.
   // {{char1}}…{{char4}} are the session roster instead, fixed for the whole session: they don't
   // follow the speaker, so one block can talk about the cast as a group.
-  const tokens = chatTokens(who, persona, cast, personas)
+  const tokens = chatTokens(who, persona, cast, personas, game)
   const swap = (text: string) => swapTokens(text, tokens)
 
   // [if Narrator] and friends. Resolved per block, before substitution: a token inside a dropped

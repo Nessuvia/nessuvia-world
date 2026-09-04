@@ -1,0 +1,508 @@
+/* Games. The board is one centred vertical column: character on top, cards between, you below. */
+
+.gamesPage {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gamesHeading {
+  margin: 0;
+  font-size: 18px;
+}
+
+.gamesSubheading {
+  margin: 0;
+  font-size: 14px;
+}
+
+.gamesHint {
+  margin: 0;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.gamesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gamesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gamesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.gamesRowButton {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  flex: 1;
+}
+
+.gamesRowMeta {
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.gamesRowRemove {
+  background: none;
+  border: none;
+  color: var(--textMuted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+}
+
+.gamesKindRow {
+  display: flex;
+  gap: 8px;
+}
+
+.gamesKindButton {
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.gamesKindButtonOn {
+  background: var(--surfaceSelected);
+  border-color: var(--borderAccent);
+}
+
+.gamesReplay {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gamesScrubber {
+  width: 100%;
+}
+
+/* --- the board --- */
+
+.cardTableBoard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  /* Grows with the cards. At a fixed 560 a 2x hand wrapped after seven with the rest of the table
+     empty either side, since the card doubled and the room it had did not. */
+  max-width: calc(var(--cardTableWidth) * var(--cardTableScale, 1));
+  width: 100%;
+  margin: 0 auto;
+  flex: 1;
+  min-width: 0;
+  --cardTableWidth: 560px;
+  /* The card, at 1x. The slider multiplies these and nothing else: zooming the field instead
+     shrank its layout width by the same factor the cards grew by, so a hand wrapped after three. */
+  --cardTableCardWidth: 34px;
+  --cardTableCardHeight: 46px;
+}
+
+/* The talking stays at a readable measure however wide the cards spread. */
+.cardTableSpeakerRow,
+.cardTableFooter {
+  max-width: var(--cardTableWidth);
+}
+
+/* The play field. Full width whatever the scale, so a hand wraps only when the cards really do
+   run out of room. */
+.cardTableField {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  /* Cards turn over on the y axis, and without this the turn is a squash rather than a card. */
+  perspective: 700px;
+}
+
+/* Fixed height so a notice or an error appearing does not move the board. */
+.cardTableFooter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 30px;
+}
+
+.cardTableSpeakerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cardTableSpeakerRowPlayer {
+  flex-direction: row-reverse;
+}
+
+.cardTableAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+/* Whose turn it is. The ring is the only turn indicator on the board. */
+.cardTableAvatarActive {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Grows with the text as it streams. */
+.cardTableLine {
+  margin: 0;
+  flex: 1;
+  min-height: 44px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.cardTableInput {
+  flex: 1;
+  padding: 8px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.cardTableInputStandIn {
+  flex: 1;
+}
+
+.cardTableResult {
+  margin: 0;
+  flex: 1;
+  color: var(--textBright);
+}
+
+/* Wraps rather than running off the sides: a hand of eleven at 3x is wider than the board. */
+.cardTableHandRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  min-height: calc(var(--cardTableCardHeight) * var(--cardTableScale, 1) + 16px);
+  width: 100%;
+}
+
+.goFishPool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: calc(var(--cardTableCardHeight) * var(--cardTableScale, 1) + 16px);
+  width: 100%;
+  padding: 8px;
+  background: var(--surfaceSunken);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.goFishBook {
+  display: inline-flex;
+}
+
+.cardTableDeck {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.cardTableDeckCount {
+  color: var(--textMuted);
+  font-size: 11px;
+}
+
+.cardTableNotice {
+  margin: 0;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.cardTableError {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* --- blackjack --- */
+
+.blackjackCount {
+  margin: 0;
+  min-height: 16px;
+  color: var(--textMuted);
+  font-size: 11px;
+}
+
+.blackjackShoe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  background: var(--surfaceSunken);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.blackjackActions {
+  display: flex;
+  gap: 8px;
+}
+
+.blackjackButton {
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* --- the log, as a chat on the right --- */
+
+/* Board on the left taking the space, log pinned to the right at its own width. */
+.gamesTable {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+}
+
+.gameLog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: var(--gameLogWidth, 320px);
+  flex: none;
+  align-self: stretch;
+  max-height: 70vh;
+  padding: 8px;
+  border-radius: calc(var(--radius) + 4px);
+}
+
+.gameLogRail {
+  flex: none;
+}
+
+.gameLogHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gameLogTitle {
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.gameLogScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.gameLogRow {
+  display: flex;
+}
+
+.gameLogRowchar {
+  justify-content: flex-start;
+}
+
+.gameLogRowplayer {
+  justify-content: flex-end;
+}
+
+.gameLogRowsystem {
+  justify-content: center;
+}
+
+.gameLogBubble {
+  padding: 6px 8px;
+  border-radius: calc(var(--radius) + 2px);
+  max-width: 80%;
+}
+
+.gameLogBubblechar {
+  background: var(--surfaceRaised);
+  color: var(--text);
+}
+
+.gameLogBubbleplayer {
+  background: var(--surfaceSelected);
+  color: var(--text);
+}
+
+.gameLogBubblesystem {
+  max-width: 100%;
+  padding: 2px 4px;
+  color: var(--textMuted);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* --- one card --- */
+
+.cardTableCard {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--cardTableCardWidth) * var(--cardTableScale, 1));
+  height: calc(var(--cardTableCardHeight) * var(--cardTableScale, 1));
+  background: var(--surfaceRaised);
+  border: 1px solid var(--borderStrong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: calc(13px * var(--cardTableScale, 1));
+  transform: rotate(var(--cardTableCardRotate, 0deg)) translateY(var(--cardTableCardShift, 0));
+}
+
+/* The cover a card travels under. Transparent at rest; useCardMotion fades it out at the frame
+   where the card is edge on, which is the turn over. */
+.cardTableCard::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surfaceActive);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cardTableCardBack {
+  background: var(--surfaceActive);
+  border-color: var(--border);
+}
+
+.cardTableCardRed {
+  color: var(--danger);
+}
+
+.cardTableCardRank {
+  font-weight: 600;
+}
+
+.cardTableCardSuit {
+  /* Relative, so it rides the card's own scaled font-size. */
+  font-size: 0.92em;
+}
+
+/* --- the rail for an open game --- */
+
+.gamesRail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.gamesRailRow {
+  margin: 0;
+  color: var(--textMuted);
+  font-size: 12px;
+}
+
+.gamesRailCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gamesRailField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gamesRailSlider {
+  width: 100%;
+}
+
+.gamesRailSelect {
+  width: 100%;
+  padding: 4px 6px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+/* A card you can click to fill the input. */
+.cardTableCardPickable {
+  cursor: pointer;
+}
+
+.goFishKnown {
+  margin: 0;
+  color: var(--textMuted);
+  font-size: 11px;
+}
+
+.gamesRailButton {
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  /* A smaller card at phone width. The scale multiplies these the same way. */
+  .cardTableBoard {
+    --cardTableCardWidth: 28px;
+    --cardTableCardHeight: 38px;
+  }
+
+  .cardTableCard {
+    font-size: calc(12px * var(--cardTableScale, 1));
+  }
+
+  /* No room for a column beside the board, so the log goes under it at full width. */
+  .gamesTable {
+    flex-direction: column;
+  }
+
+  .gameLog {
+    width: 100%;
+    max-width: 100%;
+  }
+}
