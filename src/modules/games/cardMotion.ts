@@ -1,7 +1,7 @@
 /**
  * The gate between the cards and the game loop.
  *
- * An arrival takes four seconds and the loop that writes events has no idea: without this it
+ * An arrival takes a couple of seconds and the loop that writes events has no idea: without this it
  * appends the next batch a beat later, React rerenders, and the card in the air is replaced by a
  * card in its final place. So the board reports what it started and the store waits for it.
  *
@@ -28,7 +28,7 @@ export function noteMotion(animations: Settleable[]) {
  * Resolves when every noted animation has finished, been cancelled, or run past `timeoutMs`. The
  * timeout is the point: a wedged animation must cost a slow turn, never a game that stops.
  */
-export async function motionSettled(timeoutMs = 8000): Promise<void> {
+export async function motionSettled(timeoutMs = 4000): Promise<void> {
   const waiting = running
   running = []
   if (waiting.length === 0) return

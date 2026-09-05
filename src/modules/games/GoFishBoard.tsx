@@ -1,11 +1,12 @@
-import { useRef, useState, type CSSProperties } from 'react'
+import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Avatar } from '../../app/Avatar'
 import type { AvatarSource } from '../../core/storage/types'
 import type { GoFishState } from '../../core/games/goFish'
 import { winner } from '../../core/games/goFish'
-import { rankPlural, sortHand } from '../../core/games/deck'
+import { cardTokens, rankPlural, sortHand } from '../../core/games/deck'
 import { Card } from './Card'
 import { useCardMotion } from './useCardMotion'
+import { useDiffOrigin } from './useDiffOrigin'
 import { useStickToBottom } from './useStickToBottom'
 
 /**
@@ -17,6 +18,7 @@ import { useStickToBottom } from './useStickToBottom'
  */
 export default function GoFishBoard({
   state,
+  seed,
   scale = 1,
   character,
   characterName,
@@ -31,6 +33,8 @@ export default function GoFishBoard({
   onSubmit,
 }: {
   state: GoFishState
+  /** Names the character's face-down cards without putting their ranks in the DOM. */
+  seed: number
   /** 1 to 4. Multiplies the card's own width and height in CSS, so a bigger card takes more of the
    *  same field and the chrome keeps its size. */
   scale?: number
@@ -61,19 +65,17 @@ export default function GoFishBoard({
   // arrival animation hangs off this, and it is a diff rather than a message from the store
   // because the board is the only thing that knows where it drew the zones.
   const table = useRef<HTMLDivElement>(null)
-  const before = useRef<GoFishState | null>(null)
-  const previous = before.current
-  const origin = !previous
-    ? null
-    : previous.deck.length > state.deck.length
+  const origin = useDiffOrigin(state, (previous, next) =>
+    previous.deck.length > next.deck.length
       ? 'deck'
-      : previous.hands.char.length > state.hands.char.length
+      : previous.hands.char.length > next.hands.char.length
         ? 'charHand'
-        : previous.hands.player.length > state.hands.player.length
+        : previous.hands.player.length > next.hands.player.length
           ? 'playerHand'
-          : null
-  before.current = state
+          : null,
+  )
   useCardMotion(table, origin, state, !readOnly)
+  const token = useMemo(() => cardTokens(seed), [seed])
 
   /** What the character has asked you for and has not since booked away: what you know they hold. */
   const known = state.asked.char.filter(
@@ -105,11 +107,12 @@ export default function GoFishBoard({
       </div>
 
       <div className="cardTableField">
-        {/* Face down, and positionally identified: a hand you may not see stays out of the DOM, so
-            these cards have no motion of their own and the count is what changes. */}
+        {/* Face down: a hand you may not see stays out of the DOM. The id is a seeded token rather
+            than the card or its position, so a card leaving the middle of the hand animates from
+            where it sat without its rank ever being in the markup. */}
         <div className="cardTableHandRow" data-zone="charHand">
-          {state.hands.char.map((_card, i) => (
-            <Card key={`opp${i}`} id={`opp${i}`} faceDown />
+          {state.hands.char.map((card) => (
+            <Card key={token(card)} id={token(card)} faceDown />
           ))}
         </div>
 

@@ -190,6 +190,7 @@ function Replay({ game }: { game: Game }) {
       <div className="gamesTable">
         <GameBoard
           kind={game.kind}
+          seed={game.seed}
           readOnly
           state={state}
           scale={boardScale}
@@ -253,6 +254,7 @@ function LiveGame() {
       <div className="gamesTable">
         <GameBoard
           kind={game.kind}
+          seed={game.seed}
           state={state}
           scale={boardScale}
           character={character}

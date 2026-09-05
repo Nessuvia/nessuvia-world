@@ -46,6 +46,21 @@ export function shuffle(deck: Card[], seed: number): Card[] {
   return out
 }
 
+/**
+ * An opaque, stable name for a card, for a hand nobody may see.
+ *
+ * A face-down card still needs an identity the motion pass can follow, or a card leaving the middle
+ * of a hand animates as though the last one left. Its rank cannot be that identity: it would be in
+ * the DOM, and a hand you may not see would be readable from the markup. So this is the card's
+ * position in a seeded shuffle of the deck, which is stable for the life of a game and means
+ * nothing without the seed. The seed lives in the store and never reaches the page.
+ */
+export function cardTokens(seed: number): (card: Card) => string {
+  const order = shuffle(fullDeck(), (seed ^ 0x9e3779b9) >>> 0)
+  const tokens = new Map(order.map((card, i) => [`${card.rank}${card.suit}`, `c${i}`]))
+  return (card) => tokens.get(`${card.rank}${card.suit}`) ?? 'c'
+}
+
 /** Sort ascending by rank, so a pair in your hand reads at a glance. */
 export function sortHand(hand: Card[]): Card[] {
   return hand.slice().sort((a, b) => ranks.indexOf(a.rank) - ranks.indexOf(b.rank))

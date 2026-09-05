@@ -8,6 +8,9 @@ import BlackjackBoard from './BlackjackBoard'
 
 /** Everything a board needs that is not the board's own state. Both boards take exactly this. */
 export interface BoardProps {
+  /** The game's shuffle seed. Only the boards' motion pass reads it, to name face-down cards
+   *  without putting their ranks in the DOM. */
+  seed: number
   scale?: number
   character: AvatarSource | undefined
   characterName: string

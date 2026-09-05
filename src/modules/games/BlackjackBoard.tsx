@@ -5,6 +5,7 @@ import type { BlackjackState } from '../../core/games/blackjack'
 import { handValue, isBust, legalActions, winner } from '../../core/games/blackjack'
 import { Card } from './Card'
 import { useCardMotion } from './useCardMotion'
+import { useDiffOrigin } from './useDiffOrigin'
 import { useStickToBottom } from './useStickToBottom'
 
 /**
@@ -51,11 +52,8 @@ export default function BlackjackBoard({
   const locked = readOnly || streaming || (!canAct && !chatBack)
 
   const table = useRef<HTMLDivElement>(null)
-  const before = useRef<BlackjackState | null>(null)
-  const previous = before.current
   // Every card on this table comes off the shoe, so the origin never has to be worked out.
-  const origin = previous && previous.deck.length > state.deck.length ? 'deck' : null
-  before.current = state
+  const origin = useDiffOrigin(state, (previous, next) => (previous.deck.length > next.deck.length ? 'deck' : null))
   useCardMotion(table, origin, state, !readOnly)
 
   const lineRef = useStickToBottom(line)
@@ -86,11 +84,17 @@ export default function BlackjackBoard({
       <div className="cardTableField">
         <div className="cardTableHandRow" data-zone="charHand">
           {state.hands.char.map((card, i) =>
-            // The hole card is face down until the dealer plays, so its rank is not in the DOM.
+            // The hole card is face down until the dealer plays, so its rank is not in the DOM. Its
+            // motion id stays 'charHole' either way: identity is not the face, and changing it on
+            // the reveal made the card look like a new one landing rather than one turning over.
             state.holeDown && i === 1 ? (
-              <Card key="hole" id="hole" faceDown />
+              <Card key="hole" id="charHole" faceDown />
             ) : (
-              <Card key={`${card.rank}${card.suit}`} id={`${card.rank}${card.suit}`} card={card} />
+              <Card
+                key={i === 1 ? 'hole' : `${card.rank}${card.suit}`}
+                id={i === 1 ? 'charHole' : `${card.rank}${card.suit}`}
+                card={card}
+              />
             ),
           )}
         </div>

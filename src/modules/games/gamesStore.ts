@@ -4,9 +4,11 @@ import { currentOwnerId } from '../../core/storage/storageInterface'
 import type { StoredRecord } from '../../core/storage/storageInterface'
 import type { Character, Chat, Game, Message, Persona, PromptStack } from '../../core/storage/types'
 import type { GoFishEvent, GoFishState, MoveQuality, Side } from '../../core/games/goFish'
-import { chooseMove, initialState, legalAsks, reduce, resolveAsk } from '../../core/games/goFish'
+import { initialState, legalAsks, reduce, resolveAsk } from '../../core/games/goFish'
 import type { BlackjackEvent, BlackjackState } from '../../core/games/blackjack'
 import * as blackjack from '../../core/games/blackjack'
+import type { AnyGameState } from '../../core/games/driver'
+import { driveGuard, drivers } from '../../core/games/driver'
 import type { GameEvent, GameKind } from '../../core/games/gameEvent'
 import { gameLabels } from '../../core/games/gameEvent'
 import type { Rank } from '../../core/games/deck'
@@ -39,9 +41,22 @@ export const playerSide: Side = 'player'
  * The beat between the parts of a move. Asking and then drawing in the same frame reads as one
  * event rather than two, and the board has nothing else to say that it happened.
  */
-const moveBeat = 1000
+const moveBeat = 500
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** How long a character's line may take before the table stops waiting on it. */
+const replyCutoffMs = 90000
+
+/** The reply in flight, so closing a game can drop it. One game is open at a time. */
+let live: AbortController | null = null
+
+/** Whether the table is already playing itself out. Opening a game starts a run that nobody awaits,
+ *  and a move landing in the middle of it would write two batches into the same log. */
+let driving = false
+
+/** A drive asked for while one was already running: the board changed under it. */
+let wanted = false
 
 /**
  * The wait before the next event lands: the cards finish moving, then the beat. An arrival takes
@@ -53,8 +68,7 @@ async function beat(ms = moveBeat) {
   await pause(ms)
 }
 
-/** Either game's state. Both carry `over`, which is the only field anything generic reads. */
-export type AnyGameState = GoFishState | BlackjackState
+export type { AnyGameState }
 
 /**
  * The per-game pieces everything generic needs. Two implementations, so this is a table rather
@@ -306,6 +320,9 @@ export const useGames = create<GamesState>()((set, get) => ({
       notice: '',
       streamingText: '',
     })
+    // A hand dealt as a natural settles itself, so a new game can already be waiting on the driver
+    // rather than on the player.
+    void drive(get, set)
     return id
   },
 
@@ -313,13 +330,19 @@ export const useGames = create<GamesState>()((set, get) => ({
     const row = (await storage.get('games', id)) as unknown as Game | undefined
     if (!row) return
     set({ game: row, state: boardState(row), error: '', notice: '', streamingText: '' })
+    // Reopening picks up a table that was left mid-runout, by a closed tab or by an older build.
+    void drive(get, set)
   },
 
-  close: () => set({ game: null, error: '', notice: '', streamingText: '' }),
+  close: () => {
+    live?.abort()
+    live = null
+    set({ game: null, error: '', notice: '', streaming: false, streamingText: '' })
+  },
 
   submit: async (text) => {
     const game = get().game
-    if (!game || get().streaming || get().state.over) return
+    if (!game || get().streaming || driving || get().state.over) return
 
     const myTurn = get().state.turn === playerSide
     const move =
@@ -350,21 +373,7 @@ export const useGames = create<GamesState>()((set, get) => ({
     set({ notice: '' })
     // Stored as typed. Trimmed of surrounding whitespace and nothing else: what the player wrote
     // is what the log shows and what the model reads.
-    if (game.kind === 'blackjack') {
-      await playBlackjack(get, set, move as blackjack.Action, text.trim())
-      return
-    }
-    await applyMove(get, set, playerSide, move as Rank, text.trim())
-
-    // The character moves until the turn comes back, so a run of hits plays out in one go.
-    let guard = 0
-    while (get().state.turn === 'char' && !get().state.over && guard++ < 60) {
-      const next = chooseMove(get().state as GoFishState, 'char', game.difficulty ?? 'average')
-      if (!next) break
-      // A beat before they speak again, so a run of hits reads as several moves.
-      await beat()
-      await applyMove(get, set, 'char', next)
-    }
+    await playMove(get, set, move as Rank | blackjack.Action, text.trim())
   },
 
   setDifficulty: async (difficulty) => {
@@ -390,46 +399,78 @@ type Get = () => GamesState
 type Set = (patch: Partial<GamesState>) => void
 
 /**
- * Apply one side's ask: the ask lands, a beat passes, then what it cost or won, then the line.
+ * The player's move, then the table playing itself out until it is waiting on them again.
  *
- * The split is the whole point. `resolveAsk` works out the move in one go, but writing all of it
- * at once means the card is already drawn before you have read who asked for what.
+ * The pacing is the whole point. Every batch here is already decided; writing it all at once means
+ * the card is drawn before you have read who asked for what, and the run of dealer hits lands as
+ * one frame. So events go in one at a time with a beat between, and the driver is asked what comes
+ * next until it says nothing does.
  */
-async function applyMove(get: Get, set: Set, side: Side, rank: Rank, text?: string) {
+async function playMove(get: Get, set: Set, move: Rank | blackjack.Action, text: string) {
   const game = get().game
   if (!game) return
-  const events = resolveAsk(get().state as GoFishState, side, rank, text)
-  const split = Math.max(1, events.findIndex((e) => e.kind !== 'ask'))
 
-  await appendEvents(get, set, events.slice(0, split))
-  if (split < events.length) {
-    await beat()
-    await appendEvents(get, set, events.slice(split))
+  if (game.kind === 'blackjack') {
+    // The words the player typed ride on their own turn, the way an ask carries them in Go Fish.
+    await appendEvents(get, set, [{ kind: 'say', by: playerSide, text }])
+    await pace(get, set, blackjack.resolveAction(get().state as BlackjackState, move as blackjack.Action))
+  } else {
+    await pace(get, set, resolveAsk(get().state as GoFishState, playerSide, move as Rank, text))
   }
   await react(get, set)
+
+  await drive(get, set)
 }
 
 /**
- * Blackjack: the player's decision plays the rest of the round out, so the events land one at a
- * time with a beat between them. Nothing is decided here; `resolveAction` already did all of it.
- * A round that settles opens the next one, quietly, since being dealt to is not worth a line.
+ * Everything nobody is deciding: the dealer's runout, the next round, the character's asks. Runs
+ * until the driver says the table is waiting on the player again.
+ *
+ * The guard is a backstop. Both games are bounded by their own deck, so reaching it means a rule
+ * changed underneath this and a bug is better than a spinning tab.
  */
-async function playBlackjack(get: Get, set: Set, action: blackjack.Action, text: string) {
-  const board = get().state as BlackjackState
-  const events = blackjack.resolveAction(board, action)
-
-  // The words the player typed ride on their own turn, the way an ask carries them in Go Fish.
-  await appendEvents(get, set, [{ kind: 'say', by: playerSide, text }])
-  for (const [i, event] of events.entries()) {
-    if (i > 0) await beat(event.kind === 'hit' ? moveBeat : moveBeat / 2)
-    await appendEvents(get, set, [event])
+async function drive(get: Get, set: Set) {
+  if (driving) {
+    // A run for the game that was open when this started is about to stop on its own id check.
+    // Remember that this one still wants driving rather than dropping the request.
+    wanted = true
+    return
   }
-  await react(get, set)
+  driving = true
+  try {
+    do {
+      wanted = false
+      const id = get().game?.id
+      let guard = 0
+      while (guard++ < driveGuard) {
+        const game = get().game
+        // The board was closed, or another game was opened, while a beat was in the air.
+        if (!game || game.id !== id) break
+        const batch = drivers[game.kind](get().state, { difficulty: game.difficulty })
+        if (!batch || batch.length === 0) break
+        // A beat before they move again, so a run of turns reads as several moves.
+        await beat()
+        await pace(get, set, batch)
+        await react(get, set)
+      }
+    } while (wanted)
+  } finally {
+    driving = false
+  }
+}
 
-  const after = get().state as BlackjackState
-  if (!after.over && after.turn === null) {
-    await beat()
-    await appendEvents(get, set, blackjack.dealRound(after))
+/**
+ * One batch of already-decided events, landing one at a time.
+ *
+ * Only the events with something to show cost a beat. Whose turn it is and the end of the game are
+ * bookkeeping, and pausing on them reads as the table hesitating over nothing.
+ */
+const silent = new Set(['turn', 'end'])
+
+async function pace(get: Get, set: Set, events: GameEvent[]) {
+  for (const [i, event] of events.entries()) {
+    if (i > 0 && !silent.has(event.kind)) await beat(event.kind === 'say' ? moveBeat / 2 : moveBeat)
+    await appendEvents(get, set, [event])
   }
 }
 
@@ -476,7 +517,11 @@ async function react(get: Get, set: Set) {
     usePersonas.getState().personas.find((p) => p.id === game.personaId) ??
     (await usePersonas.getState().ensureActive())
 
+  // A stream that never yields and never fails used to leave `streaming` set forever, and every
+  // control on both boards is gated on it. The cutoff costs the commentary, never the table.
   const controller = new AbortController()
+  live = controller
+  const cutoff = setTimeout(() => controller.abort(), replyCutoffMs)
   set({ streaming: true, streamingText: '', error: '' })
   let text = ''
   try {
@@ -504,6 +549,9 @@ async function react(get: Get, set: Set) {
     // The board already moved and the log is correct. A game with no reply is still a game.
     set({ streaming: false, streamingText: '', error: (err as Error).message })
     return
+  } finally {
+    clearTimeout(cutoff)
+    if (live === controller) live = null
   }
 
   set({ streaming: false, streamingText: '' })

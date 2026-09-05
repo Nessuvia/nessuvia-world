@@ -154,10 +154,15 @@ export function replay(seed: number, events: BlackjackEvent[], upTo?: number): B
 
 export type Action = 'hit' | 'stand'
 
-/** What the player may do right now. Empty between rounds and once the game is over. */
+/**
+ * What the player may do right now. Empty between rounds and once the game is over.
+ *
+ * A hand of 21 is not a decision, so `resolveAction` stands it for them and the turn is already
+ * the dealer's by the time this is asked again. The bust check is the same story.
+ */
 export function legalActions(state: BlackjackState): Action[] {
   if (state.over || state.turn !== 'player') return []
-  if (isBust(state.hands.player) || handValue(state.hands.player).total === 21) return []
+  if (isBust(state.hands.player)) return []
   return ['hit', 'stand']
 }
 
@@ -179,8 +184,11 @@ export function dealRound(state: BlackjackState): BlackjackEvent[] {
 }
 
 /**
- * The consequence of one decision. Standing or busting hands the table to the dealer, whose whole
- * turn is played out here: there is nothing to decide, so there is nothing to wait for.
+ * The consequence of the player's own decision, and nothing past it. Every branch either leaves the
+ * turn with the player or hands it to the dealer, and `nextEvents` picks the table up from there.
+ *
+ * Playing the dealer out from here is what used to strand a hand of exactly 21: the early return
+ * left the turn with a player who had no legal action to take.
  */
 export function resolveAction(state: BlackjackState, action: Action): BlackjackEvent[] {
   const events: BlackjackEvent[] = []
@@ -190,23 +198,44 @@ export function resolveAction(state: BlackjackState, action: Action): BlackjackE
     current = reduce(current, event)
   }
 
-  if (action === 'hit') {
-    const card = current.deck[0]
-    if (!card) return [{ kind: 'end' }]
-    emit({ kind: 'hit', by: 'player', rank: card.rank })
-    if (isBust(current.hands.player)) {
-      emit({ kind: 'bust', by: 'player' })
-      emit({ kind: 'reveal' })
-      events.push(...settle(current))
-      return events
-    }
-    // Twenty-one needs no decision, so the table moves on without asking for one.
-    if (handValue(current.hands.player).total !== 21) return events
-  } else {
+  if (action === 'stand') {
     emit({ kind: 'stand', by: 'player' })
+    return events
   }
 
-  emit({ kind: 'reveal' })
+  const card = current.deck[0]
+  if (!card) return [{ kind: 'end' }]
+  emit({ kind: 'hit', by: 'player', rank: card.rank })
+  if (isBust(current.hands.player)) emit({ kind: 'bust', by: 'player' })
+  // Twenty-one needs no decision, so it is stood for them rather than asked about.
+  else if (handValue(current.hands.player).total === 21) emit({ kind: 'stand', by: 'player' })
+  return events
+}
+
+/**
+ * What happens with nobody deciding: the dealer's turn, or the next round. Null when the table is
+ * waiting on the player, or the game is over.
+ *
+ * This is the whole of Blackjack's side of the driver. Every path that ends a player's turn runs
+ * through it, so there is one place a round can be opened and one place the dealer plays.
+ */
+export function nextEvents(state: BlackjackState): BlackjackEvent[] | null {
+  if (state.over || state.turn === 'player') return null
+  if (state.turn === null) return dealRound(state)
+
+  const events: BlackjackEvent[] = []
+  let current = state
+  const emit = (event: BlackjackEvent) => {
+    events.push(event)
+    current = reduce(current, event)
+  }
+
+  if (current.holeDown) emit({ kind: 'reveal' })
+  // A busted player leaves nothing to beat, so the dealer turns the hole card over and stops.
+  if (isBust(current.hands.player)) {
+    events.push(...settle(current))
+    return events
+  }
   // Stand on 17 and up, hit below. Soft or hard makes no difference: this table stands on soft 17.
   while (handValue(current.hands.char).total < dealerStands && current.deck.length > 0) {
     emit({ kind: 'hit', by: 'char', rank: current.deck[0].rank })
