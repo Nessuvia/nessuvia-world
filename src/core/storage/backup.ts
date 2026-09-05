@@ -4,14 +4,22 @@ import { mergeConnections, renameConnections } from './shareable'
 import { tableNames, type StoredRecord, type TableName } from './storageInterface'
 import { withDirtySuppressed } from '../sync/dirtyTables'
 import { hashPayload, tablePayload } from './tablePayload'
+import { withSeedFlags } from './seedFlags'
 
-/** The one localStorage key in the app: the persisted settings store. */
+/** The persisted settings store. */
 const settingsKey = 'nessuTavern.settings'
+/** The Ask scratchpad's transcript. It lives in localStorage rather than a Dexie table, so nothing
+ *  else in the export path would carry it, and it is the user's writing like any chat is. */
+const askKey = 'nessuTavern.ask'
 
 export interface Backup {
   format: 'nessuTavern.backup'
   version: 1
   exportedAt: number
+  /** Set by a sanitized export. Restore reads it to decide whether the file replaces the library or
+   *  adds to it. Absent on a full export and on any file written before this field existed, which
+   *  is why restore still falls back to counting the tables. */
+  shareable?: boolean
   tables: Record<string, StoredRecord[]>
   localStorage: Record<string, string>
 }
@@ -44,12 +52,18 @@ export async function buildBackup({ keys, shareable }: BackupOptions = {}): Prom
   // A shareable file never carries keys, whatever the setting says.
   const settings = keys && !shareable ? raw : stripApiKeys(raw)
   const scrubbed = shareable ? renameConnections(settings) : settings
+  const blobs: Record<string, string> = {}
+  if (scrubbed !== null) blobs[settingsKey] = scrubbed
+  // The Ask transcript is personal, so it goes in a full backup and never in a shareable one.
+  const ask = shareable ? null : localStorage.getItem(askKey)
+  if (ask !== null) blobs[askKey] = ask
   return {
     format: 'nessuTavern.backup',
     version: 1,
     exportedAt: Date.now(),
+    ...(shareable ? { shareable: true } : {}),
     tables: Object.fromEntries(entries),
-    localStorage: scrubbed === null ? {} : { [settingsKey]: scrubbed },
+    localStorage: blobs,
   }
 }
 
@@ -78,8 +92,12 @@ export function downloadBackup(backup: Backup, tag = '') {
   // devices, and two files called the same thing is how the wrong one gets imported.
   const at = new Date(backup.exportedAt).toISOString().slice(0, 16).replace('T', '-').replace(':', '')
   link.download = `XeniaNessuvia${tag}-${at}.json`
+  document.body.append(link)
   link.click()
-  URL.revokeObjectURL(url)
+  link.remove()
+  // Revoked on the next tick, not inline: the browser reads the blob after the click returns, and a
+  // library big enough to matter is exactly the one that loses the race and downloads as 0 bytes.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 /** Untrusted file input: reject anything that isn't a backup before touching the database. */
@@ -99,7 +117,10 @@ export function parseBackup(text: string): Backup {
  * rehydrates from disk.
  */
 export async function restoreBackup(backup: Backup) {
-  const partial = tableNames.some((name) => !(name in backup.tables))
+  // The flag when the file has one. Counting tables was the only test before, and it misreads a
+  // full backup taken from a build with fewer tables: one table added since means every older full
+  // backup restores in add-to-what-is-here mode, keeping rows the user expected to be replaced.
+  const partial = backup.shareable ?? tableNames.some((name) => !(name in backup.tables))
   // Suppressed: a restore is not a user edit, and the settings blob written below carries the
   // dirty set the backup was taken with.
   await withDirtySuppressed(async () => {
@@ -122,29 +143,8 @@ export async function restoreBackup(backup: Backup) {
     settingsKey,
     withSeedFlags(partial ? mergeConnections(localStorage.getItem(settingsKey), text) : text),
   )
-}
-
-
-/**
- * A restore replaces everything, so the bundled characters, palettes and sampler defs must not be
- * written on the next load, they would show up as extras in a save the user expected to be exactly their file.
- * The flags are forced on even when the backup carries no settings blob, which is what the seeding
- * checks in charactersStore/palettesStore/paramDefsStore read.
- */
-function withSeedFlags(settings: string | null): string {
-  let parsed: { state?: Record<string, unknown>; version?: number } = {}
-  if (settings !== null) {
-    try {
-      parsed = JSON.parse(settings) as typeof parsed
-    } catch {
-      parsed = {}
-    }
-  }
-  const state = {
-    ...(parsed.state ?? {}),
-    seededPalettes: true,
-    seededCharacters: true,
-    seededParamDefs: true,
-  }
-  return JSON.stringify({ ...parsed, state })
+  // Only when the file carries one: a backup written before the Ask transcript was exported would
+  // otherwise wipe the scratchpad it never had a copy of.
+  const ask = backup.localStorage?.[askKey]
+  if (typeof ask === 'string') localStorage.setItem(askKey, ask)
 }

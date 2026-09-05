@@ -97,33 +97,56 @@ async function signedFetch(url: string, init: RequestInit, c: BucketConfig): Pro
   }
 }
 
+/** A bucket with more objects than one list page holds answers `IsTruncated` and a continuation
+ *  token. Bounded rather than a bare `while`: a server that keeps returning a token would otherwise
+ *  spin forever, and a thousand pages is already far past any bucket this app should be reading. */
+const maxListPages = 1000
+
 /**
  * One ListObjectsV2 for what exists, then a HEAD per present table for its hash: a list response
  * carries size and LastModified but never user metadata. Thirteen HEADs on a button press is a fine
  * price for not inventing a second hash scheme.
+ *
+ * The list is paged through to the end. With an empty `prefix` our fifteen objects share the bucket
+ * root with whatever else the user keeps there, and a page that truncates before reaching them
+ * would report those tables as absent: compare would then call every one of them local-only and
+ * offer to upload over the bucket's copy.
  */
 export async function fetchManifest(): Promise<Manifest> {
   const c = config()
   const prefix = c.prefix.replace(/^\/+|\/+$/g, '')
-  const listUrl = `${c.endpoint.replace(/\/+$/, '')}/${encodeURIComponent(c.bucket)}?list-type=2${
+  const base = `${c.endpoint.replace(/\/+$/, '')}/${encodeURIComponent(c.bucket)}?list-type=2${
     prefix ? `&prefix=${encodeURIComponent(prefix + '/')}` : ''
   }`
-  const response = await signedFetch(listUrl, { method: 'GET' }, c)
-  if (!response.ok) throw await failure(response)
 
-  // Parsed as XML rather than by regex: the key is user-controlled through `prefix`.
-  const doc = new DOMParser().parseFromString(await response.text(), 'application/xml')
   const present = new Map<TableName, { updatedAt: number; size: number }>()
-  for (const node of doc.getElementsByTagName('Contents')) {
-    const key = node.getElementsByTagName('Key')[0]?.textContent ?? ''
-    const name = key.slice(key.lastIndexOf('/') + 1).replace(/\.json$/, '') as TableName
-    // Anything else living at this prefix is not ours to report: the Test button's probe object,
-    // or whatever the user keeps alongside. The key must match exactly, folders included.
-    if (!tableNames.includes(name) || key !== objectKey(c, name)) continue
-    present.set(name, {
-      updatedAt: Date.parse(node.getElementsByTagName('LastModified')[0]?.textContent ?? '') || 0,
-      size: Number(node.getElementsByTagName('Size')[0]?.textContent ?? 0),
-    })
+  let token: string | null = null
+  for (let page = 0; page < maxListPages; page++) {
+    const listUrl: string =
+      token === null ? base : `${base}&continuation-token=${encodeURIComponent(token)}`
+    const response: Response = await signedFetch(listUrl, { method: 'GET' }, c)
+    if (!response.ok) throw await failure(response)
+
+    // Parsed as XML rather than by regex: the key is user-controlled through `prefix`.
+    const doc = new DOMParser().parseFromString(await response.text(), 'application/xml')
+    for (const node of doc.getElementsByTagName('Contents')) {
+      const key = node.getElementsByTagName('Key')[0]?.textContent ?? ''
+      const name = key.slice(key.lastIndexOf('/') + 1).replace(/\.json$/, '') as TableName
+      // Anything else living at this prefix is not ours to report: the Test button's probe object,
+      // or whatever the user keeps alongside. The key must match exactly, folders included.
+      if (!tableNames.includes(name) || key !== objectKey(c, name)) continue
+      present.set(name, {
+        updatedAt: Date.parse(node.getElementsByTagName('LastModified')[0]?.textContent ?? '') || 0,
+        size: Number(node.getElementsByTagName('Size')[0]?.textContent ?? 0),
+      })
+    }
+
+    // The token decides, not IsTruncated. A page that says truncated has nowhere to send us
+    // without one, and an S3 clone that omits the flag but supplies a token still has more to
+    // give. A token that repeats means the server is not advancing, so stop rather than loop.
+    const next = doc.getElementsByTagName('NextContinuationToken')[0]?.textContent ?? ''
+    if (!next || next === token) break
+    token = next
   }
 
   const manifest: Manifest = {}

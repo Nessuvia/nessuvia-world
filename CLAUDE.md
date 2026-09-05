@@ -120,7 +120,7 @@ Everything durable is in Dexie (`core/storage/db.ts`), currently `db.version(14)
 
 Three Zustand stores persist to localStorage instead of Dexie, via `zustand/middleware` `persist`: `settingsStore` (`nessuTavern.settings` — connections, and the API keys with them), `askStore` (`nessuTavern.ask`), `blipStore` (`nessuTavern.blips`).
 
-`core/storage/backup.ts` is the only code that reads or writes those keys for export/import, and `stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
+`core/storage/backup.ts` is the only code that reads or writes those keys for export/import. It carries `nessuTavern.settings` and `nessuTavern.ask`; blips are unseen-reply markers, so they stay out. `stripApiKeys.ts` blanks `apiKey`, `accessKeyId` and `secretAccessKey` by name before a backup file leaves the browser. A backup gets emailed around; a missed secret is the failure that matters.
 
 **Non-portable preferences.** Small view state that belongs to this browser and not to the user's
 data: whether a panel is collapsed, which rail is open, an example section dismissed. Write it

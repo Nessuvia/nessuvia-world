@@ -193,6 +193,10 @@ export const useSync = create<SyncState>()((set, get) => ({
     if (pulled.includes('characters')) settings.markCharactersSeeded()
     if (pulled.includes('palettes')) settings.markPalettesSeeded()
     if (pulled.includes('paramDefs')) settings.markParamDefsSeeded()
+    // Stacks matter twice over: stacksStore.load seeds two rows and calls setActiveId for them, so
+    // without this a pulled promptStacks table comes back with two extras and the active stack
+    // pointing at one of them.
+    if (pulled.includes('promptStacks')) settings.markStacksSeeded()
 
     if (pulled.length) {
       // Every store holds its rows in memory. A reload is how they all rehydrate at once.
