@@ -216,12 +216,12 @@ function Replay({ game }: { game: Game }) {
 
 function LiveGame() {
   const { gameId } = useParams()
-  const navigate = useNavigate()
   const {
     game, state, streaming, streamingText, error, notice, open, close, submit, clearNotice,
     boardScale, logOpen, logWidth, setLogOpen,
   } = useGames()
   const chatBack = useSettings((s) => s.gameChatBack)
+  const autoSend = useSettings((s) => s.gameAutoSend)
   const characters = useCharacters((s) => s.characters)
   const loadCharacters = useCharacters((s) => s.load)
   const personas = usePersonas((s) => s.personas)
@@ -248,9 +248,7 @@ function LiveGame() {
 
   return (
     <div className="gamesPage">
-      <button type="button" className="gamesRowButton" onClick={() => navigate('/games')}>
-        Back to games
-      </button>
+      {/* No back button here: the rail's "Go back" is the way out, the same as a chat or a story. */}
       <div className="gamesTable">
         <GameBoard
           kind={game.kind}
@@ -264,6 +262,7 @@ function LiveGame() {
           line={streaming ? streamingText : lastSay?.kind === 'say' ? lastSay.text : ''}
           streaming={streaming}
           chatBack={chatBack}
+          autoSend={autoSend}
           error={error}
           notice={notice}
           onSubmit={submit}

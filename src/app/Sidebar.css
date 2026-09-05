@@ -93,6 +93,22 @@
   color: var(--text);
 }
 
+/* The way out of a chat, a story or a game. Lifted off the rail's own background so it reads as a
+   button rather than the first row of the panel under it. One rule for all three rails. */
+.sidebarBackLink {
+  background: var(--surfaceRaised);
+  font-size: 16px;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* --surfaceSelected, the top of the surface ladder: the resting state is already --surfaceRaised,
+   and --surfaceHover and --surfaceActive both sit too close to it to read as a hover. */
+.sidebarBackLink:hover {
+  background: color-mix(in srgb, var(--surfaceSelected) 80%, white 20%);
+  border-color: var(--borderStrong);
+}
+
 /* Tabs of a page, in a panel beside the rail while the nav item or the panel is hovered.
    Fixed-positioned from JS off the nav item's rect (see Sidebar.tsx), since the rail is overflow:hidden,
    so a panel laid out inside it would be clipped. Opening is immediate; .closing fades it over

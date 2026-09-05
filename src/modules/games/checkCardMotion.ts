@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { forgetMotion, motionSettled, noteMotion, type Settleable } from './cardMotion.ts'
+import { forgetMotion, isFlying, motionSettled, noteMotion, type Settleable } from './cardMotion.ts'
 
 /** An animation whose end this test controls. */
 function fake(playState = 'running') {
@@ -73,6 +73,22 @@ async function run() {
   noteMotion([fake().animation])
   forgetMotion()
   assert.equal(await settledYet(motionSettled()), true, 'forgetMotion should empty the gate')
+
+  // A card is in flight while any animation on it is running or paused, and settled once they have
+  // all ended. The board measures on the settled ones only: a moving card cannot be measured.
+  assert.equal(isFlying([]), false, 'a card with no animations is not flying')
+  assert.equal(isFlying([{ playState: 'running' }]), true, 'running is flying')
+  assert.equal(isFlying([{ playState: 'paused' }]), true, 'paused is flying')
+  assert.equal(
+    isFlying([{ playState: 'finished' }, { playState: 'idle' }]),
+    false,
+    'finished and idle are not flying',
+  )
+  assert.equal(
+    isFlying([{ playState: 'finished' }, { playState: 'running' }]),
+    true,
+    'one running animation is enough',
+  )
 
   console.log('cardMotion ok')
 }

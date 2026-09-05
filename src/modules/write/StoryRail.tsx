@@ -275,9 +275,12 @@ export function StoryBeats() {
                 : beats.length > 0 || chapter.id === activeChapterId
             }
             // currentTarget is already detached by the time this fires; read the element itself.
-            onToggle={(e) =>
+            // React 19 bubbles onToggle, so without stopping it the enclosing RailSection reads
+            // this chapter's open state as its own and folds the whole panel.
+            onToggle={(e) => {
+              e.stopPropagation()
               setChapterOpen(String(chapter.id), (e.target as HTMLDetailsElement).open)
-            }
+            }}
           >
             <summary className={`beatChapter ${state}`}>
               {chapter.title.trim() || `Chapter ${ci + 1}`}
@@ -567,7 +570,12 @@ function RailSection({
       className="railSection"
       open={open}
       // currentTarget is already detached by the time this fires; read the element itself.
-      onToggle={(e) => onOpen((e.target as HTMLDetailsElement).open)}
+      // React 19 bubbles onToggle, so ignore toggles from any nested <details>.
+      onToggle={(e) => {
+        const el = e.target as HTMLDetailsElement
+        if (!el.classList.contains('railSection')) return
+        onOpen(el.open)
+      }}
     >
       <summary>
         <span className="railSectionLabel">{label}</span>

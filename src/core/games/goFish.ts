@@ -37,9 +37,13 @@ export interface GoFishState {
   deck: Card[]
   hands: Record<Side, Card[]>
   books: Record<Side, Rank[]>
-  /** Ranks each side has asked for, in order. This is the only public knowledge in the game, and
-   *  it is what `chooseMove` plays off. */
+  /** Ranks each side has asked for, in order. This is the only public knowledge in the game. */
   asked: Record<Side, Rank[]>
+  /** What each side can prove the *other* side holds right now, oldest first. Asking reveals a
+   *  rank; a failed ask, a drained give and a book all take one back off the list. This is what
+   *  `chooseMove` plays off, and reading `asked` instead is the bug it replaced: an ask that came
+   *  back empty stayed "known" forever, so the opponent asked for the same rank every turn. */
+  known: Record<Side, Rank[]>
   turn: Side
   over: boolean
 }
@@ -52,6 +56,7 @@ export function initialState(seed: number): GoFishState {
     hands: { player: deck.slice(0, handSize), char: deck.slice(handSize, handSize * 2) },
     books: { player: [], char: [] },
     asked: { player: [], char: [] },
+    known: { player: [], char: [] },
     turn: 'player',
     over: false,
   }
@@ -68,15 +73,31 @@ function completedBooks(hand: Card[]): Rank[] {
   return ranks.filter((rank) => hand.filter((c) => c.rank === rank).length === 4)
 }
 
+/** Append `rank` as the freshest thing `side` knows, with any stale copy dropped first. */
+function learn(known: Record<Side, Rank[]>, side: Side, rank: Rank): Record<Side, Rank[]> {
+  return { ...known, [side]: [...known[side].filter((r) => r !== rank), rank] }
+}
+
+function forget(known: Record<Side, Rank[]>, side: Side, rank: Rank): Record<Side, Rank[]> {
+  return { ...known, [side]: known[side].filter((r) => r !== rank) }
+}
+
 /** Pure: returns a new state and never mutates the one it was handed. */
 export function reduce(state: GoFishState, event: GoFishEvent): GoFishState {
   switch (event.kind) {
-    case 'ask':
-      return { ...state, asked: { ...state.asked, [event.by]: [...state.asked[event.by], event.rank] } }
+    case 'ask': {
+      // You must hold what you ask for, so the ask tells the other side one card. It also puts
+      // your own read on trial: until a `give` arrives, assume it came back empty.
+      const known = forget(learn(state.known, other(event.by), event.rank), event.by, event.rank)
+      return { ...state, known, asked: { ...state.asked, [event.by]: [...state.asked[event.by], event.rank] } }
+    }
     case 'give': {
       const moving = state.hands[event.from].filter((c) => c.rank === event.rank)
+      // Every card of the rank moved, so the giver is empty of it and the taker is holding it.
+      const known = forget(learn(state.known, event.from, event.rank), event.to, event.rank)
       return {
         ...state,
+        known,
         hands: {
           ...state.hands,
           [event.from]: state.hands[event.from].filter((c) => c.rank !== event.rank),
@@ -96,6 +117,8 @@ export function reduce(state: GoFishState, event: GoFishEvent): GoFishState {
     case 'book':
       return {
         ...state,
+        // All four are off the table: neither side holds the rank any more.
+        known: forget(forget(state.known, 'player', event.rank), 'char', event.rank),
         hands: { ...state.hands, [event.by]: state.hands[event.by].filter((c) => c.rank !== event.rank) },
         books: { ...state.books, [event.by]: [...state.books[event.by], event.rank] },
       }
@@ -175,14 +198,19 @@ export type MoveQuality = 'best' | 'average' | 'worst'
 
 /** Pick a rank for `side` to ask for, or null when it holds nothing. Never consults the model. */
 export function chooseMove(state: GoFishState, side: Side, quality: MoveQuality): Rank | null {
-  const legal = legalAsks(state, side)
-  if (legal.length === 0) return null
+  const all = legalAsks(state, side)
+  if (all.length === 0) return null
+  // The last ask, when it came back empty, is the one rank known *not* to be over there. Drop it
+  // unless it is all that is left, or a hand of one rank asks for that rank until the game ends.
+  const lastAsk = state.asked[side][state.asked[side].length - 1]
+  const stale = lastAsk !== undefined && !state.known[side].includes(lastAsk) ? lastAsk : undefined
+  const fresh = all.filter((rank) => rank !== stale)
+  const legal = fresh.length > 0 ? fresh : all
   const count = (rank: Rank) => state.hands[side].filter((c) => c.rank === rank).length
 
   if (quality === 'best') {
-    // What the opponent asked for, it held at the time. Most recent first: it is the least likely
-    // to have been booked away since.
-    const knownHeld = [...state.asked[other(side)]].reverse().find((rank) => legal.includes(rank))
+    // A rank the opponent has shown and has not since given up or booked away. Freshest first.
+    const knownHeld = [...state.known[side]].reverse().find((rank) => legal.includes(rank))
     if (knownHeld) return knownHeld
     // Otherwise ask where you hold the most: the fewest cards left to find.
     return legal.reduce((best, rank) => (count(rank) > count(best) ? rank : best), legal[0])

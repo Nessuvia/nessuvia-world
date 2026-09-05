@@ -235,6 +235,7 @@ interface GamesState {
   close(): void
   submit(text: string): Promise<void>
   setDifficulty(quality: MoveQuality): Promise<void>
+  setAuthorNote(note: string): Promise<void>
   abandon(): Promise<void>
   remove(id: number): Promise<void>
   clearNotice(): void
@@ -253,12 +254,14 @@ async function gameStack(game: Game): Promise<PromptStack> {
 }
 
 /** buildPrompt reads `chat` only for the author's note, speaker labels and group detection, so a
- *  record that has none of those is safe and a game never needs a Chat row. */
+ *  record that has none of those is safe and a game never needs a Chat row. The note is the game's
+ *  own, carried here because the author's note block is the route it already has to the prompt. */
 function syntheticChat(game: Game): Chat {
   return {
     id: 0,
     ownerId: game.ownerId,
     characterId: game.characterId,
+    authorNote: game.authorNote,
     title: `${gameLabels[game.kind]} with ${game.characterName}`,
     createdAt: game.createdAt,
     updatedAt: game.updatedAt,
@@ -380,6 +383,16 @@ export const useGames = create<GamesState>()((set, get) => ({
     const game = get().game
     if (!game) return
     await persist(get, set, { ...game, difficulty })
+  },
+
+  // This game only. A note that applied to every game with a character would be the character's
+  // own field, and one that applied to every game would be the stack's block content.
+  setAuthorNote: async (note) => {
+    // Read the game here rather than taking one from the caller: the panel debounces, and a move
+    // can have landed and appended events since the last keystroke.
+    const game = get().game
+    if (!game) return
+    await persist(get, set, { ...game, authorNote: note })
   },
 
   abandon: async () => {

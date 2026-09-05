@@ -480,6 +480,9 @@ export interface Game {
   /** How well the character plays. Go Fish only today; Blackjack's dealer has no decisions to
    *  make. Absent = 'average', which is what every game before the setting existed was played at. */
   difficulty?: MoveQuality
+  /** Standing instruction for this game, the same field a chat carries. Reaches the prompt through
+   *  the stack's Author's note block; empty or absent contributes nothing. */
+  authorNote?: string
   seed: number
   /** Unindexed, so the event shape can change without a schema version. */
   events: GameEvent[]

@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'react'
 import type { MoveQuality } from '../../core/games/goFish'
-import { gameLabels } from '../../core/games/gameEvent'
 import { useSettings } from '../../core/stores/settingsStore'
 import { useGames } from './gamesStore'
 
@@ -21,16 +21,43 @@ export default function GameSettingsPanel() {
   const setChatBackReply = useSettings((s) => s.setGameChatBackReply)
   const soundOff = useSettings((s) => s.gameSoundOff)
   const setSoundOff = useSettings((s) => s.setGameSoundOff)
+  const autoSend = useSettings((s) => s.gameAutoSend)
+  const setAutoSend = useSettings((s) => s.setGameAutoSend)
   // Difficulty is per game, not a user setting: it is a property of this match, and changing it
   // halfway through a game you are losing should not rewrite the ones you already played.
   const setDifficulty = useGames((s) => s.setDifficulty)
+  const setAuthorNote = useGames((s) => s.setAuthorNote)
+
+  // Typed but not yet written. Null until the first keystroke, so the box shows the stored note
+  // and a game that appends events while the panel is open does not fight the field.
+  const [draft, setDraft] = useState<string | null>(null)
+  useEffect(() => {
+    if (draft === null) return
+    // Every keystroke is a Dexie write otherwise, and each one rebuilds the board state.
+    const timer = setTimeout(() => void setAuthorNote(draft), 600)
+    return () => clearTimeout(timer)
+  }, [draft, setAuthorNote])
+
   if (!game) return null
+
+  // Go Fish counts books, Blackjack counts rounds won. Same two numbers either way.
+  const goFish = 'books' in state
+  const mine = goFish ? state.books.player.length : state.score.player
+  const theirs = goFish ? state.books.char.length : state.score.char
 
   return (
     <div className="gamesRail">
-      <p className="gamesRailRow">
-        {gameLabels[game.kind]} with {game.characterName}
-      </p>
+      <div className="gamesScore">
+        <span className="gamesScoreSide">
+          <span className="gamesScoreName">{game.personaName ?? 'You'}</span>
+          <span className={`gamesScoreCount${mine > theirs ? ' gamesScoreCountLead' : ''}`}>{mine}</span>
+        </span>
+        <span className="gamesScoreDash">-</span>
+        <span className="gamesScoreSide">
+          <span className="gamesScoreName">{game.characterName}</span>
+          <span className={`gamesScoreCount${theirs > mine ? ' gamesScoreCountLead' : ''}`}>{theirs}</span>
+        </span>
+      </div>
 
       {/* Blackjack's dealer draws to 17 and has nothing to decide, so there is no skill to set. */}
       {game.kind === 'goFish' && (
@@ -41,12 +68,28 @@ export default function GameSettingsPanel() {
             value={game.difficulty ?? 'average'}
             onChange={(e) => void setDifficulty(e.target.value as MoveQuality)}
           >
-            <option value="worst">Careless</option>
-            <option value="average">Average</option>
-            <option value="best">Sharp</option>
+            <option value="worst">Easy</option>
+            <option value="average">Medium</option>
+            <option value="best">Hard</option>
           </select>
         </label>
       )}
+
+      {/* This game's note, not the character's and not the stack's. It reaches the prompt through
+          the stack's Author's note block, which is where its position is set. */}
+      <label className="gamesRailField">
+        <span className="gamesRailRow">Author's note</span>
+        <textarea
+          className="gamesRailNote"
+          rows={3}
+          value={draft ?? game.authorNote ?? ''}
+          placeholder="{{char}} should be snarky and cunning."
+          onChange={(e) => setDraft(e.target.value)}
+        />
+      </label>
+      <p className="gamesRailRow">
+        Goes where the Author's note block sits in this game's prompt stack. Applies to this game.
+      </p>
 
       <label className="gamesRailCheck">
         <input type="checkbox" checked={chatBack} onChange={(e) => setChatBack(e.target.checked)} />
@@ -67,6 +110,15 @@ export default function GameSettingsPanel() {
         <input type="checkbox" checked={!soundOff} onChange={(e) => setSoundOff(!e.target.checked)} />
         <span className="gamesRailRow">Sound</span>
       </label>
+
+      <label className="gamesRailCheck">
+        <input type="checkbox" checked={autoSend} onChange={(e) => setAutoSend(e.target.checked)} />
+        <span className="gamesRailRow">Send a clicked card on its own</span>
+      </label>
+      <p className="gamesRailRow">
+        Clicking a card fills the box and sends it after a second and a half. Typing in the box
+        stops it.
+      </p>
 
       <label className="gamesRailField">
         <span className="gamesRailRow">Board size {boardScale.toFixed(1)}x</span>
@@ -94,11 +146,7 @@ export default function GameSettingsPanel() {
         />
       </label>
 
-      <p className="gamesRailRow">
-        {'books' in state
-          ? `Books ${state.books.player.length} - ${state.books.char.length}`
-          : `Rounds ${state.score.player} - ${state.score.char}`}
-      </p>
+      {/* The score itself is the marquee at the top of the rail, so it is not repeated here. */}
       <p className="gamesRailRow">Cards left {state.deck.length}</p>
       {game.status === 'playing' && (
         <button type="button" className="gamesRailButton" onClick={() => void abandon()}>

@@ -20,6 +20,9 @@ export interface BoardProps {
   line: string
   streaming: boolean
   chatBack?: boolean
+  /** Go Fish only: clicking a card sends it on its own a beat later. Blackjack is buttons, and a
+   *  button that fires itself is a different question. */
+  autoSend?: boolean
   error?: string
   notice?: string
   readOnly?: boolean

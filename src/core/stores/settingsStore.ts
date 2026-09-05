@@ -358,6 +358,9 @@ interface SettingsState {
   gameChatBackReply: boolean
   /** Games: the card and book sounds. */
   gameSoundOff: boolean
+  /** Games: clicking a card fills the box and sends it on its own a beat later, so a hand can be
+   *  played without typing. Cancelled by touching the box. */
+  gameAutoSend: boolean
   /** The Story tab's Chapter rail is collapsed. Global rather than per Story: whether the rail
    *  shows is a working preference, not a property of a Story. Per Story is the upgrade path. */
   railCollapsed: boolean
@@ -399,6 +402,7 @@ interface SettingsState {
   setGameChatBack(on: boolean): void
   setGameChatBackReply(on: boolean): void
   setGameSoundOff(on: boolean): void
+  setGameAutoSend(on: boolean): void
   setRailCollapsed(collapsed: boolean): void
   setStoryRailPinned(ids: string[]): void
   setStoryRailOpen(ids: string[]): void
@@ -457,6 +461,7 @@ export const useSettings = create<SettingsState>()(
       gameChatBack: false,
       gameChatBackReply: false,
       gameSoundOff: false,
+      gameAutoSend: false,
       railCollapsed: false,
       storyRailPinned: [],
       storyRailOpen: ['beats', 'characters'],
@@ -486,6 +491,7 @@ export const useSettings = create<SettingsState>()(
       setGameChatBack: (gameChatBack) => set({ gameChatBack }),
       setGameChatBackReply: (gameChatBackReply) => set({ gameChatBackReply }),
       setGameSoundOff: (gameSoundOff) => set({ gameSoundOff }),
+      setGameAutoSend: (gameAutoSend) => set({ gameAutoSend }),
 
       setRailCollapsed: (railCollapsed) => set({ railCollapsed }),
 

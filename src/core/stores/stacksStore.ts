@@ -113,6 +113,9 @@ export function defaultGameStack(name = 'Game'): PromptStack {
       }),
       newBlock({ label: 'Character description', source: 'characterDescription' }),
       newBlock({ label: 'Persona description', source: 'personaDescription' }),
+      // The game's own note, set in the rail beside the board. Depth 2 puts it two moves from the
+      // end, near enough to steer the reply; move or drop the block to change that.
+      newBlock({ label: "Author's note", source: 'authorNote', depth: 2 }),
       newBlock({ label: 'Chat History', source: 'chatHistory' }),
     ],
   }
@@ -124,6 +127,30 @@ export function defaultGameStack(name = 'Game'): PromptStack {
 export function defaultStoryStack(name = 'Story'): PromptStack {
   return { ...parseStack(JSON.stringify(storyStackFile)), name }
 }
+
+/** A stack that ships with the build. Seeding uses two of these; the Bundled picker lists them all,
+ *  so a deleted one can be added back. */
+export interface BundledStack {
+  key: string
+  name: string
+  kind: 'chat' | 'story'
+  /** Only listed while the multiplayer module is on. */
+  multiplayer?: boolean
+  make(name: string): PromptStack
+}
+
+export const bundledStacks: BundledStack[] = [
+  { key: 'default', name: 'Default', kind: 'chat', make: defaultStack },
+  {
+    key: 'multiplayer',
+    name: 'Multiplayer',
+    kind: 'chat',
+    multiplayer: true,
+    make: defaultMultiplayerStack,
+  },
+  { key: 'game', name: 'Game', kind: 'chat', make: defaultGameStack },
+  { key: 'story', name: 'Story', kind: 'story', make: defaultStoryStack },
+]
 
 const stackKind = (s: PromptStack): 'chat' | 'story' => s.kind ?? 'chat'
 
@@ -151,6 +178,8 @@ interface StacksState {
   /** `preset` picks the starting blocks; without it a chat stack gets `defaultStack`. */
   create(kind?: 'chat' | 'story', preset?: 'multiplayer' | 'game'): Promise<number>
   duplicate(id: number): Promise<number>
+  /** Add a copy of a bundled stack as a new row. */
+  addBundled(key: string): Promise<void>
   remove(id: number): Promise<void>
   /** The active stack of a kind, creating its default one on first use rather than erroring. */
   ensureActive(kind?: 'chat' | 'story'): Promise<PromptStack>
@@ -211,6 +240,17 @@ export const useStacks = create<StacksState>()((set, get) => ({
     const newId = await get().save(copy)
     setActiveId(stackKind(source), newId)
     return newId
+  },
+
+  addBundled: async (key) => {
+    const entry = bundledStacks.find((b) => b.key === key)
+    if (!entry) return
+    // Adding, not restoring: an existing copy stays as it is and the new row takes a numbered name.
+    const taken = (name: string) => get().stacks.some((s) => s.name === name)
+    let name = entry.name
+    for (let n = 2; taken(name); n++) name = `${entry.name} ${n}`
+    const id = await get().save(entry.make(name))
+    setActiveId(entry.kind, id)
   },
 
   remove: async (id) => {

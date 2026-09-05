@@ -43,6 +43,18 @@ export async function motionSettled(timeoutMs = 4000): Promise<void> {
   clearTimeout(timer)
 }
 
+/**
+ * Whether a card is still moving. Split out here so it can be checked without a DOM: the board
+ * hands it `element.getAnimations()`.
+ *
+ * A card in flight cannot be measured. `getBoundingClientRect` reports the transform an animation
+ * is applying, not where the card is going to sit, so a commit that lands mid-arrival reads the
+ * card somewhere between the deck and the hand and plays the difference against its real place.
+ */
+export function isFlying(animations: { playState: string }[]): boolean {
+  return animations.some((a) => a.playState === 'running' || a.playState === 'paused')
+}
+
 /** Drops anything outstanding. Called when a board unmounts, so a half-played hand cannot make the
  *  next game wait on it. */
 export function forgetMotion() {

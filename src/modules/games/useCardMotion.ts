@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
-import { forgetMotion, noteMotion } from './cardMotion'
+import { forgetMotion, isFlying, noteMotion } from './cardMotion'
 
 /**
  * FLIP for the cards. Motion is normally off limits until polish, this is the polish pass and it
@@ -79,13 +79,24 @@ export function useCardMotion(
     cards.forEach((card, i) => {
       const id = card.dataset.cardid
       if (!id) return
-      const rect = card.getBoundingClientRect()
       const faceDown = card.classList.contains('cardTableCardBack')
-      next.set(id, rect)
       if (faceDown) down.add(id)
+
+      // A card still in the air keeps the rectangle it was measured at, and nothing new is started
+      // on it. Not every event waits for the cards: 'turn' lands the instant the draw before it
+      // does, and measuring the drawn card then reads it near the deck rather than in the hand.
+      // The difference against its real place is a slide out past the hand and back, which cut
+      // across the arrival and read as a card thrown up from the bottom of the board.
+      const before = previous.current.get(id)
+      if (before && isFlying(card.getAnimations())) {
+        next.set(id, before)
+        return
+      }
+
+      const rect = card.getBoundingClientRect()
+      next.set(id, rect)
       if (reduced) return
 
-      const before = previous.current.get(id)
       // A card that was down and is now up turned over where it sits. The hole card is the only one
       // that does this, and without it the reveal reads as a new card landing from nowhere.
       if (before && wasDown.current.has(id) && !faceDown) {

@@ -195,6 +195,41 @@
   color: var(--text);
 }
 
+/* Holds the auto-send bar over the input. */
+.cardTableInputWrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+}
+
+/* The auto-send countdown: a lit border that fills in from the left and sends when it reaches the
+   right. Clipped rather than grown, so the box keeps its size and the text under it never moves.
+   Asked for, and the only feedback the player gets that a send is coming. */
+.cardTableInputFill {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  pointer-events: none;
+  animation: cardTableAutoSend var(--cardTableAutoSend, 1500ms) linear forwards;
+}
+
+@keyframes cardTableAutoSend {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* No sweep: the border lights whole and stays lit for the countdown. */
+@media (prefers-reduced-motion: reduce) {
+  .cardTableInputFill {
+    animation: none;
+  }
+}
+
 .cardTableInputStandIn {
   flex: 1;
 }
@@ -434,6 +469,55 @@
   padding: 8px 12px;
 }
 
+/* The score, at the top of the rail: one side above the other with a dash between them. The rail
+   is tall and narrow, so the two counts stack rather than sitting side by side. The accent rule on
+   top is the only one in the rail, which is what makes it read as a scoreboard and not a setting. */
+.gamesScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--borderAccent);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.gamesScoreSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.gamesScoreName {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--textMuted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.gamesScoreCount {
+  color: var(--text);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.gamesScoreCountLead {
+  color: var(--accent);
+}
+
+.gamesScoreDash {
+  color: var(--textMuted);
+  line-height: 1;
+}
+
 .gamesRailRow {
   margin: 0;
   color: var(--textMuted);
@@ -454,6 +538,17 @@
 
 .gamesRailSlider {
   width: 100%;
+}
+
+.gamesRailNote {
+  width: 100%;
+  padding: 4px 6px;
+  background: var(--surfaceSunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
 }
 
 .gamesRailSelect {

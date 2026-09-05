@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Avatar } from '../../app/Avatar'
 import type { AvatarSource } from '../../core/storage/types'
 import type { GoFishState } from '../../core/games/goFish'
@@ -8,6 +8,12 @@ import { Card } from './Card'
 import { useCardMotion } from './useCardMotion'
 import { useDiffOrigin } from './useDiffOrigin'
 import { useStickToBottom } from './useStickToBottom'
+
+/**
+ * How long the box counts down before it sends itself. The bar reads the same number as a CSS var,
+ * so the animation and the timer cannot drift apart.
+ */
+const autoSendMs = 1500
 
 /**
  * The play space: the character speaks at the top, you speak at the bottom, and the cards sit in
@@ -27,6 +33,7 @@ export default function GoFishBoard({
   line,
   streaming,
   chatBack = false,
+  autoSend = false,
   error,
   notice,
   readOnly = false,
@@ -47,6 +54,8 @@ export default function GoFishBoard({
   streaming: boolean
   /** The "respond to the character's turn" setting: keeps the box live off your turn. */
   chatBack?: boolean
+  /** Clicking a card sends it on its own after `autoSendMs`. */
+  autoSend?: boolean
   error?: string
   notice?: string
   readOnly?: boolean
@@ -77,10 +86,8 @@ export default function GoFishBoard({
   useCardMotion(table, origin, state, !readOnly)
   const token = useMemo(() => cardTokens(seed), [seed])
 
-  /** What the character has asked you for and has not since booked away: what you know they hold. */
-  const known = state.asked.char.filter(
-    (rank, i, all) => all.indexOf(rank) === i && !state.books.char.includes(rank) && !state.books.player.includes(rank),
-  )
+  /** What the character has shown it holds and has not since given up or booked away. */
+  const known = state.known.player
 
   const lineRef = useStickToBottom(line)
 
@@ -89,6 +96,22 @@ export default function GoFishBoard({
     onSubmit(text)
     setText('')
   }
+
+  // The auto-send countdown. A nonce rather than a flag: clicking a second card while the first is
+  // counting down restarts it, and the bar has to start over with it.
+  const [armed, setArmed] = useState(0)
+  const sendRef = useRef(send)
+  sendRef.current = send
+  useEffect(() => {
+    if (!armed) return
+    const timer = setTimeout(() => {
+      setArmed(0)
+      sendRef.current()
+    }, autoSendMs)
+    return () => clearTimeout(timer)
+  }, [armed])
+  // Anything the player does to the box is them taking the turn back.
+  const cancelAutoSend = () => setArmed(0)
 
   return (
     // The scale is a var the stylesheet multiplies the card metrics by. Nothing here is zoomed:
@@ -143,7 +166,14 @@ export default function GoFishBoard({
               key={`${card.rank}${card.suit}`}
               id={`${card.rank}${card.suit}`}
               card={card}
-              onClick={locked || !myTurn ? undefined : () => setText(`got any ${rankPlural(card.rank)}`)}
+              onClick={
+                locked || !myTurn
+                  ? undefined
+                  : () => {
+                      setText(`got any ${rankPlural(card.rank)}`)
+                      if (autoSend) setArmed((n) => n + 1)
+                    }
+              }
             />
           ))}
         </div>
@@ -161,16 +191,32 @@ export default function GoFishBoard({
                 : 'A tie.'}
           </p>
         ) : (
-          <input
-            className="cardTableInput"
-            value={text}
-            disabled={locked}
-            placeholder={locked ? 'Waiting…' : myTurn ? 'got any sevens' : 'say something'}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') send()
-            }}
-          />
+          <span className="cardTableInputWrap">
+            <input
+              className="cardTableInput"
+              value={text}
+              disabled={locked}
+              placeholder={locked ? 'Waiting…' : myTurn ? 'got any sevens' : 'say something'}
+              onChange={(e) => {
+                setText(e.target.value)
+                cancelAutoSend()
+              }}
+              onKeyDown={(e) => {
+                cancelAutoSend()
+                if (e.key === 'Enter') send()
+              }}
+            />
+            {/* The countdown, drawn as a border filling in from the left. Keyed by the nonce so a
+                second click restarts the animation rather than continuing the old one, and over
+                the input rather than on it so the text underneath stays readable. */}
+            {armed > 0 && (
+              <span
+                key={armed}
+                className="cardTableInputFill"
+                style={{ '--cardTableAutoSend': `${autoSendMs}ms` } as CSSProperties}
+              />
+            )}
+          </span>
         )}
         <Avatar
           of={persona}

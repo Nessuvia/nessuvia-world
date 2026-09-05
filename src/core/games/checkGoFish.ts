@@ -22,6 +22,7 @@ function state(patch: Partial<GoFishState>): GoFishState {
     hands: { player: [], char: [] },
     books: { player: [], char: [] },
     asked: { player: [], char: [] },
+    known: { player: [], char: [] },
     turn: 'player',
     over: false,
     ...patch,
@@ -170,7 +171,18 @@ function state(patch: Partial<GoFishState>): GoFishState {
     while (!current.over && guard++ < 500) {
       const rank = chooseMove(current, current.turn, 'best')
       assert.ok(rank, `seed ${seed}: the side to move held nothing`)
-      current = resolveAsk(current, current.turn, rank).reduce(reduce, current)
+      const side = current.turn
+      const previous = current.asked[side][current.asked[side].length - 1]
+      // A rank asked twice running only makes sense when the first ask was answered, since a
+      // failed ask proves the other side is empty of it. Repeating past that is the stuck opponent.
+      // Unless it is the only rank in hand, in which case there is nothing else to ask.
+      if (previous === rank && legalAsks(current, side).length > 1) {
+        assert.ok(
+          current.known[side].includes(rank),
+          `seed ${seed}: ${side} re-asked ${rank} with no reason to think it is there`,
+        )
+      }
+      current = resolveAsk(current, side, rank).reduce(reduce, current)
     }
     assert.ok(current.over, `seed ${seed} never ended`)
   }
@@ -181,9 +193,16 @@ function state(patch: Partial<GoFishState>): GoFishState {
   const board = state({
     hands: { player: hand('3H 7D 7S 9C'), char: hand('KC') },
     asked: { player: [], char: ['9'] },
+    known: { player: ['9'], char: [] },
   })
   // The character asked for nines, so it held one: best play is to take them back.
   assert.strictEqual(chooseMove(board, 'player', 'best'), '9')
+  // Once that ask has come back empty the read is spent, so it must not be asked again.
+  const spent = state({
+    hands: { player: hand('3H 7D 7S 9C'), char: hand('KC') },
+    asked: { player: ['9'], char: ['9'] },
+  })
+  assert.notStrictEqual(chooseMove(spent, 'player', 'best'), '9')
   // Nothing known: ask where you hold the most.
   const blind = state({ hands: { player: hand('3H 7D 7S'), char: hand('KC') } })
   assert.strictEqual(chooseMove(blind, 'player', 'best'), '7')

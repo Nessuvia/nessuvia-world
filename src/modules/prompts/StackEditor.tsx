@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { PromptBlock, PromptStack } from '../../core/storage/types'
-import { newBlock, useStacks } from '../../core/stores/stacksStore'
+import { bundledStacks, newBlock, useStacks } from '../../core/stores/stacksStore'
 import { useSettings } from '../../core/stores/settingsStore'
 import {
   addChild,
@@ -47,7 +47,7 @@ function nextBlockLabel(stack: PromptStack) {
 }
 
 export default function StackEditor() {
-  const { stacks, load, save, create, duplicate, remove, ensureActive } = useStacks()
+  const { stacks, load, save, create, duplicate, addBundled, remove, ensureActive } = useStacks()
   // The Chat | Story switch. Not persisted, which builder you're looking at is a glance-level
   // choice; the active stack of each kind lives in settings. `?kind=story` is how the Story
   // sidebar's edit link lands on the right builder.
@@ -81,6 +81,8 @@ export default function StackEditor() {
   const mobile = useMediaQuery('(max-width: 700px)')
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useCloseOnOutside(menuOpen, () => setMenuOpen(false))
+  const [bundledOpen, setBundledOpen] = useState(false)
+  const bundledRef = useCloseOnOutside(bundledOpen, () => setBundledOpen(false))
   const [saved, setSaved] = useState(false)
   // Not persisted, matching the chat list's copy of this: skipping the confirm is a decision for
   // this sitting, not a setting that follows you into the next one.
@@ -346,6 +348,12 @@ export default function StackEditor() {
     { label: 'Delete', run: () => remove(draft.id!), danger: true },
   ] as { label: string; run: () => void; icon?: ReactNode; danger?: boolean }[]
 
+  // The stacks that ship with the build, for the kind on screen. Picking one writes a new row and
+  // leaves any existing copy alone, the same as the bundled palette picker.
+  const bundled = bundledStacks.filter(
+    (b) => b.kind === kind && (!b.multiplayer || multiplayerEnabled),
+  )
+
   return (
     <div className="prompts screenFrame">
       <h2>Prompt stacks</h2>
@@ -398,17 +406,33 @@ export default function StackEditor() {
               {menuOpen && (
                 <div className="panel presetMenu">
                   {actions.map((a) => (
-                    <button
-                      key={a.label}
-                      type="button"
-                      className={a.danger ? 'danger' : undefined}
-                      onClick={() => {
-                        setMenuOpen(false)
-                        a.run()
-                      }}
-                    >
-                      {a.label}
-                    </button>
+                    <Fragment key={a.label}>
+                      {/* One flat menu on a phone: the bundled stacks are listed here rather than
+                          behind a second dropdown. */}
+                      {a.label === 'Delete' &&
+                        bundled.map((b) => (
+                          <button
+                            key={b.key}
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false)
+                              addBundled(b.key)
+                            }}
+                          >
+                            Bundled: {b.name}
+                          </button>
+                        ))}
+                      <button
+                        type="button"
+                        className={a.danger ? 'danger' : undefined}
+                        onClick={() => {
+                          setMenuOpen(false)
+                          a.run()
+                        }}
+                      >
+                        {a.label}
+                      </button>
+                    </Fragment>
                   ))}
                 </div>
               )}
@@ -417,14 +441,38 @@ export default function StackEditor() {
             actions
               .filter((a) => !a.icon)
               .map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  className={a.danger ? 'danger' : undefined}
-                  onClick={a.run}
-                >
-                  {a.label}
-                </button>
+                <Fragment key={a.label}>
+                  {a.label === 'Delete' && bundled.length > 0 && (
+                    <div className="stackBundled" ref={bundledRef}>
+                      <button type="button" onClick={() => setBundledOpen(!bundledOpen)}>
+                        Bundled
+                      </button>
+                      {bundledOpen && (
+                        <div className="panel stackBundledMenu">
+                          {bundled.map((b) => (
+                            <button
+                              key={b.key}
+                              type="button"
+                              onClick={() => {
+                                setBundledOpen(false)
+                                addBundled(b.key)
+                              }}
+                            >
+                              {b.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={a.danger ? 'danger' : undefined}
+                    onClick={a.run}
+                  >
+                    {a.label}
+                  </button>
+                </Fragment>
               ))
           )}
         </div>
